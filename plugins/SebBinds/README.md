@@ -33,6 +33,9 @@ SebBinds provides the binding UI + runtime input mapping used by the rest of the
 - Vehicle page includes `1P/3P Camera`
 - Other mods can add pages via `SebBindsApi.RegisterActionsPage(...)`
 
+### API
+- Full docs: [API Docs](docs/API.md)
+
 ## Screenshots
 <table>
   <tr>
