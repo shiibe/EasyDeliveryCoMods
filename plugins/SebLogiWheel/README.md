@@ -88,7 +88,7 @@ Install
 
 Quick start
 1. Install the mod and start the game once.
-2. Open `seb.exe` (SebCore) then launch `Wheel`.
+2. Open `mods.exe` (SebCore) then launch `Wheel`.
 3. Run calibration if needed.
 4. Open `Binds` -> `Wheel` and bind buttons/axes.
 
@@ -96,7 +96,6 @@ Quick start
 - Config file: `BepInEx/config/shibe.easydeliveryco.seblogiwheel.cfg`
 
 General
-- `enable_mod` (bool, default: `true`): Enables/disables the mod entirely.
 - `ignore_xinput_controllers` (bool, default: `true`): Pass `ignoreXInputControllers` to the Logitech SDK init (recommended).
 
 Debug
@@ -104,13 +103,13 @@ Debug
 - `debug_logging` (bool, default: `false`): Log debug information.
 
 ## In-game menu
-- Open `seb.exe` (SebCore) then launch `Wheel`.
+- Open `mods.exe` (SebCore) then launch `Wheel`.
 - Use this menu for wheel-specific setup (calibration, axis mapping, FFB tuning).
 
 ## Troubleshooting
 My wheel/pedals aren't working or are stuck at full throttle.
 - Make sure Logitech G HUB (or older Logitech Gaming Software) is installed.
-- Open `seb.exe` -> `Wheel` and check `Axis Mapping`.
+- Open `mods.exe` -> `Wheel` and check `Axis Mapping`.
 - Run `Calibration` and follow the prompts.
 
 The SDK fails to load or I get errors about missing DLLs.

@@ -4,19 +4,19 @@ Monorepo for my Easy Delivery Co. mods.
 
 ## Layout
 
-- `plugins/SebCore` - core mod (desktop/menu + shared utilities)
+- `plugins/SebCore` - core mod (main menu desktop icon `mods.exe` + shared utilities)
 - `plugins/SebBinds` - keybinding menu (keyboard/controller)
-- `plugins/SebUltrawide` - ultrawide settings (`wide` desktop app)
-- `plugins/SebLogiWheel` - Logitech wheel support (`wheel` desktop app)
+- `plugins/SebUltrawide` - ultrawide settings (SebCore app: `Graphics`)
+- `plugins/SebLogiWheel` - Logitech wheel support (SebCore app: `Wheel`)
 - `plugins/SebTruck` - vehicle/transmission tweaks
 
 ## Mods
 
-- SebCore: `plugins/SebCore`
-- SebBinds: `plugins/SebBinds`
-- SebUltrawide: `plugins/SebUltrawide/README.md`
-- SebLogiWheel: `plugins/SebLogiWheel/README.md`
-- SebTruck: `plugins/SebTruck`
+- [SebCore](plugins/SebCore/README.md)
+- [SebBinds](plugins/SebBinds/README.md)
+- [SebUltrawide](plugins/SebUltrawide/README.md)
+- [SebLogiWheel](plugins/SebLogiWheel/README.md)
+- [SebTruck](plugins/SebTruck/README.md)
 
 ## Local build config
 

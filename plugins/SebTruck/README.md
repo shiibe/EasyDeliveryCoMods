@@ -36,7 +36,10 @@ SebTruck adds practical driving upgrades like manual transmission, ignition cont
 - Works with any input bindings from SebBinds
 
 ## Screenshots
-(Coming soon)
+Recommended shots:
+- `assets/screenshots/1.jpg`: HUD readouts (speed/tach/gear) while driving
+- `assets/screenshots/2.jpg`: Truck menu settings
+- `assets/screenshots/3.jpg`: SebBinds `Truck` page (Ignition/Shift binds)
 
 ## Installation
 Dependencies
@@ -49,12 +52,15 @@ Install
 - Manual: copy `SebTruck.dll` to `BepInEx/plugins/SebTruck/`
 
 ## In-game menu
-- Open `seb.exe` (SebCore) then launch `Truck`
+- Open `mods.exe` (SebCore) then launch `Truck`
 - Binds: open `Binds` then use the `Truck` binds page
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.sebtruck.cfg`
 - Optional SFX: place `ignition_on.wav` at `BepInEx/plugins/SebTruck/sfx/ignition_on.wav`
+- `Debug.debug_logging` (bool): Verbose logging
+- `Ignition.sfx_on_path` (string): Ignition ON sound file name inside `sfx/`
+- `Ignition.sfx_volume` (float): Ignition sound volume (0..1)
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`

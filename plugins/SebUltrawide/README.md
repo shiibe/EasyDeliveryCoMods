@@ -55,7 +55,7 @@ Ultrawide behavior is optional: set `aspect_ratio=default` to keep the game's or
 ## Installation
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
- - `shiibe-SebCore-1.0.0`
+- `shiibe-SebCore-1.0.0`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebUltrawide/
@@ -63,12 +63,14 @@ Install
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.sebultrawide.cfg`
-- `enable_mod`: enables/disables the mod entirely
 - `aspect_ratio`: `default`, `auto`, `w:h` (e.g. `21:9`), or a decimal ratio (e.g. `2.39`)
   - Use `aspect_ratio=default` to disable ultrawide fixes while keeping the in-game settings (FOV/pixelation/view distance).
+- `Logging.debug_logging` (bool): Debug info about applied adjustments
+- `Logging.perf_logging` (bool): Periodic perf counters (noisy)
+- `Logging.perf_log_interval_seconds` (float): How often to emit perf logs
 
 ## In-Game Menu
-- Open `seb.exe` (SebCore) then launch `Graphics`
+- Open `mods.exe` (SebCore) then launch `Graphics`
 - FOV: separate saved values for `1st Person` and `3rd Person`
 - Pixelation: adjusts the 3D view render target (does not affect HUD/menu rendering)
 - View Distance: adjusts gameplay camera draw distance + LOD/shadow distance
