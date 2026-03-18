@@ -50,9 +50,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <TruckSfx Include="sfx\**\*">
+    <!-- Include ignition SFX in build output so packaging can pick it up. -->
+    <Content Include="sfx\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </TruckSfx>
+    </Content>
+    
+    <!-- Keep a dedicated item list for the r2modman profile copy target. -->
+    <TruckSfx Include="sfx\**\*" />
   </ItemGroup>
 
   <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">

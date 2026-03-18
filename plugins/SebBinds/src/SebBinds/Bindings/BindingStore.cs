@@ -18,6 +18,13 @@ namespace SebBinds
         private const string PrefKeyBindModifierKeyboard = "SebBinds_KB_Bind_Modifier";
         private const string PrefKeyBindModifierWheel = "SebBinds_Wheel_Bind_Modifier";
 
+        private static string GetModifierPrefKey(BindingScheme scheme)
+        {
+            return scheme == BindingScheme.Keyboard
+                ? PrefKeyBindModifierKeyboard
+                : (scheme == BindingScheme.Wheel ? PrefKeyBindModifierWheel : PrefKeyBindModifierController);
+        }
+
         private static string GetBindPrefKey(BindingScheme scheme, BindingLayer layer, BindAction action)
         {
             // Stable key: do not depend on enum ToString().
@@ -62,9 +69,22 @@ namespace SebBinds
                 }
             }
 
-            PlayerPrefs.DeleteKey(PrefKeyBindModifierController);
-            PlayerPrefs.DeleteKey(PrefKeyBindModifierKeyboard);
-            PlayerPrefs.DeleteKey(PrefKeyBindModifierWheel);
+            PlayerPrefs.DeleteKey(GetModifierPrefKey(BindingScheme.Controller));
+            PlayerPrefs.DeleteKey(GetModifierPrefKey(BindingScheme.Keyboard));
+            PlayerPrefs.DeleteKey(GetModifierPrefKey(BindingScheme.Wheel));
+        }
+
+        public static void ClearScheme(BindingScheme scheme)
+        {
+            foreach (BindAction action in System.Enum.GetValues(typeof(BindAction)))
+            {
+                foreach (BindingLayer layer in System.Enum.GetValues(typeof(BindingLayer)))
+                {
+                    PlayerPrefs.DeleteKey(GetBindPrefKey(scheme, layer, action));
+                    PlayerPrefs.DeleteKey(GetLegacyBindPrefKey(scheme, layer, action));
+                }
+            }
+            PlayerPrefs.DeleteKey(GetModifierPrefKey(scheme));
         }
 
         public static BindingInput GetBinding(BindingLayer layer, BindAction action)
@@ -105,19 +125,13 @@ namespace SebBinds
 
         public static BindingInput GetModifierBinding(BindingScheme scheme)
         {
-            string key = scheme == BindingScheme.Keyboard
-                ? PrefKeyBindModifierKeyboard
-                : (scheme == BindingScheme.Wheel ? PrefKeyBindModifierWheel : PrefKeyBindModifierController);
-            int raw = PlayerPrefs.GetInt(key, -1);
+            int raw = PlayerPrefs.GetInt(GetModifierPrefKey(scheme), -1);
             return Decode(raw);
         }
 
         public static void SetModifierBinding(BindingScheme scheme, BindingInput input)
         {
-            string key = scheme == BindingScheme.Keyboard
-                ? PrefKeyBindModifierKeyboard
-                : (scheme == BindingScheme.Wheel ? PrefKeyBindModifierWheel : PrefKeyBindModifierController);
-            PlayerPrefs.SetInt(key, Encode(input));
+            PlayerPrefs.SetInt(GetModifierPrefKey(scheme), Encode(input));
         }
 
         public static string GetBindingLabel(BindingInput input)

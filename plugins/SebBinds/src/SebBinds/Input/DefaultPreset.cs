@@ -9,6 +9,11 @@ namespace SebBinds
     {
         private const string PrefKeyPresetInstalled = "SebBinds_PresetInstalled";
 
+        internal static bool IsInstalled()
+        {
+            return PlayerPrefs.GetInt(PrefKeyPresetInstalled, 0) != 0;
+        }
+
         internal static void MarkInstalled()
         {
             PlayerPrefs.SetInt(PrefKeyPresetInstalled, 1);
@@ -17,6 +22,16 @@ namespace SebBinds
 
         internal static bool TryInstallFromInputManager(sInputManager input)
         {
+            return TryInstallFromInputManager(input, forceOnController: null, forceReinstall: false);
+        }
+
+        internal static bool TryInstallFromInputManager(sInputManager input, bool? forceOnController, bool forceReinstall)
+        {
+            if (!forceReinstall && IsInstalled())
+            {
+                return false;
+            }
+
             if (input == null)
             {
                 return false;
@@ -28,14 +43,22 @@ namespace SebBinds
                 return false;
             }
 
-            bool onController = false;
-            try
+            bool onController;
+            if (forceOnController.HasValue)
             {
-                onController = input.OnController();
+                onController = forceOnController.Value;
             }
-            catch
+            else
             {
-                // ignore
+                onController = false;
+                try
+                {
+                    onController = input.OnController();
+                }
+                catch
+                {
+                    // ignore
+                }
             }
 
             bool anySet = false;

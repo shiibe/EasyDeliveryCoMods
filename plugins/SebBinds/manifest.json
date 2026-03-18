@@ -2,7 +2,7 @@
   "name": "SebBinds",
   "version_number": "1.0.0",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
-  "description": "Centralized input rebinding (controller/keyboard/wheel integration) for Seb mods.",
+  "description": "Adds real keybind/controller rebinding to Easy Delivery Co and exposes an API for other mods.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2304",
     "shiibe-SebCore-1.0.0"

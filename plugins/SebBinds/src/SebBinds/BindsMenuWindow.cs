@@ -592,9 +592,21 @@ namespace SebBinds
             float resetY = p.y + p.height - 30f;
             if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
-                BindingStore.ClearAll();
-                AxisBindingStore.ClearAll();
-                Plugin.Log?.LogInfo("Bindings cleared; defaults will re-seed from game input");
+                // Only reset the current scheme.
+                BindingStore.ClearScheme(_scheme);
+                AxisBindingStore.ClearScheme(_scheme);
+
+                if (_scheme == BindingScheme.Controller)
+                {
+                    DefaultPreset.TryInstallFromInputManager(Plugin.LastInputManager, forceOnController: true, forceReinstall: true);
+                    AxisDefaults.EnsureControllerDefaults();
+                }
+                else if (_scheme == BindingScheme.Keyboard)
+                {
+                    KeyboardDefaults.EnsureDefaults();
+                }
+
+                PlayerPrefs.Save();
             }
         }
 

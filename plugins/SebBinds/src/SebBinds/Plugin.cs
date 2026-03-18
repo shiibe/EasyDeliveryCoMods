@@ -12,5 +12,8 @@ namespace SebBinds
         public const string PluginVersion = "1.0.0";
 
         internal static ManualLogSource Log;
+
+        // Latest sInputManager seen by our patch. Used by UI code to re-seed defaults on demand.
+        internal static sInputManager LastInputManager;
     }
 }

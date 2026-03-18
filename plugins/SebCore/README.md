@@ -2,7 +2,7 @@
 
 <h1>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebCore/assets/icon.png" alt="Logo" width="128">
+  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebCore/assets/icon.png" alt="Logo" width="128">
   <br>SebCore
 </h1>
   <p align="center">

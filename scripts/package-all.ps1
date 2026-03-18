@@ -28,26 +28,26 @@ New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
 Write-Host "Building solution ($Configuration)..."
 dotnet build (Join-Path $repoRoot "EasyDeliveryCoMods.sln") -c $Configuration
 
-function Update-ManifestVersion($manifestPath, $version)
+function Write-ManifestWithVersion($srcManifestPath, $dstManifestPath, $version)
 {
-    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+    $manifest = Get-Content $srcManifestPath -Raw | ConvertFrom-Json
     $manifest.version_number = $version
-    $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $manifestPath
+    $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $dstManifestPath
 }
 
-function Ensure-ChangelogHeader($changelogPath, $version)
+function Write-ChangelogWithHeader($srcChangelogPath, $dstChangelogPath, $version)
 {
-    if (-not (Test-Path $changelogPath))
+    if (-not (Test-Path $srcChangelogPath))
     {
         return
     }
 
-    $changelog = Get-Content $changelogPath -Raw
+    $changelog = Get-Content $srcChangelogPath -Raw
     if ($changelog -notmatch "(?m)^##\s+$version\s*$")
     {
         $changelog = "## $version`r`n- Packaged build`r`n`r`n" + $changelog.Trim()
-        Set-Content -Path $changelogPath -Value $changelog
     }
+    Set-Content -Path $dstChangelogPath -Value $changelog
 }
 
 foreach ($p in $plugins)
@@ -78,9 +78,6 @@ foreach ($p in $plugins)
     }
 
     Write-Host "Packaging $name..."
-
-    Update-ManifestVersion $manifestPath $Version
-    Ensure-ChangelogHeader $changelogPath $Version
 
     $csprojPath = Join-Path $repoRoot $p.Csproj
     $outputDir = Join-Path (Split-Path -Parent $csprojPath) ("bin\\" + $Configuration + "\\net472")
@@ -116,9 +113,9 @@ foreach ($p in $plugins)
         Copy-Item $sfxDir -Destination (Join-Path $stagePlugins "sfx") -Recurse -Force
     }
 
-    Copy-Item $manifestPath -Destination (Join-Path $stage "manifest.json") -Force
+    Write-ManifestWithVersion $manifestPath (Join-Path $stage "manifest.json") $Version
     Copy-Item $readmePath -Destination (Join-Path $stage "README.md") -Force
-    Copy-Item $changelogPath -Destination (Join-Path $stage "CHANGELOG.md") -Force
+    Write-ChangelogWithHeader $changelogPath (Join-Path $stage "CHANGELOG.md") $Version
     Copy-Item $iconPath -Destination (Join-Path $stage "icon.png") -Force
 
     $zipPath = Join-Path $distRoot ("${name}_${Version}.zip")

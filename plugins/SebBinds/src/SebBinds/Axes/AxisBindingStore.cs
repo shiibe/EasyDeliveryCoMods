@@ -11,6 +11,10 @@ namespace SebBinds
             {
                 return "SebBinds_Wheel_Axis_" + (int)action;
             }
+            if (scheme == BindingScheme.Keyboard)
+            {
+                return "SebBinds_KB_Axis_" + (int)action;
+            }
             return "SebBinds_Axis_" + (int)action;
         }
 
@@ -77,7 +81,16 @@ namespace SebBinds
             foreach (AxisAction a in System.Enum.GetValues(typeof(AxisAction)))
             {
                 PlayerPrefs.DeleteKey(Key(BindingScheme.Controller, a));
+                PlayerPrefs.DeleteKey(Key(BindingScheme.Keyboard, a));
                 PlayerPrefs.DeleteKey(Key(BindingScheme.Wheel, a));
+            }
+        }
+
+        public static void ClearScheme(BindingScheme scheme)
+        {
+            foreach (AxisAction a in System.Enum.GetValues(typeof(AxisAction)))
+            {
+                PlayerPrefs.DeleteKey(Key(scheme, a));
             }
         }
 

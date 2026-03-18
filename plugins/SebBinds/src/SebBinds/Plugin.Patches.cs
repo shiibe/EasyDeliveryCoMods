@@ -52,11 +52,13 @@ namespace SebBinds
                 return;
             }
 
-            // Try every time; it's non-destructive (only fills unset actions).
+            LastInputManager = __instance;
+
+            // Seed defaults once (non-destructive; only fills unset actions).
             bool installed = DefaultPreset.TryInstallFromInputManager(__instance);
             if (installed)
             {
-                Log?.LogInfo("Installed default preset from game's InputActions");
+                LogDebug("Installed default preset from game's InputActions");
             }
 
             // Non-destructive controller axis defaults.
@@ -147,12 +149,7 @@ namespace SebBinds
             BindingInput GetBind(BindingScheme s, BindAction action)
             {
                 var layer = LayerFor(s);
-                var b = BindingStore.GetBinding(s, layer, action);
-                if (b.Kind == BindingKind.None && layer == BindingLayer.Modified)
-                {
-                    b = BindingStore.GetBinding(s, BindingLayer.Normal, action);
-                }
-                return b;
+                return BindingStore.GetBinding(s, layer, action);
             }
 
             bool Pressed(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(b);

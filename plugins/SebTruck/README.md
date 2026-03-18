@@ -2,11 +2,11 @@
 
 <h1>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebTruck/assets/icon.png" alt="Logo" width="128">
+  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/icon.png" alt="Logo" width="128">
   <br>SebTruck
 </h1>
   <p align="center">
-    Driving feature extensions (not wheel-specific).
+    Driving upgrades for Easy Delivery Co.
     <br />
     <a href="#about">About</a>
     ·
@@ -26,13 +26,14 @@
 <hr/>
 
 ## About
-SebTruck adds driving/gameplay features that should work on keyboard, controller, or wheel.
+SebTruck adds practical driving upgrades like manual transmission, ignition controls, and compact HUD readouts (speed/tach/gear) while you drive.
 
 ## Features
 - Manual transmission mode (gears, neutral, reverse)
 - Ignition toggle with hold-to-start behavior
 - HUD readouts (speed/tach/gear)
 - Optional ignition sound (`ignition_on.wav`)
+- Works with any input bindings from SebBinds
 
 ## Screenshots
 (Coming soon)

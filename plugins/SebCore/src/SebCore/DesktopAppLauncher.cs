@@ -48,18 +48,26 @@ namespace SebCore
 
         public static bool TryOpenProgramListener(DesktopDotExe desktop, string fileName, string listenerData)
         {
-            return TryOpenProgramListener(desktop, desktop != null ? desktop.R : null, fileName, listenerData);
+            return TryOpenProgramListener(desktop, null, fileName, listenerData);
         }
 
         public static bool TryOpenProgramListener(DesktopDotExe desktop, MiniRenderer renderer, string fileName, string listenerData)
         {
-            if (desktop == null || renderer == null || string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(listenerData))
+            if (desktop == null || string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(listenerData))
+            {
+                return false;
+            }
+
+            // Prefer the desktop's renderer when available; fall back to the caller-provided one.
+            // Some cartridge contexts pass a non-null view renderer even when DesktopDotExe.R is null.
+            var r = desktop.R != null ? desktop.R : renderer;
+            if (r == null)
             {
                 return false;
             }
 
             // Create an ephemeral "file" to spawn the program window.
-            var file = new DesktopDotExe.File(renderer, desktop)
+            var file = new DesktopDotExe.File(r, desktop)
             {
                 name = fileName,
                 type = DesktopDotExe.FileType.exe,

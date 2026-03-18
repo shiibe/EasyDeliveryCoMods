@@ -1,6 +1,6 @@
 <h1>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebUltrawide/assets/icon.png" alt="Logo" width="128">
+  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/icon.png" alt="Logo" width="128">
   <br>SebUltrawide
 </h1>
   <p align="center">
@@ -45,12 +45,12 @@ Ultrawide behavior is optional: set `aspect_ratio=default` to keep the game's or
   - Automatically skips FOV overrides while inside buildings
 
 ## Screenshots
-![Screenshot 1](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebUltrawide/assets/screenshots/1.jpg)
-![Screenshot 2](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebUltrawide/assets/screenshots/2.jpg)
-![Screenshot 3](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebUltrawide/assets/screenshots/3.jpg)
-![Screenshot 4](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebUltrawide/assets/screenshots/4.jpg)
-![Screenshot 5](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebUltrawide/assets/screenshots/5.jpg)
-![Screenshot 6](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebUltrawide/assets/screenshots/6.jpg)
+![Screenshot 1](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/1.jpg)
+![Screenshot 2](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/2.jpg)
+![Screenshot 3](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/3.jpg)
+![Screenshot 4](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/4.jpg)
+![Screenshot 5](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/5.jpg)
+![Screenshot 6](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/6.jpg)
 
 ## Installation
 Dependencies

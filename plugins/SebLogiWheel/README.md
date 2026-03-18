@@ -1,6 +1,6 @@
 <h1>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/icon.png" alt="Logo" width="128">
+  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/icon.png" alt="Logo" width="128">
   <br>SebLogiWheel
 </h1>
   <p align="center">
@@ -32,6 +32,10 @@ SebLogiWheel adds Logitech wheel input + Force Feedback (FFB) support.
 
 Wheel bindings live in `SebBinds` (Binds -> Wheel). Driving feature extensions (manual transmission / ignition / HUD readouts) live in `SebTruck`.
 
+**Important**
+- When SebLogiWheel is active, keyboard/controller axis driving is disabled.
+- For best results, do not have other controllers plugged in at the same time as the steering wheel.
+
 ## Features
 - Wheel steering + pedals
 - Force Feedback (FFB)
@@ -46,24 +50,24 @@ Wheel bindings live in `SebBinds` (Binds -> Wheel). Driving feature extensions (
 ## Screenshots
 <table>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/1.jpg" alt="Screenshot 1" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/2.jpg" alt="Screenshot 2" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/1.jpg" alt="Screenshot 1" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/2.jpg" alt="Screenshot 2" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/6.jpg" alt="Screenshot 6" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/6.jpg" alt="Screenshot 6" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/7.jpg" alt="Screenshot 7" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/8.jpg" alt="Screenshot 8" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/7.jpg" alt="Screenshot 7" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/8.jpg" alt="Screenshot 8" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/9.jpg" alt="Screenshot 9" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/10.jpg" alt="Screenshot 10" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/9.jpg" alt="Screenshot 9" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/10.jpg" alt="Screenshot 10" width="100%"></td>
   </tr>
 </table>
 

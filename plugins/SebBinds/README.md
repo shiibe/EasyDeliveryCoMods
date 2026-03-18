@@ -2,11 +2,11 @@
 
 <h1>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebBinds/assets/icon.png" alt="Logo" width="128">
+  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebBinds/assets/icon.png" alt="Logo" width="128">
   <br>SebBinds
 </h1>
   <p align="center">
-    Centralized binds UI + input rebinding layer for my Easy Delivery Co. mods.
+    Binds UI + keybind/controller rebinding for Easy Delivery Co, with an API for other mods.
     <br />
     <a href="#about">About</a>
     ·
