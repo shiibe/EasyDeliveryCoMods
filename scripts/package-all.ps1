@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Version,
-    [string]$Configuration = "Release"
+    [string]$Configuration = "Release",
+    [string[]]$Only = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,20 @@ $plugins = @(
     @{ Name = "SebTruck";    Csproj = "plugins/SebTruck/src/SebTruck/SebTruck.csproj";  ExtraDlls = @(); },
     @{ Name = "SebLogiWheel";Csproj = "plugins/SebLogiWheel/src/SebLogiWheel/SebLogiWheel.csproj"; ExtraDlls = @("LogitechSteeringWheelEnginesWrapper.dll"); }
 )
+
+if ($Only.Count -eq 1 -and $Only[0] -match "[,;]")
+{
+    $Only = $Only[0].Split(@(',', ';')) | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+}
+
+if ($Only.Count -gt 0)
+{
+    $plugins = $plugins | Where-Object { $Only -contains $_.Name }
+    if ($plugins.Count -eq 0)
+    {
+        throw "No matching plugins for -Only: $($Only -join ', ')"
+    }
+}
 
 if (Test-Path $distRoot)
 {

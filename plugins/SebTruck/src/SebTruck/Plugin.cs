@@ -16,7 +16,7 @@ namespace SebTruck
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtruck";
         public const string PluginName = "SebTruck";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.0.1";
 
         internal static ManualLogSource Log;
 

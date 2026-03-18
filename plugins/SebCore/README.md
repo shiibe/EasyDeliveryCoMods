@@ -27,6 +27,25 @@ SebCore is the base mod that provides the in-game launcher UI and some shared ut
 - Adds desktop icon/program (`mods.exe`) on the main menu.
 - Hosts the launcher window where you open the other mods ("Cartridges").
 
+### API
+SebCore exposes a small public API so other mods can plug into the launcher.
+
+- `SebCore.CartridgeApps.RegisterApp(...)`: register a custom cartridge so it appears in the SebCore launcher.
+  - If more than 10 cartridges are installed, the launcher automatically shows paging controls.
+
+Example:
+```csharp
+SebCore.CartridgeApps.RegisterApp(new SebCore.CartridgeApps.App
+{
+    DisplayName = "My Cartridge",
+    FileName = "mycart",
+    PluginGuid = "com.example.mycart",
+    ListenerName = "MyCartMenu",
+    ListenerData = "listener_MyCartMenu",
+    WindowTypeName = "MyCart.MyCartMenuWindow"
+});
+```
+
 Cartridges are small, optional sub-mods you can install and enable as needed - like popping different games into the same console. The goal is a modular setup where you only run what you actually use.
 
 ### Config
@@ -67,4 +86,4 @@ Install
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.0`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.1`

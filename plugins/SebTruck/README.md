@@ -59,7 +59,7 @@ SebTruck adds driving upgrades like manual transmission, ignition controls, and 
 ## Installation
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
-- `shiibe-SebCore-1.0.0`
+- `shiibe-SebCore-1.0.1`
 - `shiibe-SebBinds-1.0.0`
 
 Install
@@ -93,4 +93,4 @@ Truck page:
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.0`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.1`

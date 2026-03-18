@@ -13,6 +13,7 @@ namespace SebTruck
         private static sCarController _currentCar;
         private static bool _isInWalkingMode;
         private static float _currentSpeedKmh;
+        private static float _currentSpeedMult = 1f;
         private static float _lastThrottle01;
         private static float _neutralRev01;
 
@@ -1026,6 +1027,7 @@ namespace SebTruck
             {
                 car.maxSpeedScale = d.maxSpeedScale;
                 car.drivePowerScale = d.drivePowerScale;
+                _currentSpeedMult = 1f;
                 return;
             }
 
@@ -1053,6 +1055,7 @@ namespace SebTruck
 
             car.maxSpeedScale = d.maxSpeedScale * mult;
             car.drivePowerScale = d.drivePowerScale;
+            _currentSpeedMult = mult;
         }
 
         private static float GetMaxSpeedForGearKmh(int gear)
@@ -1063,10 +1066,11 @@ namespace SebTruck
             const float baseKmh = 25f;
             const float topKmh = 125f;
 
-            // Use a linear distribution so the last gear isn't a huge jump.
-            // (With 5 gears, this yields 25/50/75/100/125 instead of an exponential ramp.)
-            float t = count <= 1 ? 1f : (gear - 1f) / (count - 1f);
-            return Mathf.Lerp(baseKmh, topKmh, Mathf.Clamp01(t));
+            // Virtual gearbox curve: lower gears top out earlier.
+            // This is an exponential/geometric progression in max speed per gear, which corresponds to a
+            // geometric decay in effective ratio (big early drop, then flatter as gears go up).
+            float growth = Mathf.Pow(topKmh / baseKmh, 1f / Mathf.Max(1, count - 1));
+            return baseKmh * Mathf.Pow(growth, gear - 1);
         }
 
         private static float GetMaxSpeedForCurrentGearKmh()
@@ -1077,7 +1081,7 @@ namespace SebTruck
                 return 1f;
             }
             float baseKmh = GetMaxSpeedForGearKmh(Mathf.Clamp(Mathf.Abs(g), 1, GetManualGearCount()));
-            return Mathf.Max(1f, baseKmh);
+            return Mathf.Max(1f, baseKmh * Mathf.Max(0.01f, _currentSpeedMult));
         }
 
         internal static float GetEstimatedRpm()
@@ -1088,7 +1092,7 @@ namespace SebTruck
             float t;
             if (!GetManualTransmissionEnabled())
             {
-                t = Mathf.Clamp01(_currentSpeedKmh / 140f);
+                t = Mathf.Clamp01(_currentSpeedKmh / (140f * Mathf.Max(0.01f, _currentSpeedMult)));
                 return Mathf.Lerp(idle, redline, t);
             }
 
@@ -1105,7 +1109,7 @@ namespace SebTruck
         {
             if (!GetManualTransmissionEnabled())
             {
-                return Mathf.Clamp01(_currentSpeedKmh / 140f);
+                return Mathf.Clamp01(_currentSpeedKmh / (140f * Mathf.Max(0.01f, _currentSpeedMult)));
             }
 
             if (_manualGear == 0)

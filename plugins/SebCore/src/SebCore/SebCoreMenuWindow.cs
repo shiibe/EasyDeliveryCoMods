@@ -15,8 +15,11 @@ namespace SebCore
 
         private float _mouseYLock;
         private UIUtil _util;
+        private DesktopDotExe.WindowView _view;
 
         private bool _resetPrefsConfirm;
+
+        private int _cartridgePageIndex;
 
         private MenuPage _page;
 
@@ -32,6 +35,8 @@ namespace SebCore
             {
                 return;
             }
+
+            _view = view;
 
             _util ??= new UIUtil();
             _util.M = view.M;
@@ -60,7 +65,18 @@ namespace SebCore
             {
                 _resetPrefsConfirm = false;
                 _page = MenuPage.Main;
+                return;
             }
+
+            CloseWindow();
+        }
+
+        private void CloseWindow()
+        {
+            _resetPrefsConfirm = false;
+            _page = MenuPage.Main;
+            _cartridgePageIndex = 0;
+            _view?.Kill();
         }
 
         private void DrawMenu(Rect p)
@@ -84,22 +100,24 @@ namespace SebCore
 
         private void DrawMain(Rect p, float cx, ref float y, float line, float sectionGap)
         {
-
             // Cartridge launcher.
             var desktop = _util.M;
-            var apps = new List<CartridgeApps.App>
-            {
-                CartridgeApps.Binds,
-                CartridgeApps.Truck,
-                CartridgeApps.Ultrawide,
-                CartridgeApps.Wheel
-            };
-            apps.RemoveAll(a => !CartridgeApps.IsInstalled(a));
+            var apps = CartridgeApps.GetRegisteredAppsSnapshot().Where(CartridgeApps.IsInstalled).ToList();
 
             float btnGap = 22f;
             float colGap = 78f;
             float leftX = cx - colGap;
             float rightX = cx + colGap;
+
+            const int pageSize = 10;
+            bool needsPaging = apps.Count > pageSize;
+            int pageCount = needsPaging ? (apps.Count + pageSize - 1) / pageSize : 1;
+            if (_cartridgePageIndex < 0) _cartridgePageIndex = 0;
+            if (_cartridgePageIndex > pageCount - 1) _cartridgePageIndex = pageCount - 1;
+
+            int startIndex = needsPaging ? _cartridgePageIndex * pageSize : 0;
+            int endIndex = needsPaging ? Mathf.Min(startIndex + pageSize, apps.Count) : apps.Count;
+            int pageItems = endIndex - startIndex;
 
             if (apps.Count == 0)
             {
@@ -108,10 +126,12 @@ namespace SebCore
             else
             {
                 // 2-column launcher grid without gaps.
-                for (int i = 0; i < apps.Count; i++)
+                float yy = y;
+                for (int i = startIndex; i < endIndex; i++)
                 {
-                    float x = (i % 2 == 0) ? leftX : rightX;
-                    if (_util.FancyButton(apps[i].DisplayName, x, y))
+                    int localIndex = i - startIndex;
+                    float x = (localIndex % 2 == 0) ? leftX : rightX;
+                    if (_util.FancyButton(apps[i].DisplayName, x, yy))
                     {
                         if (!CartridgeApps.EnsureListener(desktop, apps[i]))
                         {
@@ -123,24 +143,62 @@ namespace SebCore
                         }
                     }
 
-                    if (i % 2 == 1)
+                    if (localIndex % 2 == 1)
                     {
-                        y += btnGap;
+                        yy += btnGap;
                     }
                 }
 
-                if (apps.Count % 2 == 1)
+                if (pageItems % 2 == 1)
                 {
-                    y += btnGap;
+                    yy += btnGap;
                 }
             }
 
-            // Bottom button.
+            // Bottom buttons.
             float navY = p.y + p.height - 18f;
-            if (_util.SimpleButtonRaw("Settings", cx, navY))
+            float settingsY = navY - 12f;
+
+            if (_util.SimpleButtonRaw("Settings", cx, settingsY))
             {
                 _resetPrefsConfirm = false;
                 _page = MenuPage.Settings;
+                return;
+            }
+
+            if (needsPaging)
+            {
+                float prevX = p.x + 40f;
+                float nextX = p.x + p.width - 40f;
+                if (_util.SimpleButtonRaw("Prev", prevX, navY))
+                {
+                    if (_cartridgePageIndex > 0)
+                    {
+                        _cartridgePageIndex--;
+                    }
+                }
+                if (_util.SimpleButtonRaw("Back", cx, navY))
+                {
+                    CloseWindow();
+                    return;
+                }
+                if (_util.SimpleButtonRaw("Next", nextX, navY))
+                {
+                    if (_cartridgePageIndex < pageCount - 1)
+                    {
+                        _cartridgePageIndex++;
+                    }
+                }
+
+                _util.Label((_cartridgePageIndex + 1) + "/" + pageCount, p.x + p.width - 18f, p.y + 10f);
+            }
+            else
+            {
+                if (_util.SimpleButtonRaw("Back", cx, navY))
+                {
+                    CloseWindow();
+                    return;
+                }
             }
         }
 
@@ -151,28 +209,28 @@ namespace SebCore
 
             float navY = p.y + p.height - 18f;
             float clearY = navY - 12f;
+            float actionY = navY - 24f;
 
             if (_resetPrefsConfirm)
             {
-                _util.Label("Clear all mod prefs?", cx, clearY - 12f);
-                if (_util.SimpleButtonRaw("Confirm", cx, clearY))
+                _util.Label("Clear all mod prefs?", cx, actionY - 12f);
+                if (_util.SimpleButtonRaw("Confirm", cx, actionY))
                 {
                     Plugin.RequestClearModPrefs();
                     _resetPrefsConfirm = false;
                 }
-                if (_util.SimpleButtonRaw("Cancel", cx, navY - 12f))
+                if (_util.SimpleButtonRaw("Cancel", cx, clearY))
                 {
                     _resetPrefsConfirm = false;
                 }
             }
             else
             {
-                if (_util.SimpleButtonRaw("Clear Mod Prefs", cx, clearY))
+                if (_util.SimpleButtonRaw("Clear Mod Prefs", cx, actionY))
                 {
                     _resetPrefsConfirm = true;
                 }
             }
-
             if (_util.SimpleButtonRaw("Back", cx, navY))
             {
                 _resetPrefsConfirm = false;
