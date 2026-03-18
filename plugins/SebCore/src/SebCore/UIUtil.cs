@@ -109,15 +109,22 @@ namespace SebCore
             if (hovered)
             {
                 M.mouseIcon = 128;
+
+                float baseWTiles = wTiles;
+                float hoverWTiles = baseWTiles + 2f;
+
                 if (M.mouseButton)
                 {
+                    // Keep the pressed state feeling slightly "tighter".
                     M.mouseIcon = 160;
+                    wTiles = baseWTiles;
                 }
-                else if (fixedWidthTiles <= 0f)
+                else
                 {
-                    // Auto-sized buttons expand slightly on hover.
-                    wTiles += 2f;
+                    // Hover effect.
+                    wTiles = hoverWTiles;
                 }
+
                 if (M.mouseButtonUp)
                 {
                     return true;

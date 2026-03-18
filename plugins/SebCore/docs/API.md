@@ -64,6 +64,14 @@ Your `WindowTypeName` type should be a `MonoBehaviour` that implements the same 
 - `FrameUpdate(DesktopDotExe.WindowView view)`: called every frame while the window is open.
 - `BackButtonPressed()`: called when the window back action is triggered.
 
+### Optional Base Class
+
+SebCore includes an optional base class you can derive from:
+
+- `SebCore.CartridgeWindowBase`
+
+It wires up `UIUtil`, computes the standard window content rect, includes the common slider `MouseYLock` behavior, and implements a default `BackButtonPressed()` that returns to the SebCore launcher.
+
 Common pattern (also used by the built-in cartridges):
 
 ```csharp

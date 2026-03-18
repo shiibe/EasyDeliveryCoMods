@@ -132,9 +132,10 @@ namespace SebCore
                     if (w > maxTextWidthPx) maxTextWidthPx = w;
                 }
 
-                // FancyButton's autosize is roughly (textWidth/8 + 1). Add padding so it feels like the hover-expanded size.
-                // Clamp so the two columns don't collide.
-                fixedButtonWTiles = Mathf.Clamp(maxTextWidthPx / 8f + 3f, 10f, 18f);
+                // FancyButton's autosize is roughly (textWidth/8 + 1). Add extra padding so
+                // buttons feel intentional and comfortably wide.
+                // Clamp so the two columns don't collide even with hover expansion.
+                fixedButtonWTiles = Mathf.Clamp(maxTextWidthPx / 8f + 5f, 12f, 17f);
             }
 
             if (apps.Count == 0)
