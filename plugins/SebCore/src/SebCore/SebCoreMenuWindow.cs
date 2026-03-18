@@ -119,6 +119,24 @@ namespace SebCore
             int endIndex = needsPaging ? Mathf.Min(startIndex + pageSize, apps.Count) : apps.Count;
             int pageItems = endIndex - startIndex;
 
+            // Make the 2-column buttons consistent width (based on the widest label on the page).
+            float fixedButtonWTiles = 0f;
+            if (pageItems > 0)
+            {
+                _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.center;
+                float maxTextWidthPx = 0f;
+                for (int i = startIndex; i < endIndex; i++)
+                {
+                    string title = LocalizationDictionary.Translate(apps[i].DisplayName);
+                    float w = _util.R.fput(title, cx, -32f, 0f, 13f, 0f, -1);
+                    if (w > maxTextWidthPx) maxTextWidthPx = w;
+                }
+
+                // FancyButton's autosize is roughly (textWidth/8 + 1). Add padding so it feels like the hover-expanded size.
+                // Clamp so the two columns don't collide.
+                fixedButtonWTiles = Mathf.Clamp(maxTextWidthPx / 8f + 3f, 10f, 18f);
+            }
+
             if (apps.Count == 0)
             {
                 _util.Label("(no cartridges installed)", cx, y + 8f);
@@ -131,7 +149,7 @@ namespace SebCore
                 {
                     int localIndex = i - startIndex;
                     float x = (localIndex % 2 == 0) ? leftX : rightX;
-                    if (_util.FancyButton(apps[i].DisplayName, x, yy))
+                    if (_util.FancyButton(apps[i].DisplayName, x, yy, fixedButtonWTiles))
                     {
                         if (!CartridgeApps.EnsureListener(desktop, apps[i]))
                         {

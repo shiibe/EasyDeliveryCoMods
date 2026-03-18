@@ -85,14 +85,15 @@ namespace SebCore
             return false;
         }
 
-        public bool FancyButton(string title, float centerX, float y)
+        // fixedWidthTiles: 0 = auto-size to title
+        public bool FancyButton(string title, float centerX, float y, float fixedWidthTiles = 0f)
         {
             title = LocalizationDictionary.Translate(title);
             R.fontOptions.alignment = sFancyText.FontOptions.Alignment.center;
 
             // Measure title width (in pixels).
             float textWidthPx = R.fput(title, centerX, -32f, 0f, 13f, 0f, -1);
-            float wTiles = textWidthPx / 8f + 1f;
+            float wTiles = fixedWidthTiles > 0f ? fixedWidthTiles : (textWidthPx / 8f + 1f);
 
             // Tile drawing is offset by +4px (half-tile), so shift the pixel center
             // back by 4px when converting to tile coordinates.
@@ -108,11 +109,14 @@ namespace SebCore
             if (hovered)
             {
                 M.mouseIcon = 128;
-                wTiles += 2f;
                 if (M.mouseButton)
                 {
                     M.mouseIcon = 160;
-                    wTiles -= 2f;
+                }
+                else if (fixedWidthTiles <= 0f)
+                {
+                    // Auto-sized buttons expand slightly on hover.
+                    wTiles += 2f;
                 }
                 if (M.mouseButtonUp)
                 {
