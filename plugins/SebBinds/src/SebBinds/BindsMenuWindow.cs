@@ -203,7 +203,15 @@ namespace SebBinds
         private void DrawSchemeSelect(Rect p, float center, ref float y, float line, float sectionGap)
         {
             float cx = p.x + p.width / 2f;
+            bool hasWheel = WheelInterop.IsWheelPluginPresent();
+
+            // Keep the stack vertically centered.
+            // This menu was originally tuned for 2 options; when Wheel is present we shift up by half a button step.
             float midY = p.y + p.height / 2f - 20f;
+            if (hasWheel)
+            {
+                midY -= 12f;
+            }
 
             _util.Label("Binds", cx, p.y + 10f);
             _util.Label("Choose Input", cx, p.y + 22f);
@@ -224,7 +232,7 @@ namespace SebBinds
                 return;
             }
 
-            if (WheelInterop.IsWheelPluginPresent() && _util.FancyButton("Wheel", cx, midY + 48f))
+            if (hasWheel && _util.FancyButton("Wheel", cx, midY + 48f))
             {
                 _scheme = BindingScheme.Wheel;
                 _bindingsPageIndex = 0;

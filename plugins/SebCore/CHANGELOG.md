@@ -1,5 +1,6 @@
 ## 1.0.2
-- Release prep (version bump).
+- Launcher: wider/consistent cartridge buttons, restored hover expansion, and slightly tighter column spacing.
+- Add `CartridgeWindowBase` (optional) + update template/docs for cartridge authors.
 
 ## 1.0.1
 - Add API to register custom cartridges in SebCore.

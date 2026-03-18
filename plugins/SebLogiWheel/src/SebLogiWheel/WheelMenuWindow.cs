@@ -262,8 +262,9 @@ namespace SebLogiWheel
             }
 
             // Bottom buttons.
-            float statusY = p.y + p.height - 42f;
-            float retryY = p.y + p.height - 30f;
+            // Move SDK status + retry up (keep Back on bottom row).
+            float statusY = p.y + p.height - 66f;
+            float retryY = p.y + p.height - 54f;
             float backY = p.y + p.height - 18f;
             _util.Label("Logitech SDK: " + Plugin.GetLogitechStatus(), cx, statusY);
             if (_util.SimpleButton("Retry SDK", cx, retryY))

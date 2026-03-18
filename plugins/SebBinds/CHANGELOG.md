@@ -1,5 +1,5 @@
 ## 1.0.1
-- Release prep (version bump).
+- Scheme select: keep options vertically centered when Wheel is installed.
 
 ## 1.0.0
 - Initial SebBinds release.

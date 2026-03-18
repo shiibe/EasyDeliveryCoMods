@@ -105,9 +105,6 @@ namespace SebCore
             var apps = CartridgeApps.GetRegisteredAppsSnapshot().Where(CartridgeApps.IsInstalled).ToList();
 
             float btnGap = 22f;
-            float colGap = 78f;
-            float leftX = cx - colGap;
-            float rightX = cx + colGap;
 
             const int pageSize = 10;
             bool needsPaging = apps.Count > pageSize;
@@ -137,6 +134,14 @@ namespace SebCore
                 // Clamp so the two columns don't collide even with hover expansion.
                 fixedButtonWTiles = Mathf.Clamp(maxTextWidthPx / 8f + 5f, 12f, 17f);
             }
+
+            // Column spacing: keep buttons comfortably inside the window bounds,
+            // but avoid column overlap even with FancyButton's hover expansion (+2 tiles).
+            float colGap = fixedButtonWTiles > 0f
+                ? (fixedButtonWTiles + 2f) * 4f
+                : 76f;
+            float leftX = cx - colGap;
+            float rightX = cx + colGap;
 
             if (apps.Count == 0)
             {
@@ -187,8 +192,8 @@ namespace SebCore
 
             if (needsPaging)
             {
-                float prevX = p.x + 40f;
-                float nextX = p.x + p.width - 40f;
+                float prevX = p.x + 44f;
+                float nextX = p.x + p.width - 44f;
                 if (_util.SimpleButtonRaw("Prev", prevX, navY))
                 {
                     if (_cartridgePageIndex > 0)

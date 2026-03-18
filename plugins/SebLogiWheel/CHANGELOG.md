@@ -1,3 +1,6 @@
+## 1.0.1
+- Wheel menu: move Logitech SDK status + Retry up for cleaner spacing.
+
 ## 1.0.0
 - Rename to `SebLogiWheel`.
 - Wheel-only support; driving feature extensions moved to `SebTruck`.
