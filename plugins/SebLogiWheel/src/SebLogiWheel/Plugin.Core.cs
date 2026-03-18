@@ -1297,6 +1297,8 @@ namespace SebLogiWheel
 
         private static bool _openCalibrationWizardRequested;
 
+        private static bool _openAxisMappingRequested;
+
         private static bool ShouldApply()
         {
             return _enableMod != null && _enableMod.Value;
@@ -1968,6 +1970,18 @@ namespace SebLogiWheel
         {
             bool v = _openCalibrationWizardRequested;
             _openCalibrationWizardRequested = false;
+            return v;
+        }
+
+        internal static void RequestOpenAxisMapping()
+        {
+            _openAxisMappingRequested = true;
+        }
+
+        internal static bool ConsumeOpenAxisMappingRequest()
+        {
+            bool v = _openAxisMappingRequested;
+            _openAxisMappingRequested = false;
             return v;
         }
 

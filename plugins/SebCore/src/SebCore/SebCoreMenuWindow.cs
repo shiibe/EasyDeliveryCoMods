@@ -17,6 +17,14 @@ namespace SebCore
 
         private bool _resetPrefsConfirm;
 
+        private MenuPage _page;
+
+        private enum MenuPage
+        {
+            Main = 0,
+            Settings = 1
+        }
+
         public void FrameUpdate(DesktopDotExe.WindowView view)
         {
             if (view == null)
@@ -47,6 +55,11 @@ namespace SebCore
 
         public void BackButtonPressed()
         {
+            if (_page == MenuPage.Settings)
+            {
+                _resetPrefsConfirm = false;
+                _page = MenuPage.Main;
+            }
         }
 
         private void DrawMenu(Rect p)
@@ -58,6 +71,18 @@ namespace SebCore
 
             _util.Label("SebCore", cx, y);
             y += line + sectionGap;
+
+            if (_page == MenuPage.Settings)
+            {
+                DrawSettings(p, cx, ref y, line, sectionGap);
+                return;
+            }
+
+            DrawMain(p, cx, ref y, line, sectionGap);
+        }
+
+        private void DrawMain(Rect p, float cx, ref float y, float line, float sectionGap)
+        {
 
             // Cartridge launcher.
             var desktop = _util.M;
@@ -109,45 +134,64 @@ namespace SebCore
                 }
             }
 
-            y += sectionGap;
+            // Bottom button.
+            float navY = p.y + p.height - 18f;
+            if (_util.SimpleButtonRaw("Settings", cx, navY))
+            {
+                _resetPrefsConfirm = false;
+                _page = MenuPage.Settings;
+            }
+        }
 
-            // Maintenance controls.
-            float maintY = p.y + p.height - 90f;
+        private void DrawSettings(Rect p, float cx, ref float y, float line, float sectionGap)
+        {
+            _util.Label("Settings", cx, y);
+            y += line + sectionGap;
+
+            float navY = p.y + p.height - 18f;
+            float clearY = navY - 12f;
+
             if (_resetPrefsConfirm)
             {
-                _util.Label("Clear all mod prefs?", cx, maintY);
-                if (_util.SimpleButtonRaw("Confirm", cx, maintY + 12f))
+                _util.Label("Clear all mod prefs?", cx, clearY - 12f);
+                if (_util.SimpleButtonRaw("Confirm", cx, clearY))
                 {
                     Plugin.RequestClearModPrefs();
                     _resetPrefsConfirm = false;
                 }
-                if (_util.SimpleButtonRaw("Cancel", cx, maintY + 24f))
+                if (_util.SimpleButtonRaw("Cancel", cx, navY - 12f))
                 {
                     _resetPrefsConfirm = false;
                 }
             }
             else
             {
-                if (_util.SimpleButtonRaw("Clear Mod Prefs", cx, maintY))
+                if (_util.SimpleButtonRaw("Clear Mod Prefs", cx, clearY))
                 {
                     _resetPrefsConfirm = true;
                 }
             }
 
-            // Installed list pinned to the bottom.
-            float listHeaderY = p.y + p.height - 68f;
-            float listY = listHeaderY + line;
-
-            _util.Label("Installed", cx, listHeaderY);
-            List<string> items = GetCartridgeLabels();
-            if (items.Count == 0)
+            if (_util.SimpleButtonRaw("Back", cx, navY))
             {
-                _util.Label("(none detected)", cx, listY);
+                _resetPrefsConfirm = false;
+                _page = MenuPage.Main;
                 return;
             }
 
-            int maxLines = 4;
-            float yy = listY;
+            y += sectionGap;
+            _util.Label("Installed Mods", cx, y);
+            y += line;
+
+            List<string> items = GetCartridgeLabels();
+            if (items.Count == 0)
+            {
+                _util.Label("(none detected)", cx, y);
+                return;
+            }
+
+            int maxLines = 8;
+            float yy = y;
             for (int i = 0; i < items.Count && i < maxLines; i++)
             {
                 _util.Label(items[i], cx, yy);

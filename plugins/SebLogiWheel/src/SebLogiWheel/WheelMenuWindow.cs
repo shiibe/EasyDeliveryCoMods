@@ -115,6 +115,15 @@ namespace SebLogiWheel
                 _page = Page.CalibrationWizard;
             }
 
+            // Allow external UIs (SebBinds) to deep-link into axis mapping.
+            if (Plugin.ConsumeOpenAxisMappingRequest())
+            {
+                _page = Page.Bindings;
+                _bindingsPage = BindingsPage.Axes;
+                _bindingCaptureModifier = false;
+                _bindingDupConfirmActive = false;
+            }
+
             _util ??= new UIUtil();
 
             _util.M = view.M;

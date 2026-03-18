@@ -24,6 +24,7 @@ namespace SebBinds
         private static MethodInfo _isWheelCalibrationWizardActive;
         private static MethodInfo _hasCalibration;
         private static MethodInfo _requestOpenCalibrationWizard;
+        private static MethodInfo _requestOpenAxisMapping;
         private static FieldInfo _isInWalkingModeField;
 
         private static void SetWheelBindingFields(object boxedWheelBindingInput, BindingInput input)
@@ -108,6 +109,7 @@ namespace SebBinds
 
             _hasCalibration = t.GetMethod("HasCalibration", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
             _requestOpenCalibrationWizard = t.GetMethod("RequestOpenCalibrationWizard", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _requestOpenAxisMapping = t.GetMethod("RequestOpenAxisMapping", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
             // Private/internal helpers for gating input while wheel UI is active.
             _isWheelMenuActive = t.GetMethod("IsWheelMenuActive", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
@@ -149,6 +151,21 @@ namespace SebBinds
             try
             {
                 _requestOpenCalibrationWizard.Invoke(null, null);
+            }
+            catch
+            {
+            }
+        }
+
+        internal static void RequestOpenAxisMapping()
+        {
+            if (!EnsureWheelReflection() || _requestOpenAxisMapping == null)
+            {
+                return;
+            }
+            try
+            {
+                _requestOpenAxisMapping.Invoke(null, null);
             }
             catch
             {

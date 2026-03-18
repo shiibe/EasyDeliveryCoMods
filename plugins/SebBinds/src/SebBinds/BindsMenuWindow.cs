@@ -600,6 +600,12 @@ namespace SebBinds
 
         private void DrawAxesPage(Rect p, float center, ref float y, float line, float sectionGap)
         {
+            if (_scheme == BindingScheme.Wheel)
+            {
+                DrawWheelAxesRedirect(p, center, ref y, line, sectionGap);
+                return;
+            }
+
             float labelX = p.x + 12f;
             float bindRight = p.x + p.width - 12f;
 
@@ -624,6 +630,24 @@ namespace SebBinds
             y += line;
             DrawAxisRow(AxisAction.CameraLookY, "Cam Look Y", labelX, bindRight, y);
             y += line + sectionGap;
+        }
+
+        private void DrawWheelAxesRedirect(Rect p, float center, ref float y, float line, float sectionGap)
+        {
+            float cx = p.x + p.width / 2f;
+
+            float promptY = p.y + p.height / 2f - 18f;
+            _util.Label("Wheel Axes", cx, promptY);
+            _util.Label("Configure wheel axes in the Wheel menu", cx, promptY + line);
+            _util.Label("(Axis Mapping)", cx, promptY + line * 2f);
+
+            float navY = p.y + p.height - 18f;
+            float openY = navY - 12f;
+            if (_util.SimpleButtonRaw("Open Wheel Menu", cx, openY))
+            {
+                WheelInterop.RequestOpenAxisMapping();
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, "wheel", "listener_G920Menu");
+            }
         }
 
         private void DrawAxisRow(AxisAction axis, string label, float labelX, float bindRight, float y)
