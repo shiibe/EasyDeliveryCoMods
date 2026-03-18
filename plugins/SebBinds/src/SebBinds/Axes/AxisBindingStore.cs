@@ -16,12 +16,49 @@ namespace SebBinds
 
         public static BindingInput GetAxisBinding(BindingScheme scheme, AxisAction action)
         {
-            int raw = PlayerPrefs.GetInt(Key(scheme, action), -1);
-            return Decode(raw);
+            string key = Key(scheme, action);
+            int raw = PlayerPrefs.GetInt(key, -1);
+            var decoded = Decode(raw);
+
+            // Migration from earlier builds where wheel axes were stored in the controller keyspace.
+            if (raw < 0 && scheme == BindingScheme.Wheel)
+            {
+                string legacy = Key(BindingScheme.Controller, action);
+                int legacyRaw = PlayerPrefs.GetInt(legacy, -1);
+                var legacyDecoded = Decode(legacyRaw);
+                if (legacyDecoded.Kind == BindingKind.WheelAxis || legacyDecoded.Kind == BindingKind.WheelDpadAxis)
+                {
+                    PlayerPrefs.SetInt(key, legacyRaw);
+                    PlayerPrefs.DeleteKey(legacy);
+                    decoded = legacyDecoded;
+                }
+            }
+
+            // Keep schemes isolated.
+            if (scheme == BindingScheme.Controller && (decoded.Kind == BindingKind.WheelAxis || decoded.Kind == BindingKind.WheelDpadAxis))
+            {
+                return new BindingInput { Kind = BindingKind.None, Code = 0 };
+            }
+            if (scheme == BindingScheme.Wheel && (decoded.Kind == BindingKind.GamepadAxis || decoded.Kind == BindingKind.GamepadDpadAxis || decoded.Kind == BindingKind.GamepadDpad))
+            {
+                return new BindingInput { Kind = BindingKind.None, Code = 0 };
+            }
+
+            return decoded;
         }
 
         public static void SetAxisBinding(BindingScheme scheme, AxisAction action, BindingInput input)
         {
+            // Keep schemes isolated.
+            if (scheme == BindingScheme.Controller && (input.Kind == BindingKind.WheelAxis || input.Kind == BindingKind.WheelDpadAxis))
+            {
+                input = new BindingInput { Kind = BindingKind.None, Code = 0 };
+            }
+            if (scheme == BindingScheme.Wheel && (input.Kind == BindingKind.GamepadAxis || input.Kind == BindingKind.GamepadDpadAxis || input.Kind == BindingKind.GamepadDpad))
+            {
+                input = new BindingInput { Kind = BindingKind.None, Code = 0 };
+            }
+
             PlayerPrefs.SetInt(Key(scheme, action), Encode(input));
         }
 
