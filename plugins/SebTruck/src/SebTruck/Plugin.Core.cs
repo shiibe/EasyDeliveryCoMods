@@ -169,7 +169,7 @@ namespace SebTruck
 
         internal static float GetIgnitionHoldSeconds()
         {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIgnitionHoldSeconds, 1.5f), 0.25f, 5.0f);
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIgnitionHoldSeconds, 1.35f), 0.25f, 5.0f);
         }
 
         internal static void SetIgnitionHoldSeconds(float seconds)
@@ -388,7 +388,7 @@ namespace SebTruck
             SetManualGearCount(5);
             SetIgnitionFeatureEnabled(true);
             SetIgnitionEnabled(true);
-            SetIgnitionHoldSeconds(1.5f);
+            SetIgnitionHoldSeconds(1.35f);
             SetIgnitionSfxEnabled(true);
             SetManualSpeedMultForward(1.0f);
             SetManualSpeedMultReverse(1.0f);

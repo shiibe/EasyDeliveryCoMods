@@ -195,15 +195,6 @@ namespace SebTruck
                 return;
             }
 
-            // Ignition ON sound.
-            try
-            {
-                PlayIgnitionOnSfx(car);
-            }
-            catch
-            {
-            }
-
             _ignitionOffSince = -1f;
 
             RestoreVehicleLightState(car, _ignitionPrevHeadlightsOn);
@@ -660,7 +651,12 @@ namespace SebTruck
 
                 if (ignitionReleased)
                 {
-                    StopIgnitionHoldSfx();
+                    // If the player releases before ignition succeeds, stop the SFX.
+                    // If ignition already turned on, let the one-shot SFX finish naturally.
+                    if (ignitionFeature && !GetIgnitionEnabled())
+                    {
+                        StopIgnitionHoldSfx();
+                    }
                     _ignitionIgnoreHoldUntilRelease = false;
                     _ignitionHoldStart = -1f;
                     _ignitionHoldConsumed = false;
