@@ -31,6 +31,7 @@ SebTruck adds practical driving upgrades like manual transmission, ignition cont
 ## Features
 - Manual transmission mode (gears, neutral, reverse)
 - Ignition toggle with hold-to-start behavior
+- Turn indicators (L / R / 4-way hazards)
 - HUD readouts (speed/tach/gear)
 - Optional ignition sound (`ignition_on.wav`)
 - Works with any input bindings from SebBinds
@@ -54,6 +55,15 @@ Install
 ## In-game menu
 - Open `mods.exe` (SebCore) then launch `Truck`
 - Binds: open `Binds` then use the `Truck` binds page
+
+## Binds
+Truck page:
+- `Ignition Toggle`
+- `L Indicator`
+- `R Indicator`
+- `4Way Indicator`
+- `Toggle Gearbox`
+- `Shift Up` / `Shift Down`
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.sebtruck.cfg`

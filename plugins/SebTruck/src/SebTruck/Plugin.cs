@@ -49,6 +49,9 @@ namespace SebTruck
                     id: "sebtruck",
                     title: "Truck",
                     SebBinds.BindAction.IgnitionToggle,
+                    SebBinds.BindAction.IndicatorLeft,
+                    SebBinds.BindAction.IndicatorRight,
+                    SebBinds.BindAction.IndicatorHazards,
                     SebBinds.BindAction.ToggleGearbox,
                     SebBinds.BindAction.ShiftUp,
                     SebBinds.BindAction.ShiftDown

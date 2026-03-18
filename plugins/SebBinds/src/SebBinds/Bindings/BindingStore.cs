@@ -299,6 +299,12 @@ namespace SebBinds
                     return "Steer Axis";
                 case BindAction.Camera:
                     return "1P/3P Camera";
+                case BindAction.IndicatorLeft:
+                    return "L Indicator";
+                case BindAction.IndicatorRight:
+                    return "R Indicator";
+                case BindAction.IndicatorHazards:
+                    return "4Way Indicator";
                 case BindAction.ResetVehicle:
                     return "Reset";
                 case BindAction.Headlights:

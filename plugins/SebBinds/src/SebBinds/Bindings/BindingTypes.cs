@@ -49,6 +49,11 @@ namespace SebBinds
         ,CameraLookY = 109
 
         ,SteerAxis = 110
+
+        // Vehicle indicators
+        ,IndicatorLeft = 119
+        ,IndicatorRight = 120
+        ,IndicatorHazards = 121
     }
 
     public enum BindingLayer

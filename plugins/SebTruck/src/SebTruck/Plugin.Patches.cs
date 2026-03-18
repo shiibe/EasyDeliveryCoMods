@@ -24,6 +24,35 @@ namespace SebTruck
         private static bool _ignitionPrevHeadlightsOn;
         private static bool _ignitionPrevRadioOn;
 
+        private enum IndicatorMode
+        {
+            Off = 0,
+            Left = 1,
+            Right = 2,
+            Hazards = 3
+        }
+
+        private static IndicatorMode _indicatorMode;
+        private static bool _indicatorBlinkOn;
+        private static float _indicatorNextBlinkTime;
+
+        private sealed class IndicatorCache
+        {
+            public readonly List<Light> Left = new List<Light>();
+            public readonly List<Light> Right = new List<Light>();
+            public readonly Dictionary<int, (float intensity, bool enabled)> Defaults = new Dictionary<int, (float intensity, bool enabled)>();
+        }
+
+        private static readonly Dictionary<int, IndicatorCache> _indicatorCaches = new Dictionary<int, IndicatorCache>();
+
+        private sealed class TailLightCache
+        {
+            public readonly List<Light> Lights = new List<Light>();
+            public readonly Dictionary<int, (float intensity, bool enabled)> Defaults = new Dictionary<int, (float intensity, bool enabled)>();
+        }
+
+        private static readonly Dictionary<int, TailLightCache> _tailLightCaches = new Dictionary<int, TailLightCache>();
+
         private static readonly Dictionary<int, (float maxSpeedScale, float drivePowerScale)> _carScaleDefaults =
             new Dictionary<int, (float maxSpeedScale, float drivePowerScale)>();
 
@@ -112,6 +141,328 @@ namespace SebTruck
                     mat.SetColor("_EmissionColor", Color.black);
                 }
             }
+
+            ForceTailLightsOff(car);
+            SetIndicators(car, IndicatorMode.Off, blinkOn: false);
+        }
+
+        private static void ForceTailLightsOff(sCarController car)
+        {
+            if (car == null)
+            {
+                return;
+            }
+
+            var cache = GetTailLightCache(car);
+            for (int i = 0; i < cache.Lights.Count; i++)
+            {
+                var l = cache.Lights[i];
+                if (l == null)
+                {
+                    continue;
+                }
+                int id = l.GetInstanceID();
+                if (!cache.Defaults.ContainsKey(id))
+                {
+                    cache.Defaults[id] = (l.intensity, l.enabled);
+                }
+                l.intensity = 0f;
+                l.enabled = false;
+            }
+        }
+
+        private static void RestoreTailLights(sCarController car)
+        {
+            if (car == null)
+            {
+                return;
+            }
+
+            int carId = car.GetInstanceID();
+            if (!_tailLightCaches.TryGetValue(carId, out var cache) || cache == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < cache.Lights.Count; i++)
+            {
+                var l = cache.Lights[i];
+                if (l == null)
+                {
+                    continue;
+                }
+                int id = l.GetInstanceID();
+                if (cache.Defaults.TryGetValue(id, out var d))
+                {
+                    l.enabled = d.enabled;
+                    l.intensity = d.intensity;
+                }
+            }
+        }
+
+        private static TailLightCache GetTailLightCache(sCarController car)
+        {
+            int carId = car.GetInstanceID();
+            if (_tailLightCaches.TryGetValue(carId, out var existing) && existing != null)
+            {
+                return existing;
+            }
+
+            var cache = new TailLightCache();
+            _tailLightCaches[carId] = cache;
+
+            // Heuristic: find rear/tail/brake lights outside the Headlights.headLights object.
+            GameObject headLightsGo = null;
+            try
+            {
+                var hl = car.headlights;
+                if (hl != null)
+                {
+                    EnsureHeadlightsRefs(hl);
+                    headLightsGo = _headlightsHeadLightsField != null ? _headlightsHeadLightsField.GetValue(hl) as GameObject : null;
+                }
+            }
+            catch
+            {
+                headLightsGo = null;
+            }
+
+            Light[] lights;
+            try
+            {
+                lights = car.GetComponentsInChildren<Light>(true);
+            }
+            catch
+            {
+                lights = null;
+            }
+
+            if (lights == null)
+            {
+                return cache;
+            }
+
+            for (int i = 0; i < lights.Length; i++)
+            {
+                var l = lights[i];
+                if (l == null)
+                {
+                    continue;
+                }
+
+                if (headLightsGo != null && l.transform != null && l.transform.IsChildOf(headLightsGo.transform))
+                {
+                    continue;
+                }
+
+                string n = l.name ?? string.Empty;
+                bool nameMatch = n.IndexOf("tail", StringComparison.OrdinalIgnoreCase) >= 0
+                                 || n.IndexOf("brake", StringComparison.OrdinalIgnoreCase) >= 0
+                                 || n.IndexOf("rear", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                bool redish = l.color.r > 0.7f && l.color.g < 0.45f && l.color.b < 0.45f;
+
+                bool isRear = false;
+                try
+                {
+                    Vector3 lp = car.transform.InverseTransformPoint(l.transform.position);
+                    isRear = lp.z < -0.2f;
+                }
+                catch
+                {
+                    isRear = false;
+                }
+
+                if ((nameMatch || (redish && isRear)) && !cache.Lights.Contains(l))
+                {
+                    cache.Lights.Add(l);
+                }
+            }
+
+            return cache;
+        }
+
+        private static IndicatorCache GetIndicatorCache(sCarController car)
+        {
+            int carId = car.GetInstanceID();
+            if (_indicatorCaches.TryGetValue(carId, out var existing) && existing != null)
+            {
+                return existing;
+            }
+
+            var cache = new IndicatorCache();
+            _indicatorCaches[carId] = cache;
+
+            GameObject headLightsGo = null;
+            try
+            {
+                var hl = car.headlights;
+                if (hl != null)
+                {
+                    EnsureHeadlightsRefs(hl);
+                    headLightsGo = _headlightsHeadLightsField != null ? _headlightsHeadLightsField.GetValue(hl) as GameObject : null;
+                }
+            }
+            catch
+            {
+                headLightsGo = null;
+            }
+
+            Light[] lights;
+            try
+            {
+                lights = car.GetComponentsInChildren<Light>(true);
+            }
+            catch
+            {
+                lights = null;
+            }
+
+            if (lights == null)
+            {
+                return cache;
+            }
+
+            for (int i = 0; i < lights.Length; i++)
+            {
+                var l = lights[i];
+                if (l == null)
+                {
+                    continue;
+                }
+
+                if (headLightsGo != null && l.transform != null && l.transform.IsChildOf(headLightsGo.transform))
+                {
+                    // Headlights themselves are not indicators.
+                    continue;
+                }
+
+                string n = l.name ?? string.Empty;
+                bool nameMatch = n.IndexOf("indicator", StringComparison.OrdinalIgnoreCase) >= 0
+                                 || n.IndexOf("blinker", StringComparison.OrdinalIgnoreCase) >= 0
+                                 || n.IndexOf("turn", StringComparison.OrdinalIgnoreCase) >= 0
+                                 || n.IndexOf("signal", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                bool amber = l.color.r > 0.7f && l.color.g > 0.25f && l.color.b < 0.35f;
+
+                bool isFront = false;
+                float lx = 0f;
+                try
+                {
+                    Vector3 lp = car.transform.InverseTransformPoint(l.transform.position);
+                    lx = lp.x;
+                    isFront = lp.z > 0.2f;
+                }
+                catch
+                {
+                    isFront = false;
+                }
+
+                if (!(nameMatch || (amber && isFront)))
+                {
+                    continue;
+                }
+
+                bool left = n.IndexOf("left", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("_l", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool right = n.IndexOf("right", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("_r", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (!left && !right)
+                {
+                    left = lx < 0f;
+                    right = !left;
+                }
+
+                if (left && !cache.Left.Contains(l))
+                {
+                    cache.Left.Add(l);
+                }
+                if (right && !cache.Right.Contains(l))
+                {
+                    cache.Right.Add(l);
+                }
+            }
+
+            if (_debugLogging != null && _debugLogging.Value)
+            {
+                LogDebug("Indicators: found left=" + cache.Left.Count + " right=" + cache.Right.Count);
+            }
+
+            return cache;
+        }
+
+        private static void SetIndicators(sCarController car, IndicatorMode mode, bool blinkOn)
+        {
+            if (car == null)
+            {
+                return;
+            }
+
+            var cache = GetIndicatorCache(car);
+
+            bool leftOn = blinkOn && (mode == IndicatorMode.Left || mode == IndicatorMode.Hazards);
+            bool rightOn = blinkOn && (mode == IndicatorMode.Right || mode == IndicatorMode.Hazards);
+
+            void Apply(List<Light> ls, bool on)
+            {
+                for (int i = 0; i < ls.Count; i++)
+                {
+                    var l = ls[i];
+                    if (l == null)
+                    {
+                        continue;
+                    }
+
+                    int id = l.GetInstanceID();
+                    if (!cache.Defaults.ContainsKey(id))
+                    {
+                        cache.Defaults[id] = (l.intensity, l.enabled);
+                    }
+
+                    if (on)
+                    {
+                        var d = cache.Defaults[id];
+                        l.enabled = d.enabled;
+                        l.intensity = d.intensity;
+                    }
+                    else
+                    {
+                        l.intensity = 0f;
+                        l.enabled = false;
+                    }
+                }
+            }
+
+            Apply(cache.Left, leftOn);
+            Apply(cache.Right, rightOn);
+        }
+
+        private static void UpdateIndicators(sCarController car)
+        {
+            if (car == null)
+            {
+                return;
+            }
+
+            if (_indicatorMode == IndicatorMode.Off)
+            {
+                _indicatorBlinkOn = false;
+                SetIndicators(car, IndicatorMode.Off, blinkOn: false);
+                return;
+            }
+
+            float now = Time.unscaledTime;
+            if (_indicatorNextBlinkTime <= 0f)
+            {
+                _indicatorBlinkOn = true;
+                _indicatorNextBlinkTime = now + 0.45f;
+            }
+            else if (now >= _indicatorNextBlinkTime)
+            {
+                _indicatorBlinkOn = !_indicatorBlinkOn;
+                _indicatorNextBlinkTime = now + 0.45f;
+            }
+
+            SetIndicators(car, _indicatorMode, _indicatorBlinkOn);
         }
 
         private static void RestoreVehicleLightState(sCarController car, bool wantOn)
@@ -198,6 +549,7 @@ namespace SebTruck
             _ignitionOffSince = -1f;
 
             RestoreVehicleLightState(car, _ignitionPrevHeadlightsOn);
+            RestoreTailLights(car);
             if (radioIsForCar && _ignitionPrevRadioOn && !radioOn)
             {
                 radio.ToggleRadio();
@@ -225,6 +577,10 @@ namespace SebTruck
             }
 
             ForceVehicleLightsOff(car);
+
+            // Keep indicators off while ignition is off.
+            _indicatorMode = IndicatorMode.Off;
+            _indicatorBlinkOn = false;
 
             var radio = sRadioSystem.instance;
             if (radio != null && ReferenceEquals(radio.car, car))
@@ -600,6 +956,10 @@ namespace SebTruck
                 bool ignitionDown = DownAny(BindAction.IgnitionToggle);
                 bool ignitionReleased = ReleasedAny(BindAction.IgnitionToggle);
 
+                bool indicatorLeftPressed = PressedAny(BindAction.IndicatorLeft);
+                bool indicatorRightPressed = PressedAny(BindAction.IndicatorRight);
+                bool indicatorHazardsPressed = PressedAny(BindAction.IndicatorHazards);
+
                 if (!ignitionFeature)
                 {
                     _ignitionHoldStart = -1f;
@@ -666,6 +1026,32 @@ namespace SebTruck
                         LogDebug("Ignition hold cancelled");
                     }
                 }
+
+                // Indicators (only while ignition is effectively on).
+                if (GetIgnitionEnabledEffective())
+                {
+                    if (indicatorHazardsPressed)
+                    {
+                        _indicatorMode = _indicatorMode == IndicatorMode.Hazards ? IndicatorMode.Off : IndicatorMode.Hazards;
+                        _indicatorNextBlinkTime = 0f;
+                    }
+                    if (indicatorLeftPressed)
+                    {
+                        _indicatorMode = _indicatorMode == IndicatorMode.Left ? IndicatorMode.Off : IndicatorMode.Left;
+                        _indicatorNextBlinkTime = 0f;
+                    }
+                    if (indicatorRightPressed)
+                    {
+                        _indicatorMode = _indicatorMode == IndicatorMode.Right ? IndicatorMode.Off : IndicatorMode.Right;
+                        _indicatorNextBlinkTime = 0f;
+                    }
+                }
+                else
+                {
+                    _indicatorMode = IndicatorMode.Off;
+                }
+
+                UpdateIndicators(car);
 
                 _ignitionHoldWasDown = ignitionDown;
 
@@ -854,6 +1240,39 @@ namespace SebTruck
             private static bool Prefix()
             {
                 return GetIgnitionEnabledEffective();
+            }
+        }
+
+
+        [HarmonyPatch(typeof(sEngineSFX), "Update")]
+        [HarmonyPostfix]
+        private static void SEngineSFX_Update_Postfix(sEngineSFX __instance)
+        {
+            if (__instance == null)
+            {
+                return;
+            }
+
+            if (!GetIgnitionFeatureEnabled() || GetIgnitionEnabledEffective())
+            {
+                return;
+            }
+
+            // Mute idle/engine loops while ignition is off.
+            try
+            {
+                var idle = AccessTools.Field(typeof(sEngineSFX), "idle")?.GetValue(__instance) as Component;
+                var idleLow = AccessTools.Field(typeof(sEngineSFX), "idleLowFuel")?.GetValue(__instance) as Component;
+                var drive = AccessTools.Field(typeof(sEngineSFX), "drive")?.GetValue(__instance) as Component;
+                var intense = AccessTools.Field(typeof(sEngineSFX), "intense")?.GetValue(__instance) as Component;
+
+                SetProp(idle, "volume", 0f);
+                SetProp(idleLow, "volume", 0f);
+                SetProp(drive, "volume", 0f);
+                SetProp(intense, "volume", 0f);
+            }
+            catch
+            {
             }
         }
 
