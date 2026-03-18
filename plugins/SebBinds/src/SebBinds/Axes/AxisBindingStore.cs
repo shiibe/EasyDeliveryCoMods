@@ -43,6 +43,7 @@ namespace SebBinds
         private const int BindingGamepadAxisOffset = 14000;
         private const int BindingWheelAxisOffset = 15000;
         private const int BindingGamepadDpadAxisOffset = 16000;
+        private const int BindingWheelDpadAxisOffset = 17000;
 
         private static int Encode(BindingInput input)
         {
@@ -78,6 +79,10 @@ namespace SebBinds
             {
                 return BindingGamepadDpadAxisOffset + Mathf.Clamp(input.Code, 0, 1);
             }
+            if (input.Kind == BindingKind.WheelDpadAxis)
+            {
+                return BindingWheelDpadAxisOffset + Mathf.Clamp(input.Code, 0, 1);
+            }
             if (input.Kind == BindingKind.GamepadDpad)
             {
                 return BindingGamepadDpadOffset + Mathf.Clamp(input.Code, 0, 3);
@@ -90,6 +95,10 @@ namespace SebBinds
             if (raw < 0)
             {
                 return new BindingInput { Kind = BindingKind.None, Code = 0 };
+            }
+            if (raw >= BindingWheelDpadAxisOffset)
+            {
+                return new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = Mathf.Clamp(raw - BindingWheelDpadAxisOffset, 0, 1) };
             }
             if (raw >= BindingGamepadDpadAxisOffset)
             {

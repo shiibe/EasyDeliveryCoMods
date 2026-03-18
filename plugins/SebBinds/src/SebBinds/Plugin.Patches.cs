@@ -209,12 +209,7 @@ namespace SebBinds
                 return false;
             }
 
-            // FreeCam toggle (dev tool). When enabled, the game suppresses select/map/inventory.
-            if (PressedAny(BindAction.FreeCam))
-            {
-                input.freeCamMode = !input.freeCamMode;
-                LogDebug("FreeCamMode -> " + (input.freeCamMode ? "on" : "off"));
-            }
+            // FreeCam is a dev tool; not exposed to players.
 
             bool inWalkingMode = false;
             WheelInterop.TryGetIsInWalkingMode(out inWalkingMode);

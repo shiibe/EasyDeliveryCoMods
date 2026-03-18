@@ -9,16 +9,47 @@ namespace SebBinds
             // Wheel axes via providers.
             if (scheme == BindingScheme.Wheel)
             {
-                var providers = SebBindsApi.GetAxisProvidersSnapshot();
-                for (int i = 0; i < providers.Count; i++)
+                // Prefer axis movement from the wheel device directly.
+                float steer = WheelInterop.GetWheelAxisValue(0);
+                float throttle = WheelInterop.GetWheelAxisValue(1);
+                float brake = WheelInterop.GetWheelAxisValue(2);
+                float clutch = WheelInterop.GetWheelAxisValue(3);
+
+                // Simple capture: pick the largest magnitude delta.
+                float best = 0f;
+                int bestCode = -1;
+                void Consider(int code, float v)
                 {
-                    var p = providers[i];
-                    if (p == null || !p.IsAvailable())
+                    float a = Mathf.Abs(v);
+                    if (a > best)
                     {
-                        continue;
+                        best = a;
+                        bestCode = code;
                     }
-                    if (p.TryCaptureNextAxis(out input))
+                }
+                Consider(0, steer);
+                Consider(1, throttle);
+                Consider(2, brake);
+                Consider(3, clutch);
+
+                if (bestCode >= 0 && best > 0.35f)
+                {
+                    input = new BindingInput { Kind = BindingKind.WheelAxis, Code = bestCode };
+                    return true;
+                }
+
+                // Dpad as axis (X/Y) from wheel POV.
+                if (WheelInterop.TryGetPov8Vector(out var pov))
+                {
+                    var v = -pov;
+                    if (Mathf.Abs(v.x) > 0.5f)
                     {
+                        input = new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = 0 };
+                        return true;
+                    }
+                    if (Mathf.Abs(v.y) > 0.5f)
+                    {
+                        input = new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = 1 };
                         return true;
                     }
                 }

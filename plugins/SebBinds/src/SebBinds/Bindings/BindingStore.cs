@@ -13,6 +13,7 @@ namespace SebBinds
         private const int BindingGamepadAxisOffset = 14000;
         private const int BindingWheelAxisOffset = 15000;
         private const int BindingGamepadDpadAxisOffset = 16000;
+        private const int BindingWheelDpadAxisOffset = 17000;
         private const string PrefKeyBindModifierController = "ELWS_Bind_Modifier";
         private const string PrefKeyBindModifierKeyboard = "SebBinds_KB_Bind_Modifier";
         private const string PrefKeyBindModifierWheel = "SebBinds_Wheel_Bind_Modifier";
@@ -210,6 +211,10 @@ namespace SebBinds
             {
                 return input.Code == 0 ? "Dpad X" : "Dpad Y";
             }
+            if (input.Kind == BindingKind.WheelDpadAxis)
+            {
+                return input.Code == 0 ? "Wheel Dpad X" : "Wheel Dpad Y";
+            }
             return "None";
         }
 
@@ -261,8 +266,6 @@ namespace SebBinds
                     return "Look Left";
                 case BindAction.LookRight:
                     return "Look Right";
-                case BindAction.FreeCam:
-                    return "Free Cam";
                 case BindAction.CameraLookX:
                     return "Cam Look X";
                 case BindAction.CameraLookY:
@@ -292,7 +295,7 @@ namespace SebBinds
                 case BindAction.ShiftDown:
                     return "Shift Down";
                 case BindAction.IgnitionToggle:
-                    return "Ignition(Hold)";
+                    return "Ignition";
                 default:
                     return action.ToString();
             }
@@ -336,6 +339,10 @@ namespace SebBinds
             {
                 return BindingGamepadDpadAxisOffset + Mathf.Clamp(input.Code, 0, 1);
             }
+            if (input.Kind == BindingKind.WheelDpadAxis)
+            {
+                return BindingWheelDpadAxisOffset + Mathf.Clamp(input.Code, 0, 1);
+            }
             return -1;
         }
 
@@ -344,6 +351,10 @@ namespace SebBinds
             if (raw < 0)
             {
                 return new BindingInput { Kind = BindingKind.None, Code = 0 };
+            }
+            if (raw >= BindingWheelDpadAxisOffset)
+            {
+                return new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = Mathf.Clamp(raw - BindingWheelDpadAxisOffset, 0, 1) };
             }
             if (raw >= BindingGamepadDpadAxisOffset)
             {

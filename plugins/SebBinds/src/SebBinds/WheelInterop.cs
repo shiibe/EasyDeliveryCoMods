@@ -155,6 +155,92 @@ namespace SebBinds
             }
         }
 
+        internal static float GetWheelAxisValue(int code)
+        {
+            // Minimal mapping for SebBinds axis evaluation/capture.
+            // 0=steer, 1=throttle, 2=brake, 3=clutch
+            try
+            {
+                Type t = GetWheelPluginType();
+                if (t == null)
+                {
+                    return 0f;
+                }
+
+                // Call into the wheel plugin's normalization helpers.
+                var tryGetState = t.GetMethod("TryGetCachedWheelState", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var getAxis = t.GetMethod("GetAxisValue", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var getSteerAxis = t.GetMethod("GetSteeringAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var getThrottleAxis = t.GetMethod("GetThrottleAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var getBrakeAxis = t.GetMethod("GetBrakeAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var getClutchAxis = t.GetMethod("GetClutchAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var normSteer = t.GetMethod("NormalizeSteering", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var normPedal = t.GetMethod("NormalizePedal", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+                if (tryGetState == null || getAxis == null || normSteer == null || normPedal == null)
+                {
+                    return 0f;
+                }
+
+                var args = new object[] { null };
+                bool ok;
+                try
+                {
+                    ok = (bool)tryGetState.Invoke(null, args);
+                }
+                catch
+                {
+                    ok = false;
+                }
+                if (!ok || args[0] == null)
+                {
+                    return 0f;
+                }
+
+                var state = args[0];
+
+                if (code == 0)
+                {
+                    if (getSteerAxis == null)
+                    {
+                        return 0f;
+                    }
+                    var axisId = getSteerAxis.Invoke(null, null);
+                    int raw = (int)getAxis.Invoke(null, new[] { state, axisId });
+                    return (float)normSteer.Invoke(null, new object[] { raw });
+                }
+
+                MethodInfo which = code == 1 ? getThrottleAxis : (code == 2 ? getBrakeAxis : getClutchAxis);
+                if (which == null)
+                {
+                    return 0f;
+                }
+                var pedAxisId = which.Invoke(null, null);
+                int rawPedal = (int)getAxis.Invoke(null, new[] { state, pedAxisId });
+
+                // PedalKind enum lives in wheel plugin; pass int then coerce if needed.
+                int pkInt = code == 1 ? 0 : (code == 2 ? 1 : 2);
+                object pk = pkInt;
+                try
+                {
+                    return (float)normPedal.Invoke(null, new object[] { rawPedal, pk });
+                }
+                catch
+                {
+                    var pkType = normPedal.GetParameters()[1].ParameterType;
+                    if (pkType.IsEnum)
+                    {
+                        pk = Enum.ToObject(pkType, pkInt);
+                    }
+                    return (float)normPedal.Invoke(null, new object[] { rawPedal, pk });
+                }
+            }
+            catch
+            {
+                return 0f;
+            }
+        }
+
         internal static bool IsWheelMenuActive()
         {
             if (!EnsureWheelReflection() || _isWheelMenuActive == null)

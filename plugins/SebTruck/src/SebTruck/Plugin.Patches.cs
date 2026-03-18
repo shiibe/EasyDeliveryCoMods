@@ -191,6 +191,15 @@ namespace SebTruck
                 return;
             }
 
+            // Ignition ON sound.
+            try
+            {
+                PlayIgnitionOnSfx(car);
+            }
+            catch
+            {
+            }
+
             _ignitionOffSince = -1f;
 
             RestoreVehicleLightState(car, _ignitionPrevHeadlightsOn);
@@ -558,6 +567,7 @@ namespace SebTruck
 
                 if (ignitionFeature && GetIgnitionEnabled() && ignitionPressed)
                 {
+                    StopIgnitionHoldSfx();
                     _ignitionHoldStart = -1f;
                     _ignitionHoldConsumed = false;
                     _ignitionIgnoreHoldUntilRelease = true;
@@ -572,6 +582,8 @@ namespace SebTruck
                     {
                         _ignitionHoldStart = Time.unscaledTime;
                         _ignitionHoldConsumed = false;
+
+                        StartIgnitionHoldSfx(car);
                     }
 
                     float holdS = GetIgnitionHoldSeconds();
@@ -580,11 +592,14 @@ namespace SebTruck
                         SetIgnitionEnabled(true);
                         ApplyIgnitionStateChange(true);
                         _ignitionHoldConsumed = true;
+
+                        StopIgnitionHoldSfx();
                     }
                 }
 
                 if (ignitionReleased)
                 {
+                    StopIgnitionHoldSfx();
                     _ignitionIgnoreHoldUntilRelease = false;
                     _ignitionHoldStart = -1f;
                     _ignitionHoldConsumed = false;

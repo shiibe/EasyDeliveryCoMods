@@ -90,6 +90,22 @@ namespace SebBinds
                 return input.Code == 0 ? v.x : v.y;
             }
 
+            if (input.Kind == BindingKind.WheelDpadAxis)
+            {
+                if (!WheelInterop.TryGetPov8Vector(out var pov))
+                {
+                    return 0f;
+                }
+                // Wheel POV is inverted relative to normal screen coords.
+                var v = -pov;
+                return input.Code == 0 ? v.x : v.y;
+            }
+
+            if (input.Kind == BindingKind.WheelAxis)
+            {
+                return WheelInterop.GetWheelAxisValue(input.Code);
+            }
+
             if (input.Kind != BindingKind.GamepadAxis)
             {
                 return 0f;
@@ -203,6 +219,16 @@ namespace SebBinds
                 return GetAxisValue(input) > AxisPressThreshold;
             }
 
+            if (input.Kind == BindingKind.WheelAxis)
+            {
+                return Mathf.Abs(GetAxisValue(input)) > AxisPressThreshold;
+            }
+
+            if (input.Kind == BindingKind.WheelDpadAxis)
+            {
+                return Mathf.Abs(GetAxisValue(input)) > AxisPressThreshold;
+            }
+
             if (input.Kind == BindingKind.GamepadDpad)
             {
                 var g = Gamepad.current;
@@ -222,12 +248,6 @@ namespace SebBinds
                         return g.dpad.left.isPressed;
                 }
             }
-
-            if (input.Kind == BindingKind.GamepadAxis)
-            {
-                return GetAxisValue(input) > AxisPressThreshold;
-            }
-
 
             return false;
         }

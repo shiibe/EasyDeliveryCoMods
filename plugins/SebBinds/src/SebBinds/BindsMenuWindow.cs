@@ -67,7 +67,6 @@ namespace SebBinds
             BindAction.ResetVehicle,
             BindAction.Headlights,
             BindAction.Horn,
-            BindAction.FreeCam,
             BindAction.CameraLookX,
             BindAction.CameraLookY,
             BindAction.RadioPower,
@@ -237,7 +236,7 @@ namespace SebBinds
             string schemeLabel = _scheme == BindingScheme.Keyboard
                 ? "Keyboard"
                 : (_scheme == BindingScheme.Wheel ? "Wheel" : "Controller");
-            _util.Label(schemeLabel, p.x + p.width - 18f, y);
+            _util.Label(schemeLabel, p.x + p.width / 2f, y);
             y += line;
 
             if (_scheme == BindingScheme.Wheel && !WheelInterop.HasCalibration())
@@ -399,7 +398,6 @@ namespace SebBinds
                         {
                             BindAction.Headlights,
                             BindAction.Horn,
-                            BindAction.FreeCam
                         }
                     },
                     new PageDef
@@ -455,7 +453,6 @@ namespace SebBinds
                         {
                             BindAction.Headlights,
                             BindAction.Horn,
-                            BindAction.FreeCam
                         }
                     },
                     new PageDef
@@ -523,7 +520,6 @@ namespace SebBinds
                             BindAction.Brake,
                             BindAction.Headlights,
                             BindAction.Horn,
-                            BindAction.FreeCam
                         }
                     },
                     new PageDef
@@ -911,6 +907,13 @@ namespace SebBinds
             // Also allow binding a button/key/mouse to an axis slot.
             if (InputCapture.TryCaptureNextBinding(_scheme, BindAction.InteractOk, BindingLayer.Normal, out var capturedBtn))
             {
+                // In wheel scheme, treat POV bindings as Dpad axes so they behave like controller Dpad X/Y.
+                if (_scheme == BindingScheme.Wheel && capturedBtn.Kind == BindingKind.Pov)
+                {
+                    // Map: Up/Down => Y, Left/Right => X
+                    int d = Mathf.Clamp(capturedBtn.Code, 0, 3);
+                    capturedBtn = new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = (d == 1 || d == 3) ? 0 : 1 };
+                }
                 AxisBindingStore.SetAxisBinding(_axisCaptureAction, capturedBtn);
                 _page = Page.Bindings;
             }

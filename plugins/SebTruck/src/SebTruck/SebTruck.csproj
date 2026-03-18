@@ -52,6 +52,12 @@
     <ProjectReference Include="..\..\..\SebBinds\src\SebBinds\SebBinds.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <TruckSfx Include="sfx\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </TruckSfx>
+  </ItemGroup>
+
   <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
     <MakeDir Directories="$(ProfileDir)\BepInEx\plugins\SebTruck" />
     <Copy
@@ -63,6 +69,12 @@
       DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebTruck"
       SkipUnchangedFiles="true"
       Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+
+    <Copy
+      SourceFiles="@(TruckSfx)"
+      DestinationFiles="@(TruckSfx->'$(ProfileDir)\BepInEx\plugins\SebTruck\sfx\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true"
+      Condition="@(TruckSfx) != ''" />
   </Target>
 
 </Project>

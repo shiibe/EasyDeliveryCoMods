@@ -12,10 +12,7 @@ namespace SebLogiWheel
     {
         private static Plugin _instance;
 
-        private static ConfigEntry<string> _ignitionSfxOnPath;
-        private static ConfigEntry<float> _ignitionSfxVolume;
-
-        private static UnityEngine.Object _ignitionSfxOn;
+        // Ignition SFX moved to SebTruck.
 
         private void Awake()
         {
@@ -29,8 +26,7 @@ namespace SebLogiWheel
 
             _ignoreXInputControllers = Config.Bind("General", "ignore_xinput_controllers", true, "Pass 'ignoreXInputControllers' to the Logitech SDK init (recommended).");
 
-            _ignitionSfxOnPath = Config.Bind("Ignition", "sfx_on_path", "", "Optional ignition ON sound (.wav PCM; 16/24-bit supported). File name inside the plugin's sfx folder (e.g. ignition_on.wav). Leave blank to use sfx/ignition_on.wav.");
-            _ignitionSfxVolume = Config.Bind("Ignition", "sfx_volume", 0.6f, "Ignition sound volume (0..1).");
+            // Ignition SFX moved to SebTruck.
 
             if (!_enableMod.Value)
             {
@@ -56,32 +52,7 @@ namespace SebLogiWheel
 
         private static void TryLoadIgnitionSfx()
         {
-            string dir = Path.GetDirectoryName(typeof(Plugin).Assembly.Location) ?? string.Empty;
-
-            string Resolve(string cfg, string baseName)
-            {
-                string sfxDir = Path.Combine(dir, "sfx");
-                if (string.IsNullOrWhiteSpace(cfg))
-                {
-                    string wav = Path.Combine(sfxDir, baseName + ".wav");
-                    return File.Exists(wav) ? wav : string.Empty;
-                }
-
-                // Config path is always relative to the plugin's sfx folder unless absolute.
-                if (Path.IsPathRooted(cfg))
-                {
-                    return cfg;
-                }
-                string resolved = Path.Combine(sfxDir, cfg);
-                return File.Exists(resolved) ? resolved : string.Empty;
-            }
-
-            string onPath = Resolve(_ignitionSfxOnPath != null ? _ignitionSfxOnPath.Value : string.Empty, "ignition_on");
-
-            _ignitionSfxOn = LoadWavOrNull(onPath);
-
-            // Always log once so it's obvious if the file was found.
-            _log?.LogInfo("Ignition SFX: on=" + (_ignitionSfxOn != null));
+            // Ignition SFX moved to SebTruck.
         }
 
         private static UnityEngine.Object LoadWavOrNull(string path)
@@ -1166,187 +1137,17 @@ namespace SebLogiWheel
 
         private static void PlayIgnitionSfx(sCarController car)
         {
-            if (car == null)
-            {
-                return;
-            }
-
-            if (!GetIgnitionSfxEnabled())
-            {
-                return;
-            }
-
-            float vol = _ignitionSfxVolume != null ? Mathf.Clamp01(_ignitionSfxVolume.Value) : 0.6f;
-            if (vol <= 0.001f)
-            {
-                return;
-            }
-
-            UnityEngine.Object clip = _ignitionSfxOn;
-            if (clip == null)
-            {
-                if (_debugLogging != null && _debugLogging.Value)
-                {
-                    _log?.LogInfo("Ignition SFX missing (ignition_on.wav not loaded)");
-                }
-                return;
-            }
-
-            if (car.headlights != null)
-            {
-                // Headlights.PlaySound(AudioClip clip, float volume)
-                Type audioClipType = AccessTools.TypeByName("UnityEngine.AudioClip");
-                var m = audioClipType != null
-                    ? AccessTools.Method(car.headlights.GetType(), "PlaySound", new[] { audioClipType, typeof(float) })
-                    : null;
-                if (m != null)
-                {
-                    m.Invoke(car.headlights, new object[] { clip, vol });
-                    if (_debugLogging != null && _debugLogging.Value)
-                    {
-                        _log?.LogInfo("Ignition SFX played via Headlights");
-                    }
-                }
-                return;
-            }
+            // Ignition SFX moved to SebTruck.
         }
 
         private static void StartIgnitionHoldSfx(sCarController car)
         {
-            if (car == null || car.GuyActive)
-            {
-                return;
-            }
-
-            if (!GetIgnitionSfxEnabled())
-            {
-                return;
-            }
-
-            if (_ignitionSfxOn == null)
-            {
-                if (_debugLogging != null && _debugLogging.Value)
-                {
-                    _log?.LogInfo("Ignition hold SFX skipped: ignition_on.wav not loaded");
-                }
-                return;
-            }
-
-            float vol = _ignitionSfxVolume != null ? Mathf.Clamp01(_ignitionSfxVolume.Value) : 0.6f;
-            if (vol <= 0.001f)
-            {
-                return;
-            }
-
-            if (_ignitionHoldSfxGo == null)
-            {
-                _ignitionHoldSfxGo = new GameObject("IgnitionHoldSFX");
-                _ignitionHoldSfxGo.hideFlags = HideFlags.HideAndDontSave;
-                _ignitionHoldSfxSource = _ignitionHoldSfxGo.AddComponent<AudioSource>();
-                _ignitionHoldSfxSource.loop = true;
-                _ignitionHoldSfxSource.playOnAwake = false;
-                _ignitionHoldSfxSource.spatialBlend = 1f;
-                _ignitionHoldSfxSource.dopplerLevel = 0f;
-                _ignitionHoldSfxSource.rolloffMode = AudioRolloffMode.Linear;
-                _ignitionHoldSfxSource.minDistance = 5f;
-                _ignitionHoldSfxSource.maxDistance = 40f;
-                _ignitionHoldSfxSource.spread = 0f;
-
-                // Route through the game's SFX mixer if available.
-                try
-                {
-                    if (PauseSystem.pauseSystem != null && PauseSystem.pauseSystem.masterMix != null)
-                    {
-                        var groups = PauseSystem.pauseSystem.masterMix.FindMatchingGroups("SFX");
-                        if (groups != null && groups.Length > 0)
-                        {
-                            _ignitionHoldSfxSource.outputAudioMixerGroup = groups[0];
-                        }
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            // Emit from the vehicle (follow the car).
-            if (_ignitionHoldSfxGo.transform.parent != car.transform)
-            {
-                _ignitionHoldSfxGo.transform.SetParent(car.transform, false);
-            }
-            _ignitionHoldSfxGo.transform.localPosition = Vector3.zero;
-            _ignitionHoldSfxSource.volume = vol;
-
-            // Set clip via reflection so we don't need a hard AudioClip reference.
-            try
-            {
-                var clipProp = AccessTools.Property(_ignitionHoldSfxSource.GetType(), "clip");
-                if (clipProp != null)
-                {
-                    clipProp.SetValue(_ignitionHoldSfxSource, _ignitionSfxOn, null);
-                }
-                else if (_debugLogging != null && _debugLogging.Value)
-                {
-                    _log?.LogWarning("Ignition hold SFX: AudioSource.clip property not found");
-                }
-            }
-            catch (Exception e)
-            {
-                if (_debugLogging != null && _debugLogging.Value)
-                {
-                    _log?.LogWarning("Ignition hold SFX: failed to set clip (" + e.Message + ")");
-                }
-            }
-
-            if (!_ignitionHoldSfxSource.isPlaying)
-            {
-                try
-                {
-                    _ignitionHoldSfxSource.Play();
-                }
-                catch (Exception e)
-                {
-                    if (_debugLogging != null && _debugLogging.Value)
-                    {
-                        _log?.LogWarning("Ignition hold SFX: Play() failed (" + e.Message + ")");
-                    }
-                }
-            }
-
-            // Don't double-play the ON sound when the toggle completes.
-            _suppressNextIgnitionOnSfx = true;
-
-            if (_debugLogging != null && _debugLogging.Value)
-            {
-                float len = -1f;
-                try
-                {
-                    var lenProp = _ignitionSfxOn.GetType().GetProperty("length");
-                    if (lenProp != null)
-                    {
-                        len = (float)lenProp.GetValue(_ignitionSfxOn, null);
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-                _log?.LogInfo("Ignition hold SFX started (playing=" + _ignitionHoldSfxSource.isPlaying + ", len=" + len.ToString("0.00") + "s)");
-            }
+            // Ignition SFX moved to SebTruck.
         }
 
         private static void StopIgnitionHoldSfx()
         {
-            if (_ignitionHoldSfxSource != null && _ignitionHoldSfxSource.isPlaying)
-            {
-                _ignitionHoldSfxSource.Stop();
-                if (_debugLogging != null && _debugLogging.Value)
-                {
-                    _log?.LogInfo("Ignition hold SFX stopped");
-                }
-            }
-            _suppressNextIgnitionOnSfx = false;
+            // Ignition SFX moved to SebTruck.
         }
 
         private static void EnforceIgnitionOffForCurrentCar()

@@ -69,7 +69,8 @@ namespace SebBinds
         GamepadDpad = 6,
         GamepadAxis = 7,
         WheelAxis = 8,
-        GamepadDpadAxis = 9
+        GamepadDpadAxis = 9,
+        WheelDpadAxis = 10
     }
 
     public struct BindingInput
