@@ -7,7 +7,7 @@ namespace SebCore
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebcore";
         public const string PluginName = "SebCore";
-        public const string PluginVersion = "1.0.1";
+        public const string PluginVersion = "1.0.2";
 
         internal static Plugin Instance;
     }

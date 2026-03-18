@@ -13,6 +13,9 @@ namespace SebTruck
         private UIUtil _util;
         private DesktopDotExe.WindowView _view;
 
+        private string _toastMsg;
+        private float _toastUntil;
+
         private Page _page;
 
         private enum Page
@@ -100,6 +103,14 @@ namespace SebTruck
 
             // Reset button sits above Back.
             float resetY = navY - 12f;
+
+            // Toast sits above Reset.
+            float toastY = resetY - 12f;
+            if (!string.IsNullOrWhiteSpace(_toastMsg) && Time.unscaledTime < _toastUntil)
+            {
+                _util.Label(_toastMsg, cx, toastY);
+            }
+
             if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
                 if (_page == Page.Transmission) Plugin.ResetTransmissionDefaults();
@@ -287,6 +298,41 @@ namespace SebTruck
                 if (newDistNorm.HasValue)
                 {
                     Plugin.SetHeadlightRangeMult(Mathf.Lerp(0.25f, 2.0f, newDistNorm.Value));
+                }
+
+                y += line;
+
+                y += 2f;
+                _util.Label("Cosmetics", cx, y);
+                y += line;
+
+                int bobble = Plugin.GetSelectedBobbleIndexUnlockedOrNone();
+                if (_util.CycleButtonRaw("Bobblehead", Plugin.GetBobbleLabel(bobble), center, y))
+                {
+                    if (!Plugin.HasAnyUnlockedBobbleheads())
+                    {
+                        _toastMsg = "No Bobbleheads unlocked.";
+                        _toastUntil = Time.unscaledTime + 2.0f;
+                    }
+                    else
+                    {
+                        Plugin.CycleBobbleheadSelection();
+                    }
+                }
+                y += line;
+
+                int paint = Plugin.GetSelectedPaintIndexUnlockedOrDefault();
+                if (_util.CycleButtonRaw("Truck Paint", Plugin.GetPaintLabel(paint), center, y))
+                {
+                    if (!Plugin.HasAnyUnlockedPaints())
+                    {
+                        _toastMsg = "No Paints unlocked.";
+                        _toastUntil = Time.unscaledTime + 2.0f;
+                    }
+                    else
+                    {
+                        Plugin.CyclePaintSelection();
+                    }
                 }
 
                 // (HUD controls moved to their own page)

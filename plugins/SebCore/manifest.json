@@ -1,8 +1,8 @@
 {
   "name": "SebCore",
-  "version_number": "1.0.1",
+  "version_number": "1.0.2",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
-  "description": "Menu and shared utilities/APIs for Easy Delivery Co mods.",
+  "description": "Menu/launcher and shared utilities/APIs for Easy Delivery Co mods.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2304"
   ]

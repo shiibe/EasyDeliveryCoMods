@@ -97,6 +97,7 @@ namespace SebTruck
             _headlightsModelField = AccessTools.Field(t, "model");
         }
 
+
         private static Texture2D GetIgnitionBlackEmissionTex()
         {
             if (_ignitionBlackEmissiveTex != null)

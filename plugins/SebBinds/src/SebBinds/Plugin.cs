@@ -9,7 +9,7 @@ namespace SebBinds
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebbinds";
         public const string PluginName = "SebBinds";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.0.1";
 
         internal static ManualLogSource Log;
 

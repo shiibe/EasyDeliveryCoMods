@@ -1,3 +1,6 @@
+## 1.0.2
+- Release prep (version bump).
+
 ## 1.0.1
 - Add API to register custom cartridges in SebCore.
 - Add paging to cartridge launcher when more than 10.

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using HarmonyLib;
 using UnityEngine;
 
 namespace SebTruck
@@ -28,6 +30,35 @@ namespace SebTruck
         internal const string PrefKeyHeadlightIntensityMult = "SebTruck_HeadlightIntensityMult";
         internal const string PrefKeyHeadlightRangeMult = "SebTruck_HeadlightRangeMult";
 
+        private const string SaveKeySnowcats = "cats";
+        private const string SaveKeyDisplayBobble = "displayBobble";
+        private const string SaveKeyEquippedPaint = "playerEquipedPaint";
+
+        private static readonly List<int> _tmpIntList = new List<int>(64);
+        internal static bool HasAnyUnlockedBobbleheads()
+        {
+            try
+            {
+                string cats = sSaveSystem.GetString(SaveKeySnowcats, "");
+                if (string.IsNullOrEmpty(cats))
+                {
+                    return false;
+                }
+                for (int i = 0; i < cats.Length; i++)
+                {
+                    if (cats[i] == '1')
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         internal enum SpeedUnit
         {
             Kmh = 0,
@@ -42,6 +73,320 @@ namespace SebTruck
 
         private static bool _manualTransmissionEnabled;
         private static int _manualGear = 1; // -1=R, 0=N, 1..GetManualGearCount()
+
+        internal static int GetSelectedBobbleIndex()
+        {
+            try
+            {
+                return sSaveSystem.GetInt(SaveKeyDisplayBobble, -1);
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        internal static string GetBobbleLabel(int index)
+        {
+            return index < 0 ? "None" : "#" + (index + 1);
+        }
+
+        internal static bool IsBobbleUnlocked(int index)
+        {
+            if (index < 0)
+            {
+                return true;
+            }
+
+            try
+            {
+                string cats = sSaveSystem.GetString(SaveKeySnowcats, "");
+                if (string.IsNullOrEmpty(cats))
+                {
+                    return false;
+                }
+                if (index >= cats.Length)
+                {
+                    return false;
+                }
+                return cats[index] == '1';
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static int GetSelectedBobbleIndexUnlockedOrNone()
+        {
+            int cur = GetSelectedBobbleIndex();
+            return IsBobbleUnlocked(cur) ? cur : -1;
+        }
+
+        internal static void SetSelectedBobbleIndex(int index)
+        {
+            if (!IsBobbleUnlocked(index))
+            {
+                index = -1;
+            }
+
+            try
+            {
+                sSaveSystem.SetInt(SaveKeyDisplayBobble, index);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            // Best-effort live update if the manager exists in-scene.
+            try
+            {
+                var mgr = UnityEngine.Object.FindFirstObjectByType<SnowcatManager>();
+                if (mgr != null)
+                {
+                    var m = AccessTools.Method(typeof(SnowcatManager), "SetDisplayBobble");
+                    if (m != null)
+                    {
+                        m.Invoke(mgr, new object[] { index });
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        internal static void CycleBobbleheadSelection()
+        {
+            int cur = GetSelectedBobbleIndexUnlockedOrNone();
+
+            // Collect unlocked indices.
+            _tmpIntList.Clear();
+            try
+            {
+                string cats = sSaveSystem.GetString(SaveKeySnowcats, "");
+                if (!string.IsNullOrEmpty(cats))
+                {
+                    for (int i = 0; i < cats.Length; i++)
+                    {
+                        if (cats[i] == '1')
+                        {
+                            _tmpIntList.Add(i);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            if (_tmpIntList.Count == 0)
+            {
+                SetSelectedBobbleIndex(-1);
+                return;
+            }
+
+            // Cycle: None -> first unlocked -> ... -> None.
+            if (cur < 0)
+            {
+                SetSelectedBobbleIndex(_tmpIntList[0]);
+                return;
+            }
+
+            int pos = _tmpIntList.IndexOf(cur);
+            if (pos < 0)
+            {
+                SetSelectedBobbleIndex(_tmpIntList[0]);
+                return;
+            }
+            if (pos + 1 >= _tmpIntList.Count)
+            {
+                SetSelectedBobbleIndex(-1);
+                return;
+            }
+            SetSelectedBobbleIndex(_tmpIntList[pos + 1]);
+        }
+
+        private static bool TryGetCosmeticInfo(out sCosmeticInfo info)
+        {
+            info = null;
+            try
+            {
+                // FindObjectsOfTypeAll works even when disabled/unreferenced.
+                var all = Resources.FindObjectsOfTypeAll<sCosmeticInfo>();
+                if (all != null)
+                {
+                    for (int i = 0; i < all.Length; i++)
+                    {
+                        if (all[i] != null)
+                        {
+                            info = all[i];
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                info = UnityEngine.Object.FindFirstObjectByType<sCosmeticInfo>();
+                return info != null;
+            }
+            catch
+            {
+                info = null;
+                return false;
+            }
+        }
+
+        internal static int GetSelectedPaintIndex()
+        {
+            try
+            {
+                return sSaveSystem.GetInt(SaveKeyEquippedPaint, -1);
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        internal static string GetPaintLabel(int index)
+        {
+            if (index < 0)
+            {
+                return "Default";
+            }
+            if (!TryGetCosmeticInfo(out var info) || info == null || info.cosmetics == null)
+            {
+                return "#" + index;
+            }
+            if (index >= info.cosmetics.Length)
+            {
+                return "#" + index;
+            }
+            return string.IsNullOrWhiteSpace(info.cosmetics[index].name) ? ("#" + index) : info.cosmetics[index].name;
+        }
+
+        internal static bool IsPaintUnlocked(int index)
+        {
+            if (index < 0)
+            {
+                return true;
+            }
+            if (!TryGetCosmeticInfo(out var info) || info == null || info.cosmetics == null)
+            {
+                return false;
+            }
+            if (index >= info.cosmetics.Length)
+            {
+                return false;
+            }
+            return info.cosmetics[index].type == sCosmeticInfo.Type.paint && info.cosmetics[index].unlocked;
+        }
+
+        internal static int GetSelectedPaintIndexUnlockedOrDefault()
+        {
+            int cur = GetSelectedPaintIndex();
+            return IsPaintUnlocked(cur) ? cur : -1;
+        }
+
+        internal static void SetSelectedPaintIndex(int index)
+        {
+            if (!IsPaintUnlocked(index))
+            {
+                index = -1;
+            }
+
+            try
+            {
+                if (TryGetCosmeticInfo(out var info) && info != null)
+                {
+                    info.SetPlayerEquiped(index, sCosmeticInfo.Type.paint);
+                    return;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                sSaveSystem.SetInt(SaveKeyEquippedPaint, index);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        internal static void CyclePaintSelection()
+        {
+            int cur = GetSelectedPaintIndexUnlockedOrDefault();
+
+            _tmpIntList.Clear();
+            if (TryGetCosmeticInfo(out var info) && info != null && info.cosmetics != null)
+            {
+                for (int i = 0; i < info.cosmetics.Length; i++)
+                {
+                    if (info.cosmetics[i].type == sCosmeticInfo.Type.paint && info.cosmetics[i].unlocked)
+                    {
+                        _tmpIntList.Add(i);
+                    }
+                }
+            }
+
+            if (_tmpIntList.Count == 0)
+            {
+                SetSelectedPaintIndex(-1);
+                return;
+            }
+
+            // Cycle: Default -> first unlocked -> ... -> Default.
+            if (cur < 0)
+            {
+                SetSelectedPaintIndex(_tmpIntList[0]);
+                return;
+            }
+
+            int pos = _tmpIntList.IndexOf(cur);
+            if (pos < 0)
+            {
+                SetSelectedPaintIndex(_tmpIntList[0]);
+                return;
+            }
+            if (pos + 1 >= _tmpIntList.Count)
+            {
+                SetSelectedPaintIndex(-1);
+                return;
+            }
+            SetSelectedPaintIndex(_tmpIntList[pos + 1]);
+        }
+
+        internal static bool HasAnyUnlockedPaints()
+        {
+            if (!TryGetCosmeticInfo(out var info) || info == null || info.cosmetics == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < info.cosmetics.Length; i++)
+            {
+                if (info.cosmetics[i].type == sCosmeticInfo.Type.paint && info.cosmetics[i].unlocked)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         internal static int GetManualGearCount()
         {
