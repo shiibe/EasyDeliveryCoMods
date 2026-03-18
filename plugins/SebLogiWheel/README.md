@@ -63,11 +63,7 @@ Wheel bindings live in `SebBinds` (Binds -> Wheel). Driving feature extensions (
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/7.jpg" alt="Screenshot 7" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/8.jpg" alt="Screenshot 8" width="100%"></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/9.jpg" alt="Screenshot 9" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebLogiWheel/assets/screenshots/10.jpg" alt="Screenshot 10" width="100%"></td>
+    <td width="50%"></td>
   </tr>
 </table>
 

@@ -45,12 +45,16 @@ Ultrawide behavior is optional: set `aspect_ratio=default` to keep the game's or
   - Automatically skips FOV overrides while inside buildings
 
 ## Screenshots
-![Screenshot 1](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/1.jpg)
-![Screenshot 2](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/2.jpg)
-![Screenshot 3](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/3.jpg)
-![Screenshot 4](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/4.jpg)
-![Screenshot 5](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/5.jpg)
-![Screenshot 6](https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/6.jpg)
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/1.jpg" alt="Screenshot 1" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/2.jpg" alt="Screenshot 2" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebUltrawide/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
+  </tr>
+</table>
 
 ## Installation
 Dependencies

@@ -34,12 +34,20 @@ SebBinds provides the binding UI + runtime input mapping used by the rest of the
 - Other mods can add pages via `SebBindsApi.RegisterActionsPage(...)`
 
 ## Screenshots
-Recommended shots:
-- `assets/screenshots/1.jpg`: Scheme picker + page tabs
-- `assets/screenshots/2.jpg`: Binding table showing `Modif.` column
-- `assets/screenshots/3.jpg`: Modifier binding capture screen (hold modifier)
-- `assets/screenshots/4.jpg`: Axes page
-- `assets/screenshots/5.jpg`: Vehicle page with `1P/3P Camera`
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebBinds/assets/screenshots/1.jpg" alt="Screenshot 1" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebBinds/assets/screenshots/2.jpg" alt="Screenshot 2" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebBinds/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebBinds/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebBinds/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
+    <td width="50%"></td>
+  </tr>
+</table>
 
 ## Installation
 Dependencies

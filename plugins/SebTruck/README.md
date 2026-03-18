@@ -37,10 +37,24 @@ SebTruck adds practical driving upgrades like manual transmission, ignition cont
 - Works with any input bindings from SebBinds
 
 ## Screenshots
-Recommended shots:
-- `assets/screenshots/1.jpg`: HUD readouts (speed/tach/gear) while driving
-- `assets/screenshots/2.jpg`: Truck menu settings
-- `assets/screenshots/3.jpg`: SebBinds `Truck` page (Ignition/Shift binds)
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/1.gif" alt="Screenshot 1" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/2.gif" alt="Screenshot 2" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/6.jpg" alt="Screenshot 6" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/7.jpg" alt="Screenshot 7" width="100%"></td>
+    <td width="50%"></td>
+  </tr>
+</table>
 
 ## Installation
 Dependencies
