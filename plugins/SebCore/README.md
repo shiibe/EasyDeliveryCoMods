@@ -20,7 +20,7 @@
 <hr/>
 
 ## About
-SebCore is the parent mod that provides the in-game launcher UI and some shared utilities.
+SebCore is the base mod that provides the in-game launcher UI and some shared utilities for my other mods.
 
 - Adds desktop icon/program (`seb.exe`) on the main menu.
 - Hosts the cartridge launcher window where you open the other mods.
