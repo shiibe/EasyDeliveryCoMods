@@ -26,7 +26,7 @@
 <hr/>
 
 ## About
-SebTruck adds practical driving upgrades like manual transmission, ignition controls, and compact HUD readouts (speed/tach/gear) while you drive.
+SebTruck adds driving upgrades like manual transmission, ignition controls, and compact HUD readouts (speed/tach/gear) while you drive for just a bit more realism.
 
 ## Features
 - Manual transmission mode (gears, neutral, reverse)
