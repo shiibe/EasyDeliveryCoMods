@@ -1,0 +1,11 @@
+{
+  "name": "SebTweaks",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
+  "description": "SebCore cartridge: Tweaks",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2304",
+    "shiibe-SebCore-1.0.2"
+  ]
+}
+
