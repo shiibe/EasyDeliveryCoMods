@@ -12,11 +12,13 @@ Monorepo for my Easy Delivery Co. mods.
 
 ## Mods
 
-- [SebCore](plugins/SebCore/README.md)
-- [SebBinds](plugins/SebBinds/README.md)
-- [SebUltrawide](plugins/SebUltrawide/README.md)
-- [SebLogiWheel](plugins/SebLogiWheel/README.md)
-- [SebTruck](plugins/SebTruck/README.md)
+| Mod | Thunderstore | Docs |
+| --- | --- | --- |
+| SebCore | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebCore/ | [README](plugins/SebCore/README.md) |
+| SebBinds | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebBinds/ | [README](plugins/SebBinds/README.md) |
+| SebUltrawide | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebUltrawide/ | [README](plugins/SebUltrawide/README.md) |
+| SebLogiWheel | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebLogiWheel/ | [README](plugins/SebLogiWheel/README.md) |
+| SebTruck | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/ | [README](plugins/SebTruck/README.md) |
 
 ## Local build config
 

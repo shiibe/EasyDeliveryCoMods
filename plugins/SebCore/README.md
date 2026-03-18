@@ -35,16 +35,27 @@ Cartridges are small, optional sub-mods you can install and enable as needed - l
 - `Maintenance.clear_mod_prefs` (bool): Clears known mod PlayerPrefs at runtime, then flips back to false.
 - `Logging.debug_logging` (bool): Extra debug logging.
 
-## Mods
-- SebBinds: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebBinds/ (`../SebBinds/README.md`)
-- SebTruck: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/ (`../SebTruck/README.md`)
-- SebUltrawide: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebUltrawide/ (`../SebUltrawide/README.md`)
-- SebLogiWheel: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebLogiWheel/ (`../SebLogiWheel/README.md`)
+## Cartridges (Mods)
+These are the currently available cartridges you can install alongside SebCore.
+
+| Mod | Links |
+| --- | --- |
+| SebBinds | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebBinds/) \| [Source](../SebBinds/README.md) |
+| SebLogiWheel | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebLogiWheel/) \| [Source](../SebLogiWheel/README.md) |
+| SebTruck | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/) \| [Source](../SebTruck/README.md) |
+| SebUltrawide | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebUltrawide/) \| [Source](../SebUltrawide/README.md) |
 
 ## Screenshots
-Recommended shots:
-- `assets/screenshots/1.jpg`: Main menu desktop with `mods.exe`
-- `assets/screenshots/2.jpg`: SebCore launcher showing installed cartridges
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebCore/assets/screenshots/1.jpg" alt="Screenshot 1" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebCore/assets/screenshots/2.jpg" alt="Screenshot 2" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebCore/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
+    <td width="50%"></td>
+  </tr>
+</table>
 
 ## Installation
 Dependencies
