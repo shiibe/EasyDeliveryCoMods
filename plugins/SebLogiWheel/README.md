@@ -1,6 +1,6 @@
 <h1>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/icon.png" alt="Logo" width="128">
+  <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/icon.png" alt="Logo" width="128">
   <br>SebLogiWheel
 </h1>
   <p align="center">
@@ -28,21 +28,15 @@
 <hr/>
 
 ## About
-This is a BepInEx + Harmony mod intended to add Logitech wheel input support to Easy Delivery Co.
+SebLogiWheel adds Logitech wheel input + Force Feedback (FFB) support.
 
-Tested on a G920, but it should work with most (if not all) modern Logitech wheels supported by Logitech G HUB / LGS.
-
-This mod uses Logitech's Steering Wheel SDK wrapper for Force Feedback (FFB).
+Wheel bindings live in `SebBinds` (Binds -> Wheel). Driving feature extensions (manual transmission / ignition / HUD readouts) live in `SebTruck`.
 
 ## Features
 - Wheel steering + pedals
 - Force Feedback (FFB)
-- Optional manual transmission mode
-- Optional ignition toggle (bindable)
-- Optional HUD readouts: speed + tach + gear
-- In-game `wheel.exe` settings menu
-- Button bindings menu with optional `Modifier` (hold to bind `M+...` for extra inputs)
-- D-pad support: menus (cursor) + on-foot movement (8-way)
+- Calibration + axis mapping menu
+- Integrates with SebBinds: Wheel scheme for binds + axes
 
 ## Compatibility
 - Intended for modern Logitech wheels supported by Logitech G HUB / LGS.
@@ -52,121 +46,72 @@ This mod uses Logitech's Steering Wheel SDK wrapper for Force Feedback (FFB).
 ## Screenshots
 <table>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/1.jpg" alt="Screenshot 1" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/2.jpg" alt="Screenshot 2" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/1.jpg" alt="Screenshot 1" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/2.jpg" alt="Screenshot 2" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/6.jpg" alt="Screenshot 6" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/6.jpg" alt="Screenshot 6" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/7.jpg" alt="Screenshot 7" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/8.jpg" alt="Screenshot 8" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/7.jpg" alt="Screenshot 7" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/8.jpg" alt="Screenshot 8" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/9.jpg" alt="Screenshot 9" width="100%"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyLogiWheelSupport/refs/heads/main/assets/screenshots/10.jpg" alt="Screenshot 10" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/9.jpg" alt="Screenshot 9" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/main/plugins/SebLogiWheel/assets/screenshots/10.jpg" alt="Screenshot 10" width="100%"></td>
   </tr>
 </table>
 
 ## Installation
-**Dependencies**
+Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
+- `shiibe-SebCore-1.0.0`
+- `shiibe-SebBinds-1.0.0`
 
-**Force Feedback (FFB)**
+Force Feedback (FFB)
 - Install Logitech G HUB (or older Logitech Gaming Software) so the wheel drivers/components are present.
 - `LogitechSteeringWheelEnginesWrapper.dll` must be alongside the plugin DLL (the build/package includes it).
 
-**Install**
-- r2modman/Thunderstore: install and launch the game
+Install
+- r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebLogiWheel/
 - Manual: copy `SebLogiWheel.dll` to `BepInEx/plugins/SebLogiWheel/`
 - FFB DLL: make sure `LogitechSteeringWheelEnginesWrapper.dll` is alongside `SebLogiWheel.dll`
 
-**Quick start**
+Quick start
 1. Install the mod and start the game once.
-2. From the main menu, click `wheel.exe` to open the settings menu.
-3. Go to `Axis Mapping` and confirm steering/throttle/brake/clutch axes look right.
-4. If pedals are wrong or stuck, run `Calibration -> Calibrate` in the `wheel.exe` menu.
-5. Go to `Bindings` and set `Modifier` + your button bindings.
+2. Open `seb.exe` (SebCore) then launch `Wheel`.
+3. Run calibration if needed.
+4. Open `Binds` -> `Wheel` and bind buttons/axes.
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.logiwheel.cfg`
 
-**General**
+General
 - `enable_mod` (bool, default: `true`): Enables/disables the mod entirely.
 - `ignore_xinput_controllers` (bool, default: `true`): Pass `ignoreXInputControllers` to the Logitech SDK init (recommended).
 
-**Menu**
-- `show_wheel_menu_icon` (bool, default: `true`): Show/hide the Wheel Settings icon on the Main Menu.
-- `wheel_menu_icon_x` (string, default: `"4"`): Main Menu icon X position. Example: `4`
-- `wheel_menu_icon_y` (string, default: `"3.25"`): Main Menu icon Y position. Example: `3.25`
-
-**Debug**
+Debug
 - `log_detected_devices` (bool, default: `true`): Log joystick names detected by Unity on startup.
 - `debug_logging` (bool, default: `false`): Log debug information.
 
 ## In-game menu
-- Click `wheel.exe` in the main menu to adjust wheel/FFB/settings.
-
-**Vehicle/HUD**
-- Paged menu with `Vehicle` and `HUD` pages.
-
-**Vehicle**
-- `Ignition`: enable/disable ignition behavior (disabled = always on; ignition bind does nothing)
-- `Ignition Time`: how long you must hold the ignition bind to toggle
-- `Ignition SFX`: enable/disable ignition sounds
-- `Transmission`: Auto/Manual
-- Manual-only: `Max Gears`
-- `Speed Mult.` / `Revrs Mult.`: scales vehicle max speed (Auto + Manual)
-- `Headlgt Bright`: headlight brightness multiplier
-- `Headlght Dist`: headlight distance/range multiplier
-
-**HUD**
-- `Units`: switch between `km/h` and `mph`.
-- `Speedomtr`, Manual-only: `Tachomtr`, `Gear Ind`
-- `Speedomtr Pos`, Manual-only: `Tachomtr Pos`, `Gear Ind. Pos`
-
-**Ignition**
-- Bind `Ignition(Hold)` in `wheel.exe` -> `Bindings` to enable ignition on/off behavior.
-- If `Ignition(Hold)` is unbound, ignition is treated as always on.
-- Ignition OFF is instant (press). Ignition ON requires holding for the configured time.
-- While holding to turn ignition ON, `ignition_on.wav` plays/loops until the toggle completes or you release.
-- HUD: shows a `START xx%` indicator while the engine is starting.
-- Ignition OFF: disables throttle, turns off headlights + radio, mutes engine, and stops fuel consumption.
-- Ignition OFF: after extended time with the engine off, the game can warn `truck temperature low` (and the truck will cool faster).
-- Ignition OFF: plays the same click as toggling headlights off.
-- Optional SFX:
-  - `ignition_on.wav`: place in `sfx/` next to `SebLogiWheel.dll` (recommended: `sfx/ignition_on.wav`).
-  - Or set `Ignition/sfx_on_path` to a file name inside that `sfx/` folder.
-- `Vehicle -> Ignition` can disable ignition behavior entirely (truck always on).
-- `Vehicle -> Ignition SFX` toggles ignition sounds.
-
-**Calibration**
-- Only needed if throttle/brake axes read incorrectly (e.g., stuck throttle).
-- Use `wheel.exe` -> Calibration.
-- Follow the instructions to calibrate the pedals. This should fix any issues with wrong or stuck axes. Make sure to hit the "Capture" button at each step to record the axis values.
-
-**Bindings**
-- You can set button bindings in `wheel.exe` -> Bindings.
-- The `Modifier` option allows you to set a "hold to modify" button. When you hold the modifier, you can use the same buttons to trigger different inputs (e.g., `M+A` for `Modifier + A`).
+- Open `seb.exe` (SebCore) then launch `Wheel`.
+- Use this menu for wheel-specific setup (calibration, axis mapping, FFB tuning).
 
 ## Troubleshooting
-**My wheel/pedals aren't working or are stuck at full throttle.**
-- Make sure Logitech G HUB (or older Logitech Gaming Software) is installed so the drivers/components are present.
-- Check `wheel.exe` -> `Axis Mapping` to see if axes are detected correctly.
-- If throttle/brake axes are wrong or stuck, got to `wheel.exe` -> `Calibration` and follow the instructions to calibrate.
+My wheel/pedals aren't working or are stuck at full throttle.
+- Make sure Logitech G HUB (or older Logitech Gaming Software) is installed.
+- Open `seb.exe` -> `Wheel` and check `Axis Mapping`.
+- Run `Calibration` and follow the prompts.
 
-**The SDK fails to load or I get errors about missing DLLs.**
-- Make sure `LogitechSteeringWheelEnginesWrapper.dll` is in the same folder as `SebLogiWheel.dll`. The package includes it, but if you're building manually you need to copy it over.
-- Make sure you have the latest Logitech G HUB (or older Logitech Gaming Software) installed, as the wrapper depends on the official Logitech SDK components.
-
-**The in-game menu doesn't show up or I can't open it.**
-- The menu is accessed by clicking `wheel.exe` from the main menu. If it's not there, make sure the icon is enabled in the mod config and that the plugin is loaded correctly (check BepInEx logs for any errors).
+The SDK fails to load or I get errors about missing DLLs.
+- Make sure `LogitechSteeringWheelEnginesWrapper.dll` is in the same folder as `SebLogiWheel.dll`.
 
 ## Build
-- Build: `dotnet build EasyDeliveryCoMods/EasyDeliveryCoMods.sln -c Release`
-- Package: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1 -Version 1.2.0`
+- Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.0`

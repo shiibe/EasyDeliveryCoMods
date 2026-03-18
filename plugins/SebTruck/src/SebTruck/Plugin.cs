@@ -25,7 +25,7 @@ namespace SebTruck
         private static UnityEngine.Object _ignitionSfxOn;
 
         private static GameObject _ignitionHoldSfxGo;
-        private static AudioSource _ignitionHoldSfxSource;
+        private static Component _ignitionHoldSfxSource;
 
         private void Awake()
         {
@@ -153,13 +153,52 @@ namespace SebTruck
                     data[outI++] = s / 32768f;
                 }
 
-                var clip = AudioClip.Create("ignition_on", samples / Math.Max(1, channels), channels, sampleRate, false);
-                clip.SetData(data, 0);
-                return clip;
+                return CreateAudioClip("ignition_on", samples / Math.Max(1, channels), channels, sampleRate, data);
             }
             catch (Exception e)
             {
                 Log?.LogWarning("Ignition SFX load failed: " + path + " (" + e.Message + ")");
+                return null;
+            }
+        }
+
+        private static UnityEngine.Object CreateAudioClip(string name, int samplesPerChannel, int channels, int sampleRate, float[] data)
+        {
+            try
+            {
+                var audioClipType = Type.GetType("UnityEngine.AudioClip, UnityEngine.AudioModule");
+                if (audioClipType == null)
+                {
+                    return null;
+                }
+
+                var create = audioClipType.GetMethod(
+                    "Create",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                    null,
+                    new[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(bool) },
+                    null);
+                if (create == null)
+                {
+                    return null;
+                }
+
+                object clipObj = create.Invoke(null, new object[] { name, samplesPerChannel, channels, sampleRate, false });
+                if (clipObj == null)
+                {
+                    return null;
+                }
+
+                var setData = audioClipType.GetMethod("SetData", new[] { typeof(float[]), typeof(int) });
+                if (setData != null)
+                {
+                    setData.Invoke(clipObj, new object[] { data, 0 });
+                }
+
+                return clipObj as UnityEngine.Object;
+            }
+            catch
+            {
                 return null;
             }
         }
@@ -197,32 +236,62 @@ namespace SebTruck
                 var go = new GameObject("SebTruck_IgnitionSFX");
                 go.hideFlags = HideFlags.HideAndDontSave;
                 go.transform.SetParent(parent.transform, false);
-                var src = go.AddComponent<AudioSource>();
-                src.spatialBlend = 0f;
-                src.volume = vol;
-                src.playOnAwake = false;
-                src.loop = false;
-
-                if (_ignitionSfxOn is AudioClip ac)
+                var audioSourceType = Type.GetType("UnityEngine.AudioSource, UnityEngine.AudioModule");
+                if (audioSourceType == null)
                 {
-                    src.clip = ac;
-                }
-                else
-                {
-                    // Some Unity versions return AudioClip as Object; try reflection.
-                    var clipProp = src.GetType().GetProperty("clip");
-                    if (clipProp != null)
-                    {
-                        clipProp.SetValue(src, _ignitionSfxOn, null);
-                    }
+                    return;
                 }
 
-                src.Play();
+                var src = go.AddComponent(audioSourceType);
+                SetProp(src, "spatialBlend", 0f);
+                SetProp(src, "volume", vol);
+                SetProp(src, "playOnAwake", false);
+                SetProp(src, "loop", false);
+                SetProp(src, "clip", _ignitionSfxOn);
+                Call(src, "Play");
                 UnityEngine.Object.Destroy(go, 5f);
             }
             catch
             {
                 // ignore
+            }
+        }
+
+        private static void SetProp(Component c, string name, object value)
+        {
+            if (c == null || string.IsNullOrWhiteSpace(name))
+            {
+                return;
+            }
+            try
+            {
+                var p = c.GetType().GetProperty(name);
+                if (p != null && p.CanWrite)
+                {
+                    p.SetValue(c, value, null);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private static void Call(Component c, string method)
+        {
+            if (c == null || string.IsNullOrWhiteSpace(method))
+            {
+                return;
+            }
+            try
+            {
+                var m = c.GetType().GetMethod(method, Type.EmptyTypes);
+                if (m != null)
+                {
+                    m.Invoke(c, null);
+                }
+            }
+            catch
+            {
             }
         }
 
@@ -245,29 +314,18 @@ namespace SebTruck
                 {
                     _ignitionHoldSfxGo = new GameObject("SebTruck_IgnitionHoldSFX");
                     _ignitionHoldSfxGo.hideFlags = HideFlags.HideAndDontSave;
-                    _ignitionHoldSfxSource = _ignitionHoldSfxGo.AddComponent<AudioSource>();
-                    _ignitionHoldSfxSource.loop = true;
-                    _ignitionHoldSfxSource.playOnAwake = false;
-                    _ignitionHoldSfxSource.spatialBlend = 1f;
-                    _ignitionHoldSfxSource.dopplerLevel = 0f;
-                    _ignitionHoldSfxSource.rolloffMode = AudioRolloffMode.Linear;
-                    _ignitionHoldSfxSource.minDistance = 5f;
-                    _ignitionHoldSfxSource.maxDistance = 40f;
-
-                    try
+                    var audioSourceType = Type.GetType("UnityEngine.AudioSource, UnityEngine.AudioModule");
+                    if (audioSourceType == null)
                     {
-                        if (PauseSystem.pauseSystem != null && PauseSystem.pauseSystem.masterMix != null)
-                        {
-                            var groups = PauseSystem.pauseSystem.masterMix.FindMatchingGroups("SFX");
-                            if (groups != null && groups.Length > 0)
-                            {
-                                _ignitionHoldSfxSource.outputAudioMixerGroup = groups[0];
-                            }
-                        }
+                        return;
                     }
-                    catch
-                    {
-                    }
+                    _ignitionHoldSfxSource = _ignitionHoldSfxGo.AddComponent(audioSourceType);
+                    SetProp(_ignitionHoldSfxSource, "loop", true);
+                    SetProp(_ignitionHoldSfxSource, "playOnAwake", false);
+                    SetProp(_ignitionHoldSfxSource, "spatialBlend", 1f);
+                    SetProp(_ignitionHoldSfxSource, "dopplerLevel", 0f);
+                    SetProp(_ignitionHoldSfxSource, "minDistance", 5f);
+                    SetProp(_ignitionHoldSfxSource, "maxDistance", 40f);
                 }
 
                 if (_ignitionHoldSfxGo.transform.parent != car.transform)
@@ -275,24 +333,24 @@ namespace SebTruck
                     _ignitionHoldSfxGo.transform.SetParent(car.transform, false);
                 }
                 _ignitionHoldSfxGo.transform.localPosition = Vector3.zero;
-                _ignitionHoldSfxSource.volume = vol;
+                SetProp(_ignitionHoldSfxSource, "volume", vol);
+                SetProp(_ignitionHoldSfxSource, "clip", _ignitionSfxOn);
 
-                if (_ignitionSfxOn is AudioClip ac)
+                bool isPlaying = false;
+                try
                 {
-                    _ignitionHoldSfxSource.clip = ac;
-                }
-                else
-                {
-                    var clipProp = _ignitionHoldSfxSource.GetType().GetProperty("clip");
-                    if (clipProp != null)
+                    var p = _ignitionHoldSfxSource.GetType().GetProperty("isPlaying");
+                    if (p != null)
                     {
-                        clipProp.SetValue(_ignitionHoldSfxSource, _ignitionSfxOn, null);
+                        isPlaying = (bool)p.GetValue(_ignitionHoldSfxSource, null);
                     }
                 }
-
-                if (!_ignitionHoldSfxSource.isPlaying)
+                catch
                 {
-                    _ignitionHoldSfxSource.Play();
+                }
+                if (!isPlaying)
+                {
+                    Call(_ignitionHoldSfxSource, "Play");
                 }
             }
             catch
@@ -304,9 +362,9 @@ namespace SebTruck
         {
             try
             {
-                if (_ignitionHoldSfxSource != null && _ignitionHoldSfxSource.isPlaying)
+                if (_ignitionHoldSfxSource != null)
                 {
-                    _ignitionHoldSfxSource.Stop();
+                    Call(_ignitionHoldSfxSource, "Stop");
                 }
             }
             catch

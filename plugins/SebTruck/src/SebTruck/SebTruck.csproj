@@ -38,10 +38,7 @@
       <Private>false</Private>
     </Reference>
 
-    <Reference Include="UnityEngine.AudioModule">
-      <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+    <!-- Intentionally no UnityEngine.AudioModule reference: use reflection for ignition SFX. -->
 
     <Reference Include="Assembly-CSharp">
       <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\Assembly-CSharp.dll</HintPath>
