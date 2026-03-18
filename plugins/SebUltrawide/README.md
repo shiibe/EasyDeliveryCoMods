@@ -62,7 +62,7 @@ Install
 - Manual: copy `SebUltrawide.dll` to `BepInEx/plugins/SebUltrawide/`
 
 ## Configuration
-- Config file: `BepInEx/config/shibe.easydeliveryco.ultrawide.cfg`
+- Config file: `BepInEx/config/shibe.easydeliveryco.sebultrawide.cfg`
 - `enable_mod`: enables/disables the mod entirely
 - `aspect_ratio`: `default`, `auto`, `w:h` (e.g. `21:9`), or a decimal ratio (e.g. `2.39`)
   - Use `aspect_ratio=default` to disable ultrawide fixes while keeping the in-game settings (FOV/pixelation/view distance).

@@ -8,7 +8,7 @@ namespace SebBinds
     internal static class WheelInterop
     {
         // Current wheel plugin GUID (pre-refactor). Keep this until we rename the wheel plugin.
-        private const string WheelPluginGuid = "shibe.easydeliveryco.logiwheel";
+        private const string WheelPluginGuid = "shibe.easydeliveryco.seblogiwheel";
 
         private static Type _wheelPluginType;
         private static Type _wheelBindingInputType;

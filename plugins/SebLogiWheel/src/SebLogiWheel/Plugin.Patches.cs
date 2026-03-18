@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
+using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -18,6 +19,8 @@ namespace SebLogiWheel
         {
             _log = Logger;
             _instance = this;
+
+            MigrateConfigIfNeeded(oldGuid: "shibe.easydeliveryco.logiwheel", newGuid: PluginGuid);
 
             _enableMod = Config.Bind("General", "enable_mod", true, "Enables/disables the mod entirely.");
             _logDetectedDevices = Config.Bind("Debug", "log_detected_devices", true, "Log joystick names detected by Unity on startup.");
@@ -48,6 +51,29 @@ namespace SebLogiWheel
             // Vehicle/transmission/HUD features live in SebTruck.
 
             _log.LogInfo("SebLogiWheel loaded.");
+        }
+
+        private static void MigrateConfigIfNeeded(string oldGuid, string newGuid)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(oldGuid) || string.IsNullOrWhiteSpace(newGuid) || string.Equals(oldGuid, newGuid, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                string cfgDir = Paths.ConfigPath;
+                string oldPath = Path.Combine(cfgDir, oldGuid + ".cfg");
+                string newPath = Path.Combine(cfgDir, newGuid + ".cfg");
+
+                if (File.Exists(oldPath) && !File.Exists(newPath))
+                {
+                    File.Copy(oldPath, newPath);
+                }
+            }
+            catch
+            {
+            }
         }
 
         private static void TryLoadIgnitionSfx()

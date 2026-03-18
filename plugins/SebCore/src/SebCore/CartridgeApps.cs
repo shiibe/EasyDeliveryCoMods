@@ -21,7 +21,7 @@ namespace SebCore
         {
             DisplayName = "Wheel",
             FileName = "wheel",
-            PluginGuid = "shibe.easydeliveryco.logiwheel",
+            PluginGuid = "shibe.easydeliveryco.seblogiwheel",
             ListenerName = "G920Menu",
             ListenerData = "listener_G920Menu",
             WindowTypeName = "SebLogiWheel.WheelMenuWindow"
@@ -31,7 +31,7 @@ namespace SebCore
         {
             DisplayName = "Graphics",
             FileName = "wide",
-            PluginGuid = "shibe.easydeliveryco.ultrawide",
+            PluginGuid = "shibe.easydeliveryco.sebultrawide",
             ListenerName = "UltrawideMenu",
             ListenerData = "listener_UltrawideMenu",
             WindowTypeName = "SebUltrawide.UltrawideMenuWindow"

@@ -89,7 +89,7 @@ Quick start
 4. Open `Binds` -> `Wheel` and bind buttons/axes.
 
 ## Configuration
-- Config file: `BepInEx/config/shibe.easydeliveryco.logiwheel.cfg`
+- Config file: `BepInEx/config/shibe.easydeliveryco.seblogiwheel.cfg`
 
 General
 - `enable_mod` (bool, default: `true`): Enables/disables the mod entirely.
