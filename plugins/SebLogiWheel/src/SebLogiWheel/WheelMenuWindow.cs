@@ -172,7 +172,7 @@ namespace SebLogiWheel
             }
 
             // From the main page, return to SebCore.
-            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, _util?.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
             _view?.Kill();
         }
 
@@ -272,7 +272,7 @@ namespace SebLogiWheel
 
             if (_util.SimpleButton("Back", cx, backY))
             {
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
                 _view?.Kill();
             }
         }

@@ -164,7 +164,7 @@ namespace SebBinds
             }
 
             // Close the window.
-            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, _util?.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
             _view?.Kill();
         }
 
@@ -233,7 +233,7 @@ namespace SebBinds
             float navY = p.y + p.height - 18f;
             if (_util.SimpleButtonRaw("Back", cx, navY))
             {
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
                 _view?.Kill();
             }
         }
@@ -637,16 +637,15 @@ namespace SebBinds
             float cx = p.x + p.width / 2f;
 
             float promptY = p.y + p.height / 2f - 18f;
-            _util.Label("Wheel Axes", cx, promptY);
-            _util.Label("Configure wheel axes in the Wheel menu", cx, promptY + line);
-            _util.Label("(Axis Mapping)", cx, promptY + line * 2f);
+            _util.Label("Wheel Axes need to be set", cx, promptY);
+            _util.Label("in the Wheel menu.", cx, promptY + line);
 
             float navY = p.y + p.height - 18f;
-            float openY = navY - 12f;
-            if (_util.SimpleButtonRaw("Open Wheel Menu", cx, openY))
+            float openY = promptY + line * 2f + 8f;
+            if (_util.FancyButton("Open Wheel Menu", cx, openY))
             {
                 WheelInterop.RequestOpenAxisMapping();
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, "wheel", "listener_G920Menu");
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "wheel", "listener_G920Menu");
             }
         }
 

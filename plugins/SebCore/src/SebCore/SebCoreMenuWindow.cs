@@ -116,7 +116,7 @@ namespace SebCore
                         {
                             Plugin.LogDebug("Launch failed: could not ensure listener for '" + apps[i].FileName + "'");
                         }
-                        else if (!DesktopAppLauncher.TryOpenProgramListener(desktop, apps[i].FileName, apps[i].ListenerData))
+                        else if (!DesktopAppLauncher.TryOpenProgramListener(desktop, _util.R, apps[i].FileName, apps[i].ListenerData))
                         {
                             Plugin.LogDebug("Launch failed: program listener open failed for '" + apps[i].FileName + "'");
                         }

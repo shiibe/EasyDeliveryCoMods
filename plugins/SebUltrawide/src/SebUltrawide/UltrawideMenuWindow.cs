@@ -46,7 +46,7 @@ namespace SebUltrawide
 
         public void BackButtonPressed()
         {
-            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, _util?.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
             _view?.Kill();
         }
 
@@ -62,7 +62,7 @@ namespace SebUltrawide
             float navY = p.y + p.height - 18f;
             if (_util.SimpleButtonRaw("Back", cx, navY))
             {
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
                 _view?.Kill();
                 return;
             }
