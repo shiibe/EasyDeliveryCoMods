@@ -172,6 +172,8 @@ namespace SebTruck
                 return;
             }
 
+            LogDebug("Ignition: " + (ignitionOn ? "ON" : "OFF"));
+
             var hl = car.headlights;
             var radio = sRadioSystem.instance;
             bool radioIsForCar = radio != null && ReferenceEquals(radio.car, car);
@@ -616,17 +618,21 @@ namespace SebTruck
 
                     SetIgnitionEnabled(false);
                     ApplyIgnitionStateChange(false);
+
+                    LogDebug("Ignition toggled OFF");
                 }
 
                 if (ignitionFeature && !GetIgnitionEnabled() && ignitionDown && !_ignitionIgnoreHoldUntilRelease)
                 {
-                    if (_ignitionHoldStart < 0f)
-                    {
-                        _ignitionHoldStart = Time.unscaledTime;
-                        _ignitionHoldConsumed = false;
+                if (_ignitionHoldStart < 0f)
+                {
+                    _ignitionHoldStart = Time.unscaledTime;
+                    _ignitionHoldConsumed = false;
 
-                        StartIgnitionHoldSfx(car);
-                    }
+                    LogDebug("Ignition hold started");
+
+                    StartIgnitionHoldSfx(car);
+                }
 
                     float holdS = GetIgnitionHoldSeconds();
                     if (!_ignitionHoldConsumed && Time.unscaledTime - _ignitionHoldStart >= holdS)
@@ -634,6 +640,8 @@ namespace SebTruck
                         SetIgnitionEnabled(true);
                         ApplyIgnitionStateChange(true);
                         _ignitionHoldConsumed = true;
+
+                        LogDebug("Ignition hold complete");
 
                         StopIgnitionHoldSfx();
                     }
@@ -645,6 +653,11 @@ namespace SebTruck
                     _ignitionIgnoreHoldUntilRelease = false;
                     _ignitionHoldStart = -1f;
                     _ignitionHoldConsumed = false;
+
+                    if (ignitionFeature && !GetIgnitionEnabled())
+                    {
+                        LogDebug("Ignition hold cancelled");
+                    }
                 }
 
                 _ignitionHoldWasDown = ignitionDown;

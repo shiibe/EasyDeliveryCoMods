@@ -13,7 +13,6 @@ namespace SebUltrawide
             _log = Logger;
 
             MigrateConfigIfNeeded(oldGuid: "shibe.easydeliveryco.ultrawide", newGuid: PluginGuid);
-            _enableMod = Config.Bind("General", "enable_mod", true, "Enables/disables the mod entirely.");
             _aspectRatio = Config.Bind(
                 "General",
                 "aspect_ratio",
@@ -33,12 +32,6 @@ namespace SebUltrawide
             _perfLogging = Config.Bind("Logging", "perf_logging", false, "Log periodic performance counters (can be noisy).");
             _perfLogIntervalSeconds = Config.Bind("Logging", "perf_log_interval_seconds", 10f, "How often to emit perf logs, in seconds.");
 
-
-            if (!_enableMod.Value)
-            {
-                _log.LogInfo("Ultrawide mod disabled via config.");
-                return;
-            }
 
             var harmony = new Harmony(PluginGuid);
             PatchByName(harmony, "PlayerManager", "SetupCameras", postfix: nameof(PlayerManager_SetupCameras_Postfix));

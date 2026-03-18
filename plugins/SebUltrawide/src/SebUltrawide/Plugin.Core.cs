@@ -19,7 +19,6 @@ namespace SebUltrawide
         private const string PrefKeyViewDistanceModeVersion = "UltrawideViewDistanceModeVersion";
         private const float DefaultAspect = 16f / 9f;
 
-        private static ConfigEntry<bool> _enableMod;
         private static ConfigEntry<bool> _debugMode;
         private static ConfigEntry<bool> _perfLogging;
         private static ConfigEntry<float> _perfLogIntervalSeconds;
@@ -48,7 +47,7 @@ namespace SebUltrawide
 
         private static bool ShouldApply()
         {
-            return _enableMod != null && _enableMod.Value;
+            return true;
         }
 
         private static bool ShouldApplyHudFix()
@@ -61,21 +60,6 @@ namespace SebUltrawide
             string raw = _aspectRatio != null ? _aspectRatio.Value : "auto";
             string normalized = string.IsNullOrWhiteSpace(raw) ? "" : raw.Trim().ToLowerInvariant();
             return normalized == "default" || normalized == "native" || normalized == "vanilla";
-        }
-
-        internal static bool GetEnableMod()
-        {
-            return _enableMod != null && _enableMod.Value;
-        }
-
-        internal static void SetEnableMod(bool value)
-        {
-            if (_enableMod == null)
-            {
-                return;
-            }
-
-            _enableMod.Value = value;
         }
 
         internal static bool GetDebugMode()

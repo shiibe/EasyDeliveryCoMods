@@ -26,6 +26,8 @@ namespace SebBinds
 
         private bool _isCapturingModifier;
 
+        private bool _bindingCaptureMissingModifier;
+
         private float _axisCaptureEnterTime;
 
         private float _bindingCaptureEnterTime = -999f;
@@ -582,6 +584,7 @@ namespace SebBinds
                 _bindingCaptureEnterTime = Time.unscaledTime;
                 // Special-case: capture modifier.
                 _isCapturingModifier = true;
+                _bindingCaptureMissingModifier = false;
                 return;
             }
             y += line;
@@ -739,7 +742,7 @@ namespace SebBinds
             _util.R.fput("Action", labelX, y);
             _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
             _util.R.fput("Press", pressRight, y);
-            _util.R.fput("Hold", holdRight, y);
+            _util.R.fput("Modif.", holdRight, y);
             y += line;
 
             int maxVisible = 9;
@@ -789,6 +792,9 @@ namespace SebBinds
                     _bindingDupConfirmActive = false;
                     _page = Page.BindingCapture;
                     _bindingCaptureEnterTime = Time.unscaledTime;
+
+                    _isCapturingModifier = false;
+                    _bindingCaptureMissingModifier = layer == BindingLayer.Modified && BindingStore.GetModifierBinding(_scheme).Kind == BindingKind.None;
                     return;
                 }
             }
@@ -809,14 +815,41 @@ namespace SebBinds
                 : (BindingStore.GetActionLabel(_bindingCaptureAction) + " (" + LayerLabel(_bindingCaptureLayer) + ")");
 
             float promptY = p.y + p.height / 2f - 18f;
-            _util.Label("Press a button for:", p.x + p.width / 2f, promptY);
-            _util.Label(secondLine, p.x + p.width / 2f, promptY + line);
-
             float cx = p.x + p.width / 2f;
             float clearY = p.y + p.height - 30f;
             float cancelY = p.y + p.height - 18f;
 
+            // If attempting to bind Modif. without a modifier, show an error screen.
+            if (!_isCapturingModifier && _bindingCaptureLayer == BindingLayer.Modified && BindingStore.GetModifierBinding(_scheme).Kind == BindingKind.None)
+            {
+                _bindingCaptureMissingModifier = true;
+            }
+
             bool allowUiClicks = Time.unscaledTime - _axisCaptureEnterTime > 0.25f;
+
+            if (_bindingCaptureMissingModifier)
+            {
+                _util.Label("Please set a", cx, promptY);
+                _util.Label("modifier button first!", cx, promptY + line);
+
+                if (allowUiClicks && _util.SimpleButtonRaw("Back", cx, cancelY))
+                {
+                    _bindingDupConfirmActive = false;
+                    _isCapturingModifier = false;
+                    _bindingCaptureMissingModifier = false;
+                    _page = Page.Bindings;
+                }
+                return;
+            }
+
+            _util.Label("Press a button for:", cx, promptY);
+            _util.Label(secondLine, cx, promptY + line);
+
+            if (!_isCapturingModifier && _bindingCaptureLayer == BindingLayer.Modified)
+            {
+                _util.Label("Hold modifier first", p.x + p.width / 2f, promptY + line * 2f);
+                _util.Label("or binding won't register.", p.x + p.width / 2f, promptY + line * 3f);
+            }
 
             if (_bindingDupConfirmActive)
             {
@@ -856,6 +889,7 @@ namespace SebBinds
 
                 _bindingDupConfirmActive = false;
                 _isCapturingModifier = false;
+                _bindingCaptureMissingModifier = false;
                 _page = Page.Bindings;
                 return;
             }
@@ -864,6 +898,7 @@ namespace SebBinds
             {
                 _bindingDupConfirmActive = false;
                 _isCapturingModifier = false;
+                _bindingCaptureMissingModifier = false;
                 _page = Page.Bindings;
                 return;
             }
@@ -878,6 +913,7 @@ namespace SebBinds
                 BindingStore.SetModifierBinding(_scheme, captured);
                 _bindingDupConfirmActive = false;
                 _isCapturingModifier = false;
+                _bindingCaptureMissingModifier = false;
                 _page = Page.Bindings;
                 return;
             }
@@ -1113,12 +1149,12 @@ namespace SebBinds
 
         private static string LayerLabel(BindingLayer layer)
         {
-            return layer == BindingLayer.Normal ? "Press" : "Hold";
+            return layer == BindingLayer.Normal ? "Press" : "Modif.";
         }
 
         private static bool IsLayerSupported(BindAction action, BindingLayer layer)
         {
-            // Press/Hold are both valid for button bindings; axes are handled on the Axes page.
+            // Press/Modif. are both valid for button bindings; axes are handled on the Axes page.
             return true;
         }
 

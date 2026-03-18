@@ -19,6 +19,8 @@ namespace SebTruck
 
         internal static ManualLogSource Log;
 
+        private static ConfigEntry<bool> _debugLogging;
+
         private static ConfigEntry<string> _ignitionSfxOnPath;
         private static ConfigEntry<float> _ignitionSfxVolume;
 
@@ -30,6 +32,8 @@ namespace SebTruck
         private void Awake()
         {
             Log = Logger;
+
+            _debugLogging = Config.Bind("Debug", "debug_logging", false, "Log debug information (verbose).");
 
             _ignitionSfxOnPath = Config.Bind("Ignition", "sfx_on_path", "", "Optional ignition ON sound. File name inside the plugin's sfx folder (e.g. ignition_on.wav). Leave blank to use sfx/ignition_on.wav.");
             _ignitionSfxVolume = Config.Bind("Ignition", "sfx_volume", 0.6f, "Ignition sound volume (0..1).");
@@ -56,6 +60,14 @@ namespace SebTruck
             }
 
             Log.LogInfo("Loaded");
+        }
+
+        internal static void LogDebug(string msg)
+        {
+            if (_debugLogging != null && _debugLogging.Value)
+            {
+                Log?.LogMessage(msg);
+            }
         }
 
         private static void TryLoadIgnitionSfx()

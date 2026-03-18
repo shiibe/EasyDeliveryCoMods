@@ -22,7 +22,6 @@ namespace SebLogiWheel
 
             MigrateConfigIfNeeded(oldGuid: "shibe.easydeliveryco.logiwheel", newGuid: PluginGuid);
 
-            _enableMod = Config.Bind("General", "enable_mod", true, "Enables/disables the mod entirely.");
             _logDetectedDevices = Config.Bind("Debug", "log_detected_devices", true, "Log joystick names detected by Unity on startup.");
             _debugLogging = Config.Bind("Debug", "debug_logging", false, "Log debug information.");
 
@@ -30,12 +29,6 @@ namespace SebLogiWheel
             _ignoreXInputControllers = Config.Bind("General", "ignore_xinput_controllers", true, "Pass 'ignoreXInputControllers' to the Logitech SDK init (recommended).");
 
             // Ignition SFX moved to SebTruck.
-
-            if (!_enableMod.Value)
-            {
-                _log.LogInfo("SebLogiWheel disabled via config.");
-                return;
-            }
 
             MigratePrefsFromG920IfNeeded();
 

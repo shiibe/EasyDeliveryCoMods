@@ -70,6 +70,7 @@ namespace SebTruck
 
         internal static void SetManualTransmissionEnabled(bool enabled)
         {
+            bool before = GetManualTransmissionEnabled();
             _manualTransmissionEnabled = enabled;
             PlayerPrefs.SetInt(PrefKeyManualTransmissionEnabled, enabled ? 1 : 0);
             if (!enabled)
@@ -82,6 +83,11 @@ namespace SebTruck
                 {
                     _manualGear = 1;
                 }
+            }
+
+            if (before != enabled)
+            {
+                LogDebug("Manual transmission: " + (enabled ? "ON" : "OFF"));
             }
         }
 
@@ -110,6 +116,8 @@ namespace SebTruck
                 return;
             }
 
+            int before = _manualGear;
+
             int count = GetManualGearCount();
             int g = _manualGear;
 
@@ -131,6 +139,11 @@ namespace SebTruck
             }
 
             _manualGear = g;
+
+            if (before != _manualGear)
+            {
+                LogDebug("Shift: " + before + " -> " + _manualGear);
+            }
         }
 
 

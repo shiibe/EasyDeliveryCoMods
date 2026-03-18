@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -10,7 +12,6 @@ namespace SebLogiWheel
     {
         private static ManualLogSource _log;
 
-        private static ConfigEntry<bool> _enableMod;
         private static ConfigEntry<bool> _debugLogging;
         private static ConfigEntry<bool> _logDetectedDevices;
 
@@ -844,6 +845,11 @@ namespace SebLogiWheel
         private static string _logiLastName;
         private static string _logiLastPath;
 
+        private static bool _logiSelectionDone;
+        private static float _logiLastSelectionAttemptTime;
+        private static bool _logiWarnedMultipleDevices;
+        private static bool _logiWarnedSelectedNotWheel;
+
         private static bool _isInWalkingMode;
         private static float _currentSpeedKmh;
         private static bool _isOffRoad;
@@ -1301,7 +1307,7 @@ namespace SebLogiWheel
 
         private static bool ShouldApply()
         {
-            return _enableMod != null && _enableMod.Value;
+            return true;
         }
 
         internal static bool GetFfbEnabled()
@@ -1484,11 +1490,46 @@ namespace SebLogiWheel
                 return;
             }
 
-            if (_logDetectedDevices != null && _logDetectedDevices.Value)
+            // Unity can return a fixed-size array with empty entries; only count actual devices.
+            var connectedDevices = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < names.Length; i++)
             {
-                for (int i = 0; i < names.Length; i++)
+                string n = names[i];
+                if (string.IsNullOrWhiteSpace(n))
                 {
-                    _log.LogInfo($"Joystick {i + 1}: '{names[i]}'");
+                    continue;
+                }
+
+                n = n.Trim();
+                if (n.Length == 0)
+                {
+                    continue;
+                }
+
+                if (seen.Add(n))
+                {
+                    connectedDevices.Add(n);
+                }
+            }
+
+            if (connectedDevices.Count == 0)
+            {
+                LogDebug("No joysticks detected by Unity.");
+                return;
+            }
+
+            if (connectedDevices.Count > 1)
+            {
+                _log.LogWarning($"Multiple controller devices detected by Unity ({connectedDevices.Count}). SebLogiWheel works best with only the wheel plugged in (see README).");
+            }
+
+            bool logDevices = connectedDevices.Count > 1 || (_logDetectedDevices != null && _logDetectedDevices.Value);
+            if (logDevices)
+            {
+                for (int i = 0; i < connectedDevices.Count; i++)
+                {
+                    _log.LogInfo($"Joystick {i + 1}: '{connectedDevices[i]}'");
                 }
             }
         }
@@ -1576,9 +1617,230 @@ namespace SebLogiWheel
             _logiIgnoreXInputUsed = ignoreXInputControllers;
             _logiAvailable = true;
             _log.LogMessage($"Logitech SDK initialized (ignoreXInputControllers={ignoreXInputControllers}).");
+
+            // Prefer the actual wheel if multiple devices are present.
+            try
+            {
+                SafeLogiUpdate();
+                SelectBestLogitechDeviceIndex();
+            }
+            catch
+            {
+                // Best-effort only; fallback to index 0.
+            }
+
             ApplyControllerPropertiesIfReady();
             ApplyWheelRangeIfReady();
             return true;
+        }
+
+        private struct LogiDeviceSnapshot
+        {
+            public int Index;
+            public bool Connected;
+            public bool IsWheel;
+            public bool IsGamepad;
+            public bool IsJoystick;
+            public bool IsLogitech;
+            public bool IsG920;
+            public bool IsG29;
+            public int Vid;
+            public int Pid;
+            public string Name;
+            public string Path;
+        }
+
+        private static void SelectBestLogitechDeviceIndex()
+        {
+            if (!_logiAvailable)
+            {
+                return;
+            }
+
+            _logiSelectionDone = true;
+            _logiLastSelectionAttemptTime = Time.unscaledTime;
+
+            var devices = new List<LogiDeviceSnapshot>(LogitechGSDK.LOGI_MAX_CONTROLLERS);
+            for (int i = 0; i < LogitechGSDK.LOGI_MAX_CONTROLLERS; i++)
+            {
+                bool connected;
+                try
+                {
+                    connected = LogitechGSDK.LogiIsConnected(i);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (!connected)
+                {
+                    continue;
+                }
+
+                var d = new LogiDeviceSnapshot
+                {
+                    Index = i,
+                    Connected = true,
+                    Name = TryGetWheelFriendlyName(i),
+                    Path = TryGetWheelDevicePath(i),
+                };
+
+                TryExtractVidPid(d.Path, out d.Vid, out d.Pid);
+
+                try { d.IsWheel = LogitechGSDK.LogiIsDeviceConnected(i, LogitechGSDK.LOGI_DEVICE_TYPE_WHEEL); } catch { }
+                try { d.IsGamepad = LogitechGSDK.LogiIsDeviceConnected(i, LogitechGSDK.LOGI_DEVICE_TYPE_GAMEPAD); } catch { }
+                try { d.IsJoystick = LogitechGSDK.LogiIsDeviceConnected(i, LogitechGSDK.LOGI_DEVICE_TYPE_JOYSTICK); } catch { }
+                try { d.IsLogitech = LogitechGSDK.LogiIsManufacturerConnected(i, LogitechGSDK.LOGI_MANUFACTURER_LOGITECH); } catch { }
+                try { d.IsG920 = LogitechGSDK.LogiIsModelConnected(i, LogitechGSDK.LOGI_MODEL_G920); } catch { }
+                try { d.IsG29 = LogitechGSDK.LogiIsModelConnected(i, LogitechGSDK.LOGI_MODEL_G29); } catch { }
+
+                devices.Add(d);
+            }
+
+            if (devices.Count <= 0)
+            {
+                return;
+            }
+
+            // Pick the best candidate.
+            int best = _logiIndex;
+            int bestScore = int.MinValue;
+            for (int i = 0; i < devices.Count; i++)
+            {
+                var d = devices[i];
+                int score = 0;
+
+                if (d.IsWheel) score += 100;
+                if (d.IsLogitech) score += 20;
+                if (d.IsG920) score += 50;
+                if (d.IsG29) score += 40;
+
+                // Penalize obvious non-wheel devices.
+                if (d.IsGamepad) score -= 100;
+                if (d.IsJoystick && !d.IsWheel) score -= 20;
+
+                // Prefer known Logitech wheel USB vendor id.
+                if (d.Vid == 0x046D) score += 10;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = d.Index;
+                }
+            }
+
+            if (best != _logiIndex)
+            {
+                _logiIndex = best;
+                if (_log != null)
+                {
+                    _log.LogInfo($"Selected Logitech device index {_logiIndex} (preferred wheel device). ");
+                }
+            }
+
+            // Warn if the SDK sees multiple devices (wheel + other controllers).
+            if (_log != null && devices.Count > 1 && !_logiWarnedMultipleDevices)
+            {
+                _log.LogWarning($"Logitech SDK reports multiple input devices ({devices.Count}). For best results, unplug extra controllers.");
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    var d = devices[i];
+                    string type = d.IsWheel ? "wheel" : (d.IsGamepad ? "gamepad" : (d.IsJoystick ? "joystick" : "other"));
+                    string id = (d.Vid > 0 && d.Pid > 0) ? $" vid=0x{d.Vid:X4} pid=0x{d.Pid:X4}" : string.Empty;
+                    string label = !string.IsNullOrWhiteSpace(d.Name) ? d.Name : (!string.IsNullOrWhiteSpace(d.Path) ? d.Path : "(unknown)");
+                    string selected = d.Index == _logiIndex ? " [selected]" : "";
+                    _log.LogInfo($"SDK device {d.Index}: {type}{id}: {label}{selected}");
+                }
+                _logiWarnedMultipleDevices = true;
+            }
+
+            // If the selected device is not a wheel, call it out explicitly.
+            if (_log != null && !_logiWarnedSelectedNotWheel)
+            {
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    if (devices[i].Index != _logiIndex)
+                    {
+                        continue;
+                    }
+                    var d = devices[i];
+                    if (!d.IsWheel)
+                    {
+                        _log.LogWarning("Selected Logitech SDK device is not a wheel. If you have a wheel connected, unplug other controllers and retry SDK.");
+                        _logiWarnedSelectedNotWheel = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        private static bool TryExtractVidPid(string devicePath, out int vid, out int pid)
+        {
+            vid = 0;
+            pid = 0;
+            if (string.IsNullOrWhiteSpace(devicePath))
+            {
+                return false;
+            }
+
+            // Common HID path format includes "vid_046d" and "pid_c262".
+            string s = devicePath;
+            int vidPos = s.IndexOf("vid_", StringComparison.OrdinalIgnoreCase);
+            int pidPos = s.IndexOf("pid_", StringComparison.OrdinalIgnoreCase);
+            if (vidPos < 0 || pidPos < 0)
+            {
+                return false;
+            }
+
+            string vidHex = SafeHexSlice(s, vidPos + 4, 4);
+            string pidHex = SafeHexSlice(s, pidPos + 4, 4);
+            if (string.IsNullOrWhiteSpace(vidHex) || string.IsNullOrWhiteSpace(pidHex))
+            {
+                return false;
+            }
+
+            if (!int.TryParse(vidHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out vid))
+            {
+                vid = 0;
+                return false;
+            }
+            if (!int.TryParse(pidHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out pid))
+            {
+                vid = 0;
+                pid = 0;
+                return false;
+            }
+            return true;
+        }
+
+        private static string SafeHexSlice(string s, int start, int maxLen)
+        {
+            if (string.IsNullOrEmpty(s) || start < 0 || start >= s.Length || maxLen <= 0)
+            {
+                return null;
+            }
+
+            int len = Math.Min(maxLen, s.Length - start);
+            // Trim if we hit a separator early.
+            int end = start;
+            for (int i = 0; i < len; i++)
+            {
+                char c = s[start + i];
+                bool isHex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+                if (!isHex)
+                {
+                    break;
+                }
+                end++;
+            }
+
+            int outLen = end - start;
+            if (outLen <= 0)
+            {
+                return null;
+            }
+            return s.Substring(start, outLen);
         }
 
         internal static void ForceReinitLogitech()
@@ -1632,6 +1894,10 @@ namespace SebLogiWheel
             _logiWasConnected = false;
             _logiLastName = null;
             _logiLastPath = null;
+            _logiSelectionDone = false;
+            _logiLastSelectionAttemptTime = 0f;
+            _logiWarnedMultipleDevices = false;
+            _logiWarnedSelectedNotWheel = false;
 
             // Attempt immediately.
             TryInitLogitech();
@@ -1873,6 +2139,30 @@ namespace SebLogiWheel
             if (!SafeLogiUpdate())
             {
                 return false;
+            }
+
+            // If we latched onto a gamepad, try to switch to an actual wheel.
+            if (!_logiSelectionDone || Time.unscaledTime - _logiLastSelectionAttemptTime > 2.0f)
+            {
+                bool selectedIsWheel = false;
+                try
+                {
+                    selectedIsWheel = LogitechGSDK.LogiIsDeviceConnected(_logiIndex, LogitechGSDK.LOGI_DEVICE_TYPE_WHEEL);
+                }
+                catch
+                {
+                }
+
+                if (!selectedIsWheel)
+                {
+                    try
+                    {
+                        SelectBestLogitechDeviceIndex();
+                    }
+                    catch
+                    {
+                    }
+                }
             }
 
             _logiConnected = LogitechGSDK.LogiIsConnected(_logiIndex);
