@@ -1,5 +1,3 @@
-# SebBinds
-
 <h1>
 <p align="center">
   <img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebBinds/assets/icon.png" alt="Logo" width="128">
