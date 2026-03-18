@@ -1,0 +1,10 @@
+{
+  "name": "__MOD_NAME__",
+  "version_number": "__MOD_VERSION__",
+  "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
+  "description": "SebCore cartridge: __DISPLAY_NAME__",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2304",
+    "__SEBCORE_DEP__"
+  ]
+}

@@ -10,6 +10,10 @@ Monorepo for my Easy Delivery Co. mods.
 - `plugins/SebLogiWheel` - Logitech wheel support (SebCore app: `Wheel`)
 - `plugins/SebTruck` - vehicle/transmission tweaks
 
+## Templates
+
+- New SebCore cartridge scaffold: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/new-cartridge.ps1 -Name MyCart -Guid com.example.mycart`
+
 ## Mods
 
 | Mod | Thunderstore | Docs |
