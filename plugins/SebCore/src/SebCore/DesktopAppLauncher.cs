@@ -70,6 +70,7 @@ namespace SebCore
             file.Execute(out windowView);
             if (windowView == null)
             {
+                Plugin.LogDebug("Failed to open program listener: file='" + fileName + "' data='" + listenerData + "'");
                 return false;
             }
 

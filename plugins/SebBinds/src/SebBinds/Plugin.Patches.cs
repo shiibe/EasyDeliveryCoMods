@@ -9,7 +9,6 @@ namespace SebBinds
     public partial class Plugin
     {
         private static ConfigEntry<bool> _debugLogging;
-        private static ConfigEntry<InputMode> _inputMode;
 
         private static float _resetHoldStart = -1f;
         private static bool _resetHoldFired;
@@ -23,7 +22,6 @@ namespace SebBinds
         {
             Log = Logger;
             _debugLogging = Config.Bind("Logging", "debug_logging", false, "Log extra debug information.");
-            _inputMode = Config.Bind("Input", "mode", InputMode.Controller, "Active input mode: Controller, KeyboardMouse, Wheel.");
 
             var harmony = new Harmony(PluginGuid);
             var postfix = new HarmonyMethod(typeof(Plugin), nameof(SInputManager_GetInput_Postfix))
@@ -45,50 +43,6 @@ namespace SebBinds
                 return;
             }
             Log?.LogInfo("[debug] " + message);
-        }
-
-        internal static InputMode GetConfiguredInputMode()
-        {
-            return _inputMode != null ? _inputMode.Value : InputMode.Controller;
-        }
-
-        internal static void CycleInputMode()
-        {
-            if (_inputMode == null)
-            {
-                return;
-            }
-
-            bool wheelAvailable = WheelInterop.IsWheelPluginPresent();
-
-            InputMode current = GetConfiguredInputMode();
-            InputMode next = current + 1;
-            if (next > InputMode.Wheel)
-            {
-                next = InputMode.Controller;
-            }
-            if (!wheelAvailable && next == InputMode.Wheel)
-            {
-                next = InputMode.Controller;
-            }
-
-            _inputMode.Value = next;
-            Log?.LogInfo("Input mode -> " + next);
-        }
-
-        private static InputMode ResolveInputMode(InputMode configured)
-        {
-            bool wheelAvailable = WheelInterop.IsWheelPluginPresent();
-            if (configured == InputMode.Wheel && !wheelAvailable)
-            {
-                configured = InputMode.Controller;
-            }
-            return configured;
-        }
-
-        internal static InputMode GetActiveInputMode()
-        {
-            return ResolveInputMode(GetConfiguredInputMode());
         }
 
         private static void SInputManager_GetInput_Postfix(sInputManager __instance)
@@ -178,58 +132,94 @@ namespace SebBinds
             // We'll reconstruct radioInput from our bound inputs.
             input.radioInput = Vector2.zero;
 
-            InputMode mode = ResolveInputMode(GetConfiguredInputMode());
-
-            BindingScheme scheme = mode == InputMode.KeyboardMouse ? BindingScheme.Keyboard : BindingScheme.Controller;
-
             BindingEvaluator.BeginFrame();
 
-            // FreeCam toggle (dev tool). When enabled, the game suppresses select/map/inventory.
+            var schemes = WheelInterop.IsWheelPluginPresent()
+                ? new[] { BindingScheme.Controller, BindingScheme.Keyboard, BindingScheme.Wheel }
+                : new[] { BindingScheme.Controller, BindingScheme.Keyboard };
+
+            BindingLayer LayerFor(BindingScheme s)
             {
-                var freeCam = BindingStore.GetBinding(BindingLayer.Normal, BindAction.FreeCam);
-                if (Pressed(freeCam))
+                var mod = BindingStore.GetModifierBinding(s);
+                return (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) ? BindingLayer.Modified : BindingLayer.Normal;
+            }
+
+            BindingInput GetBind(BindingScheme s, BindAction action)
+            {
+                var layer = LayerFor(s);
+                var b = BindingStore.GetBinding(s, layer, action);
+                if (b.Kind == BindingKind.None && layer == BindingLayer.Modified)
                 {
-                    input.freeCamMode = !input.freeCamMode;
-                    LogDebug("FreeCamMode -> " + (input.freeCamMode ? "on" : "off"));
+                    b = BindingStore.GetBinding(s, BindingLayer.Normal, action);
                 }
+                return b;
+            }
+
+            bool Pressed(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(b);
+            bool Released(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasReleasedThisFrame(b);
+            bool Down(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.IsDown(b);
+
+            bool AnyBindingExists(BindAction action)
+            {
+                for (int i = 0; i < schemes.Length; i++)
+                {
+                    var bN = BindingStore.GetBinding(schemes[i], BindingLayer.Normal, action);
+                    var bM = BindingStore.GetBinding(schemes[i], BindingLayer.Modified, action);
+                    if (bN.Kind != BindingKind.None || bM.Kind != BindingKind.None)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool PressedAny(BindAction action)
+            {
+                for (int i = 0; i < schemes.Length; i++)
+                {
+                    if (Pressed(GetBind(schemes[i], action)))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool ReleasedAny(BindAction action)
+            {
+                for (int i = 0; i < schemes.Length; i++)
+                {
+                    if (Released(GetBind(schemes[i], action)))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool DownAny(BindAction action)
+            {
+                for (int i = 0; i < schemes.Length; i++)
+                {
+                    if (Down(GetBind(schemes[i], action)))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // FreeCam toggle (dev tool). When enabled, the game suppresses select/map/inventory.
+            if (PressedAny(BindAction.FreeCam))
+            {
+                input.freeCamMode = !input.freeCamMode;
+                LogDebug("FreeCamMode -> " + (input.freeCamMode ? "on" : "off"));
             }
 
             bool inWalkingMode = false;
             WheelInterop.TryGetIsInWalkingMode(out inWalkingMode);
 
-            bool Allowed(BindingInput b)
-            {
-                if (b.Kind == BindingKind.None)
-                {
-                    return false;
-                }
-
-                if (mode == InputMode.Wheel)
-                {
-                    return b.Kind == BindingKind.Button || b.Kind == BindingKind.Pov;
-                }
-                if (mode == InputMode.Controller)
-                {
-                    return b.Kind == BindingKind.GamepadButton || b.Kind == BindingKind.GamepadDpad || b.Kind == BindingKind.GamepadAxis;
-                }
-                return b.Kind == BindingKind.Key || b.Kind == BindingKind.MouseButton;
-            }
-
-            bool Pressed(BindingInput b) => Allowed(b) && BindingEvaluator.WasPressedThisFrame(b);
-            bool Released(BindingInput b) => Allowed(b) && BindingEvaluator.WasReleasedThisFrame(b);
-            bool Down(BindingInput b) => Allowed(b) && BindingEvaluator.IsDown(b);
-
-            BindingLayer layer = Down(BindingStore.GetModifierBinding(scheme)) ? BindingLayer.Modified : BindingLayer.Normal;
-
-            BindingInput GetBind(BindAction action)
-            {
-                var b = BindingStore.GetBinding(scheme, layer, action);
-                if (b.Kind == BindingKind.None && layer == BindingLayer.Modified)
-                {
-                    b = BindingStore.GetBinding(scheme, BindingLayer.Normal, action);
-                }
-                return b;
-            }
+            // Note: bindings are evaluated across Controller + Keyboard (+ Wheel if present).
 
             // POV -> menu cursor (fake mouse) while paused.
             // Don't override real mouse/left-stick input.
@@ -289,14 +279,14 @@ namespace SebBinds
             }
 
             // Keyboard on-foot movement buttons.
-            if (mode == InputMode.KeyboardMouse && !PauseSystem.paused && !input.lockInput)
+            if (!PauseSystem.paused && !input.lockInput)
             {
                 float mx = 0f;
                 float my = 0f;
-                if (Down(GetBind(BindAction.MoveRight))) mx += 1f;
-                if (Down(GetBind(BindAction.MoveLeft))) mx -= 1f;
-                if (Down(GetBind(BindAction.MoveUp))) my += 1f;
-                if (Down(GetBind(BindAction.MoveDown))) my -= 1f;
+                if (Down(GetBind(BindingScheme.Keyboard, BindAction.MoveRight))) mx += 1f;
+                if (Down(GetBind(BindingScheme.Keyboard, BindAction.MoveLeft))) mx -= 1f;
+                if (Down(GetBind(BindingScheme.Keyboard, BindAction.MoveUp))) my += 1f;
+                if (Down(GetBind(BindingScheme.Keyboard, BindAction.MoveDown))) my -= 1f;
 
                 var move = new Vector2(mx, my);
                 if (move.sqrMagnitude > 1f)
@@ -318,12 +308,11 @@ namespace SebBinds
 
             // Click/Select (Interact/OK)
             {
-                var bind = GetBind(BindAction.InteractOk);
-                if (Pressed(bind))
+                if (PressedAny(BindAction.InteractOk))
                 {
                     input.selectPressed = true;
                 }
-                if (Released(bind))
+                if (ReleasedAny(BindAction.InteractOk))
                 {
                     input.selectReleased = true;
                 }
@@ -331,12 +320,11 @@ namespace SebBinds
 
             // Back
             {
-                var bind = GetBind(BindAction.Back);
-                if (Pressed(bind))
+                if (PressedAny(BindAction.Back))
                 {
                     input.backPressed = true;
                 }
-                if (Released(bind))
+                if (ReleasedAny(BindAction.Back))
                 {
                     input.backReleased = true;
                 }
@@ -359,8 +347,7 @@ namespace SebBinds
 
                 if (!appliedAxis)
                 {
-                    var bind = GetBind(BindAction.Brake);
-                    if (Down(bind))
+                    if (DownAny(BindAction.Brake))
                     {
                         input.breakPressed = true;
                     }
@@ -387,8 +374,7 @@ namespace SebBinds
 
                 if (!appliedAxis)
                 {
-                    var bind = GetBind(BindAction.Drive);
-                    if (Down(bind))
+                    if (DownAny(BindAction.Drive))
                     {
                         var v = input.driveInput;
                         v.y = Mathf.Max(v.y, 1f);
@@ -397,8 +383,8 @@ namespace SebBinds
                 }
             }
 
-            // Steering buttons (useful for KeyboardMouse mode).
-            if (mode == InputMode.KeyboardMouse && !PauseSystem.paused)
+            // Steering buttons (keyboard).
+            if (!PauseSystem.paused)
             {
                 // Prefer axis binding.
                 var steerAxis = AxisBindingStore.GetAxisBinding(AxisAction.Steering);
@@ -418,8 +404,8 @@ namespace SebBinds
                     appliedAxis = true;
                 }
 
-                var left = GetBind(BindAction.SteerLeft);
-                var right = GetBind(BindAction.SteerRight);
+                var left = GetBind(BindingScheme.Keyboard, BindAction.SteerLeft);
+                var right = GetBind(BindingScheme.Keyboard, BindAction.SteerRight);
 
                 float steer = 0f;
                 if (Down(left)) steer -= 1f;
@@ -463,14 +449,14 @@ namespace SebBinds
                 }
 
                 // Keyboard camera look buttons (only if nothing else is driving cameraLook).
-                if (mode == InputMode.KeyboardMouse && input.cameraLook.sqrMagnitude < 0.0001f)
+                if (input.cameraLook.sqrMagnitude < 0.0001f)
                 {
                     float lx = 0f;
                     float ly = 0f;
-                    if (Down(GetBind(BindAction.LookRight))) lx += 1f;
-                    if (Down(GetBind(BindAction.LookLeft))) lx -= 1f;
-                    if (Down(GetBind(BindAction.LookUp))) ly += 1f;
-                    if (Down(GetBind(BindAction.LookDown))) ly -= 1f;
+                    if (Down(GetBind(BindingScheme.Keyboard, BindAction.LookRight))) lx += 1f;
+                    if (Down(GetBind(BindingScheme.Keyboard, BindAction.LookLeft))) lx -= 1f;
+                    if (Down(GetBind(BindingScheme.Keyboard, BindAction.LookUp))) ly += 1f;
+                    if (Down(GetBind(BindingScheme.Keyboard, BindAction.LookDown))) ly -= 1f;
 
                     var look = new Vector2(lx, ly);
                     if (look.sqrMagnitude > 1f)
@@ -486,9 +472,7 @@ namespace SebBinds
 
             // Pause
             {
-                var b0 = BindingStore.GetBinding(scheme, BindingLayer.Normal, BindAction.Pause);
-                var b1 = BindingStore.GetBinding(scheme, BindingLayer.Modified, BindAction.Pause);
-                if (Pressed(b0) || Pressed(b1))
+                if (PressedAny(BindAction.Pause))
                 {
                     input.pausePressed = true;
                 }
@@ -502,18 +486,15 @@ namespace SebBinds
 
             // Map / Jobs
             {
-                var map = GetBind(BindAction.Map);
-                var jobs = GetBind(BindAction.Jobs);
-                var legacy = GetBind(BindAction.MapItems);
-
                 // If Map is bound, require a short hold to avoid accidental opens.
-                if (map.Kind != BindingKind.None)
+                if (AnyBindingExists(BindAction.Map))
                 {
-                    ApplyHoldToMapPressed(input, map, Down, 0.25f);
+                    ApplyHoldToMapPressed(input, isDown: DownAny(BindAction.Map), holdSeconds: 0.25f);
                 }
                 else
                 {
-                    if (Pressed(jobs) || (jobs.Kind == BindingKind.None && Pressed(legacy)))
+                    bool jobsBound = AnyBindingExists(BindAction.Jobs);
+                    if (PressedAny(BindAction.Jobs) || (!jobsBound && PressedAny(BindAction.MapItems)))
                     {
                         input.mapPressed = true;
                     }
@@ -522,21 +503,17 @@ namespace SebBinds
 
             // Items
             {
-                var bind = GetBind(BindAction.Items);
-                if (bind.Kind == BindingKind.None)
-                {
-                    bind = GetBind(BindAction.MapItems); // legacy
-                }
+                var action = AnyBindingExists(BindAction.Items) ? BindAction.Items : BindAction.MapItems;
 
-                if (Pressed(bind))
+                if (PressedAny(action))
                 {
                     input.inventoryPressed = true;
                 }
-                if (Released(bind))
+                if (ReleasedAny(action))
                 {
                     input.inventoryReleased = true;
                 }
-                if (Down(bind))
+                if (DownAny(action))
                 {
                     input.inventoryHeld = true;
                 }
@@ -544,8 +521,7 @@ namespace SebBinds
 
             // Camera toggle
             {
-                var bind = GetBind(BindAction.Camera);
-                if (Pressed(bind))
+                if (PressedAny(BindAction.Camera))
                 {
                     input.cameraPressed = true;
                 }
@@ -553,14 +529,17 @@ namespace SebBinds
 
             // Reset vehicle (press + hold)
             {
-                var bind = GetBind(BindAction.ResetVehicle);
-                ApplyHoldToReset(input, bind, Down, 0.6f);
+                ApplyHoldToReset(
+                    input,
+                    isBound: AnyBindingExists(BindAction.ResetVehicle),
+                    isDown: DownAny(BindAction.ResetVehicle),
+                    holdSeconds: 0.6f
+                );
             }
 
             // Headlights
             {
-                var bind = GetBind(BindAction.Headlights);
-                if (Pressed(bind))
+                if (PressedAny(BindAction.Headlights))
                 {
                     input.headlightsPressed = true;
                 }
@@ -568,8 +547,7 @@ namespace SebBinds
 
             // Horn
             {
-                var bind = GetBind(BindAction.Horn);
-                if (Pressed(bind))
+                if (PressedAny(BindAction.Horn))
                 {
                     input.hornPressed = true;
                 }
@@ -577,26 +555,21 @@ namespace SebBinds
 
             // Radio actions
             {
-                var up = GetBind(BindAction.RadioScanToggle);
-                var right = GetBind(BindAction.RadioScanRight);
-                var down = GetBind(BindAction.RadioPower);
-                var left = GetBind(BindAction.RadioScanLeft);
-
                 // Menu navigation uses radioInput continuously.
                 Vector2 radio = Vector2.zero;
-                if (Down(right)) radio.x = 1f;
-                else if (Down(left)) radio.x = -1f;
-                if (Down(up)) radio.y = 1f;
-                else if (Down(down)) radio.y = -1f;
+                if (DownAny(BindAction.RadioScanRight)) radio.x = 1f;
+                else if (DownAny(BindAction.RadioScanLeft)) radio.x = -1f;
+                if (DownAny(BindAction.RadioScanToggle)) radio.y = 1f;
+                else if (DownAny(BindAction.RadioPower)) radio.y = -1f;
                 input.radioInput = radio;
 
                 // The radio system uses radioPressed + radioInput on press.
                 bool radioPressed = false;
                 Vector2 radioPressInput = Vector2.zero;
-                if (Pressed(down)) { radioPressed = true; radioPressInput = new Vector2(0f, -1f); }
-                else if (Pressed(up)) { radioPressed = true; radioPressInput = new Vector2(0f, 1f); }
-                else if (Pressed(right)) { radioPressed = true; radioPressInput = new Vector2(1f, 0f); }
-                else if (Pressed(left)) { radioPressed = true; radioPressInput = new Vector2(-1f, 0f); }
+                if (PressedAny(BindAction.RadioPower)) { radioPressed = true; radioPressInput = new Vector2(0f, -1f); }
+                else if (PressedAny(BindAction.RadioScanToggle)) { radioPressed = true; radioPressInput = new Vector2(0f, 1f); }
+                else if (PressedAny(BindAction.RadioScanRight)) { radioPressed = true; radioPressInput = new Vector2(1f, 0f); }
+                else if (PressedAny(BindAction.RadioScanLeft)) { radioPressed = true; radioPressInput = new Vector2(-1f, 0f); }
 
                 if (radioPressed)
                 {
@@ -606,9 +579,9 @@ namespace SebBinds
             }
         }
 
-        private static void ApplyHoldToReset(sInputManager input, BindingInput bind, System.Func<BindingInput, bool> down, float holdSeconds)
+        private static void ApplyHoldToReset(sInputManager input, bool isBound, bool isDown, float holdSeconds)
         {
-            if (input == null || bind.Kind == BindingKind.None)
+            if (input == null || !isBound)
             {
                 _resetHoldStart = -1f;
                 _resetHoldFired = false;
@@ -616,7 +589,6 @@ namespace SebBinds
                 return;
             }
 
-            bool isDown = down(bind);
             if (isDown && !_resetHoldWasDown)
             {
                 _resetHoldStart = Time.unscaledTime;
@@ -639,17 +611,15 @@ namespace SebBinds
             _resetHoldWasDown = isDown;
         }
 
-        private static void ApplyHoldToMapPressed(sInputManager input, BindingInput bind, System.Func<BindingInput, bool> down, float holdSeconds)
+        private static void ApplyHoldToMapPressed(sInputManager input, bool isDown, float holdSeconds)
         {
-            if (input == null || bind.Kind == BindingKind.None)
+            if (input == null)
             {
                 _mapHoldStart = -1f;
                 _mapHoldFired = false;
                 _mapHoldWasDown = false;
                 return;
             }
-
-            bool isDown = down(bind);
             if (isDown && !_mapHoldWasDown)
             {
                 _mapHoldStart = Time.unscaledTime;

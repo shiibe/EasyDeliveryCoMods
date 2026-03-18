@@ -22,6 +22,8 @@ namespace SebBinds
         private static MethodInfo _isWheelMenuActive;
         private static MethodInfo _isWheelBindingCaptureActive;
         private static MethodInfo _isWheelCalibrationWizardActive;
+        private static MethodInfo _hasCalibration;
+        private static MethodInfo _requestOpenCalibrationWizard;
         private static FieldInfo _isInWalkingModeField;
 
         private static void SetWheelBindingFields(object boxedWheelBindingInput, BindingInput input)
@@ -104,6 +106,9 @@ namespace SebBinds
             _isBindingReleasedThisFrame = t.GetMethod("IsBindingReleasedThisFrameForCurrentFrame", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
             _tryGetPov8Vector = t.GetMethod("TryGetPov8Vector", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
+            _hasCalibration = t.GetMethod("HasCalibration", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _requestOpenCalibrationWizard = t.GetMethod("RequestOpenCalibrationWizard", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
             // Private/internal helpers for gating input while wheel UI is active.
             _isWheelMenuActive = t.GetMethod("IsWheelMenuActive", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
             _isWheelBindingCaptureActive = t.GetMethod("IsBindingCaptureActive", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
@@ -116,6 +121,38 @@ namespace SebBinds
                    _isBindingPressedThisFrame != null &&
                    _isBindingReleasedThisFrame != null &&
                    _tryGetPov8Vector != null;
+        }
+
+        internal static bool HasCalibration()
+        {
+            if (!EnsureWheelReflection() || _hasCalibration == null)
+            {
+                // Fail open: don't lock out binding if older wheel builds don't expose this.
+                return true;
+            }
+            try
+            {
+                return (bool)_hasCalibration.Invoke(null, null);
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        internal static void RequestOpenCalibrationWizard()
+        {
+            if (!EnsureWheelReflection() || _requestOpenCalibrationWizard == null)
+            {
+                return;
+            }
+            try
+            {
+                _requestOpenCalibrationWizard.Invoke(null, null);
+            }
+            catch
+            {
+            }
         }
 
         internal static bool IsWheelMenuActive()

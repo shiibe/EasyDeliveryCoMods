@@ -6,20 +6,17 @@ namespace SebBinds
 {
     internal static class InputCapture
     {
-        internal static bool TryCaptureNextBinding(InputMode mode, BindAction forAction, BindingLayer forLayer, out BindingInput input)
+        internal static bool TryCaptureNextBinding(BindingScheme scheme, BindAction forAction, BindingLayer forLayer, out BindingInput input)
         {
-            // Prefer wheel capture when in wheel mode.
-            if (mode == InputMode.Wheel)
+            // Wheel scheme: only listen to the Logitech wrapper device.
+            if (scheme == BindingScheme.Wheel)
             {
-                if (WheelInterop.TryCaptureNextBinding(out input))
-                {
-                    return true;
-                }
+                return WheelInterop.TryCaptureNextBinding(out input);
             }
 
             // Gamepad.
             var g = Gamepad.current;
-            if (mode == InputMode.Controller && g != null)
+            if (scheme == BindingScheme.Controller && g != null)
             {
                 BindingEvaluator.BeginFrame();
 
@@ -74,7 +71,7 @@ namespace SebBinds
 
             // Mouse buttons (only when explicitly in KeyboardMouse mode).
             var m = Mouse.current;
-            if (mode == InputMode.KeyboardMouse && m != null)
+            if (scheme == BindingScheme.Keyboard && m != null)
             {
                 if (m.leftButton.wasPressedThisFrame)
                 {
@@ -95,7 +92,7 @@ namespace SebBinds
 
             // Keyboard keys.
             var kb = Keyboard.current;
-            if (mode == InputMode.KeyboardMouse && kb != null)
+            if (scheme == BindingScheme.Keyboard && kb != null)
             {
                 foreach (var key in kb.allKeys)
                 {

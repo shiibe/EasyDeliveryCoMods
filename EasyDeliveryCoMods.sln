@@ -29,7 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4544D216-4F5
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SebUltrawide", "SebUltrawide", "{08894482-6668-D3BF-F154-908C86EB9993}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyDeliveryCoUltrawide", "plugins\SebUltrawide\src\SebUltrawide\EasyDeliveryCoUltrawide.csproj", "{90D948FD-289E-400A-B010-8CA4DE40D59E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SebUltrawide", "plugins\SebUltrawide\src\SebUltrawide\SebUltrawide.csproj", "{90D948FD-289E-400A-B010-8CA4DE40D59E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SebLogiWheel", "SebLogiWheel", "{480F116B-9769-0337-2C70-EF9E65E7F835}"
 EndProject
@@ -37,7 +37,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2AFB3A8B-375
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SebLogiWheel", "SebLogiWheel", "{8B1A7BC7-AB7A-5F13-B33E-F3FA3AA4917C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyLogiWheelSupport", "plugins\SebLogiWheel\src\SebLogiWheel\EasyLogiWheelSupport.csproj", "{DF678472-6949-4316-A8E3-F4304B0A9ECA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SebLogiWheel", "plugins\SebLogiWheel\src\SebLogiWheel\SebLogiWheel.csproj", "{DF678472-6949-4316-A8E3-F4304B0A9ECA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

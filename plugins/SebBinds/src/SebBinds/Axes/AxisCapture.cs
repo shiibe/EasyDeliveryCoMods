@@ -4,10 +4,10 @@ namespace SebBinds
 {
     internal static class AxisCapture
     {
-        internal static bool TryCaptureNextAxis(InputMode mode, out BindingInput input)
+        internal static bool TryCaptureNextAxis(BindingScheme scheme, out BindingInput input)
         {
             // Wheel axes via providers.
-            if (mode == InputMode.Wheel)
+            if (scheme == BindingScheme.Wheel)
             {
                 var providers = SebBindsApi.GetAxisProvidersSnapshot();
                 for (int i = 0; i < providers.Count; i++)
@@ -25,7 +25,7 @@ namespace SebBinds
             }
 
             // Controller axes: pick the axis that moved the most.
-            if (mode == InputMode.Controller)
+            if (scheme == BindingScheme.Controller)
             {
                 BindingEvaluator.BeginFrame();
 

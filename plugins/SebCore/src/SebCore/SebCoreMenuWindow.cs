@@ -8,7 +8,7 @@ namespace SebCore
 {
     public class SebCoreMenuWindow : MonoBehaviour
     {
-        public const string FileName = "sebcore";
+        public const string FileName = "seb";
         public const string ListenerName = "SebCoreMenu";
         public const string ListenerData = "listener_SebCoreMenu";
 
@@ -64,6 +64,7 @@ namespace SebCore
             var apps = new List<CartridgeApps.App>
             {
                 CartridgeApps.Binds,
+                CartridgeApps.Truck,
                 CartridgeApps.Ultrawide,
                 CartridgeApps.Wheel
             };
@@ -86,9 +87,13 @@ namespace SebCore
                     float x = (i % 2 == 0) ? leftX : rightX;
                     if (_util.FancyButton(apps[i].DisplayName, x, y))
                     {
-                        if (CartridgeApps.EnsureListener(desktop, apps[i]))
+                        if (!CartridgeApps.EnsureListener(desktop, apps[i]))
                         {
-                            DesktopAppLauncher.TryOpenProgramListener(desktop, apps[i].FileName, apps[i].ListenerData);
+                            Plugin.LogDebug("Launch failed: could not ensure listener for '" + apps[i].FileName + "'");
+                        }
+                        else if (!DesktopAppLauncher.TryOpenProgramListener(desktop, apps[i].FileName, apps[i].ListenerData))
+                        {
+                            Plugin.LogDebug("Launch failed: program listener open failed for '" + apps[i].FileName + "'");
                         }
                     }
 

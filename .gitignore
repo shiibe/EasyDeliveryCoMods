@@ -15,3 +15,6 @@ dump/
 
 # Local game/mod profile paths
 Directory.Build.props.local
+
+# Backups of nested repos (local)
+.nested-git-backups/

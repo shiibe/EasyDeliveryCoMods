@@ -10,6 +10,14 @@ Monorepo for my Easy Delivery Co. mods.
 - `plugins/SebLogiWheel` - Logitech wheel support (`wheel` desktop app)
 - `plugins/SebTruck` - vehicle/transmission tweaks
 
+## Mods
+
+- SebCore: `plugins/SebCore`
+- SebBinds: `plugins/SebBinds`
+- SebUltrawide: `plugins/SebUltrawide/README.md`
+- SebLogiWheel: `plugins/SebLogiWheel/README.md`
+- SebTruck: `plugins/SebTruck`
+
 ## Local build config
 
 This repo expects a working r2modman profile folder (with `BepInEx/core`) and the game install folder.

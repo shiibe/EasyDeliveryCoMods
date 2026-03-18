@@ -4,11 +4,12 @@ using BepInEx.Logging;
 namespace SebBinds
 {
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
+    [BepInDependency("shibe.easydeliveryco.sebcore", BepInDependency.DependencyFlags.HardDependency)]
     public partial class Plugin : BaseUnityPlugin
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebbinds";
         public const string PluginName = "SebBinds";
-        public const string PluginVersion = "0.1.0";
+        public const string PluginVersion = "1.0.0";
 
         internal static ManualLogSource Log;
     }

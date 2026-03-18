@@ -24,17 +24,17 @@ namespace SebCore
             PluginGuid = "shibe.easydeliveryco.logiwheel",
             ListenerName = "G920Menu",
             ListenerData = "listener_G920Menu",
-            WindowTypeName = "EasyLogiWheelSupport.WheelMenuWindow"
+            WindowTypeName = "SebLogiWheel.WheelMenuWindow"
         };
 
         internal static readonly App Ultrawide = new App
         {
-            DisplayName = "Ultrawide",
+            DisplayName = "Graphics",
             FileName = "wide",
             PluginGuid = "shibe.easydeliveryco.ultrawide",
             ListenerName = "UltrawideMenu",
             ListenerData = "listener_UltrawideMenu",
-            WindowTypeName = "EasyDeliveryCoUltrawide.UltrawideMenuWindow"
+            WindowTypeName = "SebUltrawide.UltrawideMenuWindow"
         };
 
         internal static readonly App Binds = new App
@@ -45,6 +45,16 @@ namespace SebCore
             ListenerName = "SebBindsMenu",
             ListenerData = "listener_SebBindsMenu",
             WindowTypeName = "SebBinds.BindsMenuWindow"
+        };
+
+        internal static readonly App Truck = new App
+        {
+            DisplayName = "Truck",
+            FileName = "truck",
+            PluginGuid = "shibe.easydeliveryco.sebtruck",
+            ListenerName = "SebTruckMenu",
+            ListenerData = "listener_SebTruckMenu",
+            WindowTypeName = "SebTruck.TruckMenuWindow"
         };
 
         internal static bool IsInstalled(App app)
@@ -66,6 +76,7 @@ namespace SebCore
 
             if (!Chainloader.PluginInfos.TryGetValue(app.PluginGuid, out var info) || info == null || info.Instance == null)
             {
+                Plugin.LogDebug("Cartridge not loaded: '" + app.PluginGuid + "'");
                 return false;
             }
 
@@ -73,6 +84,22 @@ namespace SebCore
             Type t = asm.GetType(app.WindowTypeName, throwOnError: false);
             if (t == null)
             {
+                // Back-compat for stale plugin folders during rename.
+                if (string.Equals(app.WindowTypeName, "SebUltrawide.UltrawideMenuWindow", StringComparison.Ordinal))
+                {
+                    t = asm.GetType("EasyDeliveryCoUltrawide.UltrawideMenuWindow", throwOnError: false);
+                }
+                else if (string.Equals(app.WindowTypeName, "SebLogiWheel.WheelMenuWindow", StringComparison.Ordinal))
+                {
+                    t = asm.GetType("EasyLogiWheelSupport.WheelMenuWindow", throwOnError: false);
+                }
+            }
+
+            if (t == null)
+            {
+                Plugin.LogDebug(
+                    "Failed to resolve window type '" + app.WindowTypeName + "' for '" + app.PluginGuid + "' (asm=" + asm.GetName().Name + ")"
+                );
                 return false;
             }
 

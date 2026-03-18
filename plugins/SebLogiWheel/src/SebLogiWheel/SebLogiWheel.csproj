@@ -1,0 +1,127 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net472</TargetFramework>
+        <AssemblyName>SebLogiWheel</AssemblyName>
+        <RootNamespace>SebLogiWheel</RootNamespace>
+
+        <!-- Optional extra SFX source folder. You can set this to an absolute path or a path relative to this project. -->
+        <SfxSourceDir></SfxSourceDir>
+
+        <LogitechSdkDir>C:\Users\Shibe\Downloads\LogitechSteeringWheelSDK_8.75.30</LogitechSdkDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="BepInEx">
+            <HintPath>$(BepInExCoreDir)\BepInEx.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="0Harmony">
+            <HintPath>$(BepInExCoreDir)\0Harmony.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.InputLegacyModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.UIModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.PhysicsModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.AudioModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="Assembly-CSharp">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\Assembly-CSharp.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <ProjectReference Include="..\..\..\SebCore\src\SebCore\SebCore.csproj" />
+        <ProjectReference Include="..\..\..\SebBinds\src\SebBinds\SebBinds.csproj" />
+    </ItemGroup>
+
+    <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
+         <!-- Clean up old plugin folder from pre-rename builds so BepInEx doesn't load two GUID-identical plugins. -->
+         <RemoveDir Directories="$(ProfileDir)\BepInEx\plugins\EasyLogiWheelSupport" Condition="Exists('$(ProfileDir)\BepInEx\plugins\EasyLogiWheelSupport')" />
+
+         <MakeDir Directories="$(ProfileDir)\BepInEx\plugins\SebLogiWheel" />
+         <Copy
+                 SourceFiles="$(TargetDir)$(AssemblyName).dll"
+                 DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebLogiWheel"
+                 SkipUnchangedFiles="true" />
+        <Copy
+                SourceFiles="$(TargetDir)$(AssemblyName).pdb"
+                DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebLogiWheel"
+                SkipUnchangedFiles="true"
+                Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+    </Target>
+
+    <Target Name="CopySfx" AfterTargets="Build">
+        <ItemGroup>
+            <IgnitionSfxFiles Include="$(MSBuildProjectDirectory)\sfx\**\*.*" />
+            <IgnitionSfxFiles Include="$(MSBuildProjectDirectory)\..\sfx\**\*.*" />
+            <IgnitionSfxFiles Include="$(SfxSourceDir)\**\*.*" Condition="'$(SfxSourceDir)' != ''" />
+        </ItemGroup>
+
+        <MakeDir Directories="$(TargetDir)sfx" Condition="'@(IgnitionSfxFiles)' != ''" />
+        <Copy
+                SourceFiles="@(IgnitionSfxFiles)"
+                DestinationFolder="$(TargetDir)sfx\%(RecursiveDir)"
+                SkipUnchangedFiles="true"
+                Condition="'@(IgnitionSfxFiles)' != ''" />
+
+        <MakeDir Directories="$(ProfileDir)\BepInEx\plugins\SebLogiWheel\sfx" Condition="'@(IgnitionSfxFiles)' != ''" />
+        <Copy
+                SourceFiles="@(IgnitionSfxFiles)"
+                DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebLogiWheel\sfx\%(RecursiveDir)"
+                SkipUnchangedFiles="true"
+                Condition="'@(IgnitionSfxFiles)' != ''" />
+    </Target>
+
+    <Target Name="CopyLogitechSdkWrapper" AfterTargets="Build">
+        <PropertyGroup>
+            <LogiWrapperDll>LogitechSteeringWheelEnginesWrapper.dll</LogiWrapperDll>
+            <LogiWrapperSource>$(LogitechSdkDir)\Lib\GameEnginesWrapper\x64\$(LogiWrapperDll)</LogiWrapperSource>
+        </PropertyGroup>
+
+        <Copy
+                SourceFiles="$(LogiWrapperSource)"
+                DestinationFolder="$(TargetDir)"
+                SkipUnchangedFiles="true"
+                Condition="Exists('$(LogiWrapperSource)')" />
+
+        <Copy
+                SourceFiles="$(LogiWrapperSource)"
+                DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebLogiWheel"
+                SkipUnchangedFiles="true"
+                Condition="Exists('$(LogiWrapperSource)')" />
+
+        <Copy
+                SourceFiles="$(LogiWrapperSource)"
+                DestinationFolder="$(ProfileDir)\BepInEx\core"
+                SkipUnchangedFiles="true"
+                Condition="Exists('$(LogiWrapperSource)') AND Exists('$(ProfileDir)\BepInEx\core')" />
+    </Target>
+
+</Project>

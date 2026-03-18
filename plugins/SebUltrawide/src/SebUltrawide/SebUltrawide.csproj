@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net472</TargetFramework>
+        <AssemblyName>SebUltrawide</AssemblyName>
+        <RootNamespace>SebUltrawide</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="BepInEx">
+            <HintPath>$(BepInExCoreDir)\BepInEx.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="0Harmony">
+            <HintPath>$(BepInExCoreDir)\0Harmony.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.InputLegacyModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="UnityEngine.UIModule">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="Assembly-CSharp">
+            <HintPath>$(GameDir)\EasyDeliveryCo_Data\Managed\Assembly-CSharp.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <ProjectReference Include="..\..\..\SebCore\src\SebCore\SebCore.csproj" />
+    </ItemGroup>
+
+    <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
+        <!-- Clean up old plugin folder from pre-rename builds so BepInEx doesn't load two GUID-identical plugins. -->
+        <RemoveDir Directories="$(ProfileDir)\BepInEx\plugins\EasyDeliveryCoUltrawide" Condition="Exists('$(ProfileDir)\BepInEx\plugins\EasyDeliveryCoUltrawide')" />
+
+        <MakeDir Directories="$(ProfileDir)\BepInEx\plugins\SebUltrawide" />
+        <Copy
+                SourceFiles="$(TargetDir)$(AssemblyName).dll"
+                DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebUltrawide"
+                SkipUnchangedFiles="true" />
+        <Copy
+                SourceFiles="$(TargetDir)$(AssemblyName).pdb"
+                DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebUltrawide"
+                SkipUnchangedFiles="true"
+                Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+    </Target>
+
+</Project>

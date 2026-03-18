@@ -5,7 +5,7 @@ using UnityEngine.InputSystem.LowLevel;
 
 namespace SebBinds
 {
-    internal static class BindingEvaluator
+    public static class BindingEvaluator
     {
         private const float AxisPressThreshold = 0.35f;
 
@@ -26,7 +26,7 @@ namespace SebBinds
         private static float _prsx;
         private static float _prsy;
 
-        internal static void BeginFrame()
+        public static void BeginFrame()
         {
             int f = Time.frameCount;
             var g = Gamepad.current;
@@ -77,7 +77,7 @@ namespace SebBinds
             }
         }
 
-        internal static float GetAxisValue(BindingInput input)
+        public static float GetAxisValue(BindingInput input)
         {
             if (input.Kind == BindingKind.GamepadDpadAxis)
             {
@@ -150,7 +150,7 @@ namespace SebBinds
             return GetPrevAxisValue(input);
         }
 
-        internal static bool IsDown(BindingInput input)
+        public static bool IsDown(BindingInput input)
         {
             if (input.Kind == BindingKind.None)
             {
@@ -232,7 +232,7 @@ namespace SebBinds
             return false;
         }
 
-        internal static bool WasPressedThisFrame(BindingInput input)
+        public static bool WasPressedThisFrame(BindingInput input)
         {
             if (input.Kind == BindingKind.None)
             {
@@ -318,7 +318,7 @@ namespace SebBinds
             return false;
         }
 
-        internal static bool WasReleasedThisFrame(BindingInput input)
+        public static bool WasReleasedThisFrame(BindingInput input)
         {
             if (input.Kind == BindingKind.None)
             {

@@ -24,6 +24,8 @@ namespace SebBinds
         private BindAction _bindingCaptureAction;
         private BindingLayer _bindingCaptureLayer;
 
+        private bool _isCapturingModifier;
+
         private float _bindingCaptureEnterTime = -999f;
 
         internal static float BindingCaptureHeartbeatTime { get; private set; }
@@ -202,8 +204,7 @@ namespace SebBinds
             _util.Label("Binds", cx, p.y + 10f);
             _util.Label("Choose Input", cx, p.y + 22f);
 
-            string controllerLabel = WheelInterop.IsWheelPluginPresent() ? "Controller/Wheel" : "Controller";
-            if (_util.FancyButton(controllerLabel, cx, midY))
+            if (_util.FancyButton("Controller", cx, midY))
             {
                 _scheme = BindingScheme.Controller;
                 _bindingsPageIndex = 0;
@@ -218,6 +219,14 @@ namespace SebBinds
                 _page = Page.Bindings;
                 return;
             }
+
+            if (WheelInterop.IsWheelPluginPresent() && _util.FancyButton("Wheel", cx, midY + 48f))
+            {
+                _scheme = BindingScheme.Wheel;
+                _bindingsPageIndex = 0;
+                _page = Page.Bindings;
+                return;
+            }
         }
 
         private void DrawBindings(Rect p, float center, ref float y, float line, float sectionGap)
@@ -225,14 +234,17 @@ namespace SebBinds
             _util.Label("Binds", p.x + p.width / 2f, y);
             y += line;
 
-            string schemeLabel = _scheme == BindingScheme.Keyboard ? "Keyboard" : (WheelInterop.IsWheelPluginPresent() ? "Controller/Wheel" : "Controller");
+            string schemeLabel = _scheme == BindingScheme.Keyboard
+                ? "Keyboard"
+                : (_scheme == BindingScheme.Wheel ? "Wheel" : "Controller");
             _util.Label(schemeLabel, p.x + p.width - 18f, y);
-            if (_util.SimpleButtonRaw("Switch", p.x + p.width - 50f, y))
+            y += line;
+
+            if (_scheme == BindingScheme.Wheel && !WheelInterop.HasCalibration())
             {
-                _page = Page.SchemeSelect;
+                DrawWheelNeedsCalibration(p, center, ref y, line, sectionGap);
                 return;
             }
-            y += line;
 
             float cx = p.x + p.width / 2f;
             float navY = p.y + p.height - 18f;
@@ -240,9 +252,11 @@ namespace SebBinds
             float prevX = p.x + 40f;
             float nextX = p.x + p.width - 40f;
 
+            var pages = GetPagesForScheme();
+
             if (_util.SimpleButtonRaw("Prev", prevX, navY))
             {
-                _bindingsPageIndex = PrevPageIndex(_bindingsPageIndex);
+                _bindingsPageIndex = PrevPageIndex(_bindingsPageIndex, pages.Count);
             }
             if (_util.SimpleButtonRaw("Back", cx, navY))
             {
@@ -250,12 +264,11 @@ namespace SebBinds
              }
             if (_util.SimpleButtonRaw("Next", nextX, navY))
             {
-                _bindingsPageIndex = NextPageIndex(_bindingsPageIndex);
+                _bindingsPageIndex = NextPageIndex(_bindingsPageIndex, pages.Count);
             }
 
             y += sectionGap;
 
-            var pages = GetPagesForScheme();
             if (pages.Count == 0)
             {
                 _util.Label("(no pages)", p.x + p.width / 2f, y);
@@ -280,6 +293,64 @@ namespace SebBinds
             {
                 DrawBindingsButtonsPage(p, center, ref y, line, page.Actions);
             }
+        }
+
+        private void DrawWheelNeedsCalibration(Rect p, float center, ref float y, float line, float sectionGap)
+        {
+            float cx = p.x + p.width / 2f;
+
+            float promptY = p.y + p.height / 2f - 18f;
+            _util.Label("Wheel Not Calibrated", cx, promptY);
+            _util.Label("Run the Calibration Wizard", cx, promptY + line);
+            _util.Label("before binding wheel inputs.", cx, promptY + line * 2f);
+
+            float navY = p.y + p.height - 18f;
+            float prevY = navY - 12f;
+            if (_util.SimpleButtonRaw("Calibrate", cx, prevY))
+            {
+                WheelInterop.RequestOpenCalibrationWizard();
+                TryOpenWheelMenuAndFocus();
+            }
+            if (_util.SimpleButtonRaw("Back", cx, navY))
+            {
+                _page = Page.SchemeSelect;
+            }
+        }
+
+        private bool TryOpenWheelMenuAndFocus()
+        {
+            var desktop = _util != null ? _util.M : null;
+            if (desktop == null)
+            {
+                return false;
+            }
+
+            var file = new DesktopDotExe.File(desktop.R, desktop)
+            {
+                name = "wheel",
+                type = DesktopDotExe.FileType.exe,
+                data = "listener_G920Menu",
+                icon = 7,
+                iconHover = 7,
+                position = Vector2.zero,
+                visible = false,
+                cantFolder = true
+            };
+
+            DesktopDotExe.WindowView windowView;
+            file.Execute(out windowView);
+            if (windowView == null)
+            {
+                return false;
+            }
+
+            var windowViewerField = typeof(DesktopDotExe).GetField("windowViewer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (windowViewerField == null)
+            {
+                return false;
+            }
+            windowViewerField.SetValue(desktop, windowView);
+            return true;
         }
 
         private sealed class PageDef
@@ -356,43 +427,139 @@ namespace SebBinds
                 return pages;
             }
 
-            // Keyboard pages.
-            return new List<PageDef>
+            if (_scheme == BindingScheme.Wheel)
             {
-                new PageDef
+                // Wheel pages mirror controller pages; only capture source differs.
+                var pages = new List<PageDef>
                 {
-                    Title = "Movement",
-                    Actions = new[]
+                    new PageDef { Title = "Axes", Actions = null },
+                    new PageDef
                     {
-                        BindAction.MoveUp,
-                        BindAction.MoveDown,
-                        BindAction.MoveLeft,
-                        BindAction.MoveRight
+                        Title = "Global",
+                        Actions = new[]
+                        {
+                            BindAction.InteractOk,
+                            BindAction.Back,
+                            BindAction.Pause,
+                            BindAction.Map,
+                            BindAction.Items,
+                            BindAction.Jobs,
+                            BindAction.ResetVehicle,
+                            BindAction.Camera
+                        }
+                    },
+                    new PageDef
+                    {
+                        Title = "Vehicle",
+                        Actions = new[]
+                        {
+                            BindAction.Headlights,
+                            BindAction.Horn,
+                            BindAction.FreeCam
+                        }
+                    },
+                    new PageDef
+                    {
+                        Title = "Radio",
+                        Actions = new[]
+                        {
+                            BindAction.RadioPower,
+                            BindAction.RadioScanRight,
+                            BindAction.RadioScanLeft,
+                            BindAction.RadioScanToggle
+                        }
                     }
-                },
-                new PageDef
+                };
+
+                foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
                 {
-                    Title = "Vehicle",
-                    Actions = new[]
+                    if (extra == null || string.IsNullOrWhiteSpace(extra.Title) || extra.Actions == null)
                     {
-                        BindAction.SteerLeft,
-                        BindAction.SteerRight,
-                        BindAction.Drive,
-                        BindAction.Brake
+                        continue;
                     }
-                },
-                new PageDef
-                {
-                    Title = "Camera",
-                    Actions = new[]
-                    {
-                        BindAction.LookUp,
-                        BindAction.LookDown,
-                        BindAction.LookLeft,
-                        BindAction.LookRight
-                    }
+                    pages.Add(new PageDef { Title = extra.Title.Trim(), Actions = extra.Actions });
                 }
-            };
+                return pages;
+            }
+
+            // Keyboard pages.
+            {
+                var pages = new List<PageDef>
+                {
+                    new PageDef
+                    {
+                        Title = "Global",
+                        Actions = new[]
+                        {
+                            BindAction.InteractOk,
+                            BindAction.Back,
+                            BindAction.Pause,
+                            BindAction.Map,
+                            BindAction.Items,
+                            BindAction.Jobs,
+                            BindAction.ResetVehicle,
+                            BindAction.Camera
+                        }
+                    },
+                    new PageDef
+                    {
+                        Title = "Movement",
+                        Actions = new[]
+                        {
+                            BindAction.MoveUp,
+                            BindAction.MoveDown,
+                            BindAction.MoveLeft,
+                            BindAction.MoveRight
+                        }
+                    },
+                    new PageDef
+                    {
+                        Title = "Vehicle",
+                        Actions = new[]
+                        {
+                            BindAction.SteerLeft,
+                            BindAction.SteerRight,
+                            BindAction.Drive,
+                            BindAction.Brake,
+                            BindAction.Headlights,
+                            BindAction.Horn,
+                            BindAction.FreeCam
+                        }
+                    },
+                    new PageDef
+                    {
+                        Title = "Camera",
+                        Actions = new[]
+                        {
+                            BindAction.LookUp,
+                            BindAction.LookDown,
+                            BindAction.LookLeft,
+                            BindAction.LookRight
+                        }
+                    },
+                    new PageDef
+                    {
+                        Title = "Radio",
+                        Actions = new[]
+                        {
+                            BindAction.RadioPower,
+                            BindAction.RadioScanRight,
+                            BindAction.RadioScanLeft,
+                            BindAction.RadioScanToggle
+                        }
+                    }
+                };
+
+                foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
+                {
+                    if (extra == null || string.IsNullOrWhiteSpace(extra.Title) || extra.Actions == null)
+                    {
+                        continue;
+                    }
+                    pages.Add(new PageDef { Title = extra.Title.Trim(), Actions = extra.Actions });
+                }
+                return pages;
+            }
         }
 
         private void DrawBindingsButtonsPage(Rect p, float center, ref float y, float line, BindAction[] actions)
@@ -657,8 +824,7 @@ namespace SebBinds
                 return;
             }
 
-            var mode = Plugin.GetActiveInputMode();
-            if (!InputCapture.TryCaptureNextBinding(mode, _bindingCaptureAction, _bindingCaptureLayer, out var captured))
+            if (!InputCapture.TryCaptureNextBinding(_scheme, _bindingCaptureAction, _bindingCaptureLayer, out var captured))
             {
                 return;
             }
@@ -734,10 +900,8 @@ namespace SebBinds
                 return;
             }
 
-            var mode = Plugin.GetActiveInputMode();
-
             // Prefer axis movement.
-            if (AxisCapture.TryCaptureNextAxis(mode, out var capturedAxis))
+            if (AxisCapture.TryCaptureNextAxis(_scheme, out var capturedAxis))
             {
                 AxisBindingStore.SetAxisBinding(_axisCaptureAction, capturedAxis);
                 _page = Page.Bindings;
@@ -745,7 +909,7 @@ namespace SebBinds
             }
 
             // Also allow binding a button/key/mouse to an axis slot.
-            if (InputCapture.TryCaptureNextBinding(mode, BindAction.InteractOk, BindingLayer.Normal, out var capturedBtn))
+            if (InputCapture.TryCaptureNextBinding(_scheme, BindAction.InteractOk, BindingLayer.Normal, out var capturedBtn))
             {
                 AxisBindingStore.SetAxisBinding(_axisCaptureAction, capturedBtn);
                 _page = Page.Bindings;
@@ -907,9 +1071,8 @@ namespace SebBinds
             return true;
         }
 
-        private static int NextPageIndex(int index)
+        private static int NextPageIndex(int index, int count)
         {
-            int count = GetPages().Count;
             if (count <= 0)
             {
                 return 0;
@@ -922,9 +1085,8 @@ namespace SebBinds
             return v;
         }
 
-        private static int PrevPageIndex(int index)
+        private static int PrevPageIndex(int index, int count)
         {
-            int count = GetPages().Count;
             if (count <= 0)
             {
                 return 0;
