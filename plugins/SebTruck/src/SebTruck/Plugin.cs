@@ -332,7 +332,8 @@ namespace SebTruck
                         return;
                     }
                     _ignitionHoldSfxSource = _ignitionHoldSfxGo.AddComponent(audioSourceType);
-                    SetProp(_ignitionHoldSfxSource, "loop", true);
+                    // Always play the ignition sound once, independent of hold duration.
+                    SetProp(_ignitionHoldSfxSource, "loop", false);
                     SetProp(_ignitionHoldSfxSource, "playOnAwake", false);
                     SetProp(_ignitionHoldSfxSource, "spatialBlend", 1f);
                     SetProp(_ignitionHoldSfxSource, "dopplerLevel", 0f);

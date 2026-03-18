@@ -654,7 +654,7 @@ namespace SebTruck
 
                         LogDebug("Ignition hold complete");
 
-                        StopIgnitionHoldSfx();
+                        // Let the ignition SFX finish naturally (do not cut it off early).
                     }
                 }
 
