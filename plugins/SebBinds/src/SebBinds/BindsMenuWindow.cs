@@ -26,6 +26,8 @@ namespace SebBinds
 
         private bool _isCapturingModifier;
 
+        private float _axisCaptureEnterTime;
+
         private float _bindingCaptureEnterTime = -999f;
 
         internal static float BindingCaptureHeartbeatTime { get; private set; }
@@ -162,6 +164,7 @@ namespace SebBinds
             }
 
             // Close the window.
+            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
             _view?.Kill();
         }
 
@@ -225,6 +228,13 @@ namespace SebBinds
                 _bindingsPageIndex = 0;
                 _page = Page.Bindings;
                 return;
+            }
+
+            float navY = p.y + p.height - 18f;
+            if (_util.SimpleButtonRaw("Back", cx, navY))
+            {
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+                _view?.Kill();
             }
         }
 
@@ -576,15 +586,16 @@ namespace SebBinds
             }
             y += line;
 
-            if (_util.SimpleButtonRaw("Reset Defaults", cx, p.y + p.height - 30f))
+            y += 3f;
+            DrawBindingTable(p, actions, ref y, line);
+
+            float resetY = p.y + p.height - 30f;
+            if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
                 BindingStore.ClearAll();
                 AxisBindingStore.ClearAll();
                 Plugin.Log?.LogInfo("Bindings cleared; defaults will re-seed from game input");
             }
-
-            y += 3f;
-            DrawBindingTable(p, actions, ref y, line);
         }
 
         private void DrawAxesPage(Rect p, float center, ref float y, float line, float sectionGap)
@@ -613,8 +624,6 @@ namespace SebBinds
             y += line;
             DrawAxisRow(AxisAction.CameraLookY, "Cam Look Y", labelX, bindRight, y);
             y += line + sectionGap;
-
-            _util.Label("Click a binding, then move/press", p.x + p.width / 2f, p.y + p.height - 30f);
         }
 
         private void DrawAxisRow(AxisAction axis, string label, float labelX, float bindRight, float y)
@@ -622,7 +631,7 @@ namespace SebBinds
             _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
             _util.R.fput(label, labelX, y);
 
-            var bind = AxisBindingStore.GetAxisBinding(axis);
+            var bind = AxisBindingStore.GetAxisBinding(_scheme, axis);
             string value = bind.Kind == BindingKind.None ? "[none]" : ("[" + BindingStore.GetBindingLabel(bind) + "]");
             if (bind.Kind != BindingKind.None && HasAxisConflictMark(axis, bind))
             {
@@ -643,7 +652,8 @@ namespace SebBinds
                 {
                     _axisCaptureAction = axis;
                     _page = Page.AxisCapture;
-                    _bindingCaptureEnterTime = Time.unscaledTime;
+                    _axisCaptureEnterTime = Time.unscaledTime;
+                    AxisCapture.BeginCaptureSession(_scheme);
                     return;
                 }
             }
@@ -652,7 +662,7 @@ namespace SebBinds
             _util.R.fput(value, bindRight, y);
         }
 
-        private static bool HasAxisConflictMark(AxisAction axis, BindingInput input)
+        private bool HasAxisConflictMark(AxisAction axis, BindingInput input)
         {
             // Mark if the same binding is used by another axis slot.
             foreach (AxisAction a in System.Enum.GetValues(typeof(AxisAction)))
@@ -668,7 +678,7 @@ namespace SebBinds
                     continue;
                 }
 
-                var other = AxisBindingStore.GetAxisBinding(a);
+                var other = AxisBindingStore.GetAxisBinding(_scheme, a);
                 if (other.Kind == BindingKind.None)
                 {
                     continue;
@@ -768,7 +778,7 @@ namespace SebBinds
             float clearY = p.y + p.height - 30f;
             float cancelY = p.y + p.height - 18f;
 
-            bool allowUiClicks = Time.unscaledTime - _bindingCaptureEnterTime > 0.25f;
+            bool allowUiClicks = Time.unscaledTime - _axisCaptureEnterTime > 0.25f;
 
             if (_bindingDupConfirmActive)
             {
@@ -885,7 +895,7 @@ namespace SebBinds
 
             if (allowUiClicks && _util.SimpleButtonRaw("Clear", cx, clearY))
             {
-                AxisBindingStore.ClearAxisBinding(_axisCaptureAction);
+                AxisBindingStore.ClearAxisBinding(_scheme, _axisCaptureAction);
                 _page = Page.Bindings;
                 return;
             }
@@ -897,15 +907,15 @@ namespace SebBinds
             }
 
             // Prefer axis movement.
-            if (AxisCapture.TryCaptureNextAxis(_scheme, out var capturedAxis))
+            if (allowUiClicks && AxisCapture.TryCaptureNextAxis(_scheme, out var capturedAxis))
             {
-                AxisBindingStore.SetAxisBinding(_axisCaptureAction, capturedAxis);
+                AxisBindingStore.SetAxisBinding(_scheme, _axisCaptureAction, capturedAxis);
                 _page = Page.Bindings;
                 return;
             }
 
             // Also allow binding a button/key/mouse to an axis slot.
-            if (InputCapture.TryCaptureNextBinding(_scheme, BindAction.InteractOk, BindingLayer.Normal, out var capturedBtn))
+            if (allowUiClicks && InputCapture.TryCaptureNextBinding(_scheme, BindAction.InteractOk, BindingLayer.Normal, out var capturedBtn))
             {
                 // In wheel scheme, treat POV bindings as Dpad axes so they behave like controller Dpad X/Y.
                 if (_scheme == BindingScheme.Wheel && capturedBtn.Kind == BindingKind.Pov)
@@ -914,7 +924,7 @@ namespace SebBinds
                     int d = Mathf.Clamp(capturedBtn.Code, 0, 3);
                     capturedBtn = new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = (d == 1 || d == 3) ? 0 : 1 };
                 }
-                AxisBindingStore.SetAxisBinding(_axisCaptureAction, capturedBtn);
+                AxisBindingStore.SetAxisBinding(_scheme, _axisCaptureAction, capturedBtn);
                 _page = Page.Bindings;
             }
         }
@@ -948,28 +958,28 @@ namespace SebBinds
             _page = Page.Bindings;
         }
 
-        private static void ClearAxisConflictForButton(BindAction action)
+        private void ClearAxisConflictForButton(BindAction action)
         {
             if (action == BindAction.Drive)
             {
-                AxisBindingStore.ClearAxisBinding(AxisAction.Throttle);
+                AxisBindingStore.ClearAxisBinding(_scheme, AxisAction.Throttle);
             }
             else if (action == BindAction.Brake)
             {
-                AxisBindingStore.ClearAxisBinding(AxisAction.Brake);
+                AxisBindingStore.ClearAxisBinding(_scheme, AxisAction.Brake);
             }
             else if (action == BindAction.SteerLeft || action == BindAction.SteerRight)
             {
-                AxisBindingStore.ClearAxisBinding(AxisAction.Steering);
+                AxisBindingStore.ClearAxisBinding(_scheme, AxisAction.Steering);
             }
         }
 
-        private static string GetAxisConflictForButton(BindAction action)
+        private string GetAxisConflictForButton(BindAction action)
         {
             // If an axis is mapped for the same conceptual control, warn.
             bool HasAxis(AxisAction a)
             {
-                var b = AxisBindingStore.GetAxisBinding(a);
+                var b = AxisBindingStore.GetAxisBinding(_scheme, a);
                 return b.Kind != BindingKind.None;
             }
 

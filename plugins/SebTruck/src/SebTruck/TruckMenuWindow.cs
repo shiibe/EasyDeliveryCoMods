@@ -52,6 +52,7 @@ namespace SebTruck
 
         public void BackButtonPressed()
         {
+            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
             _view?.Kill();
         }
 
@@ -76,6 +77,7 @@ namespace SebTruck
             }
             if (_util.SimpleButtonRaw("Back", cx, navY))
             {
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
                 _view?.Kill();
                 return;
             }
@@ -90,12 +92,15 @@ namespace SebTruck
             _util.Label(_page == Page.Vehicle ? "Vehicle" : "HUD", cx, y);
             y += line;
 
-            if (_util.SimpleButtonRaw("Defaults", cx, y))
+            // Reset button sits above Back.
+            float resetY = navY - 12f;
+            if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
                 if (_page == Page.Vehicle) Plugin.ResetVehicleDefaults();
                 else Plugin.ResetHudDefaults();
             }
-            y += line + sectionGap;
+
+            y += sectionGap;
 
             DrawPage(p, center, cx, ref y, line);
         }

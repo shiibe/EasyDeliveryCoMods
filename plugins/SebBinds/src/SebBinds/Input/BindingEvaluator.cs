@@ -103,7 +103,7 @@ namespace SebBinds
 
             if (input.Kind == BindingKind.WheelAxis)
             {
-                return WheelInterop.GetWheelAxisValue(input.Code);
+                return WheelInterop.GetWheelRawAxisValue(input.Code);
             }
 
             if (input.Kind != BindingKind.GamepadAxis)

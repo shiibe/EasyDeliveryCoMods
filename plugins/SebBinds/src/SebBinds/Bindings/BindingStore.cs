@@ -205,7 +205,18 @@ namespace SebBinds
             }
             if (input.Kind == BindingKind.WheelAxis)
             {
-                return "Wheel Axis " + input.Code;
+                switch (Mathf.Clamp(input.Code, 0, 7))
+                {
+                    case 0: return "lX";
+                    case 1: return "lY";
+                    case 2: return "lZ";
+                    case 3: return "lRx";
+                    case 4: return "lRy";
+                    case 5: return "lRz";
+                    case 6: return "slider0";
+                    case 7: return "slider1";
+                    default: return "lX";
+                }
             }
             if (input.Kind == BindingKind.GamepadDpadAxis)
             {

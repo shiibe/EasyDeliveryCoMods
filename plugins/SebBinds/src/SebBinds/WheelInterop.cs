@@ -241,6 +241,60 @@ namespace SebBinds
             }
         }
 
+        internal static float GetWheelRawAxisValue(int axisIdCode)
+        {
+            // AxisId codes match the wheel calibration tool (lX, lY, lZ, lRx, lRy, lRz, slider0, slider1).
+            try
+            {
+                Type t = GetWheelPluginType();
+                if (t == null)
+                {
+                    return 0f;
+                }
+
+                var tryGetState = t.GetMethod("TryGetCachedWheelState", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                var getAxis = t.GetMethod("GetAxisValue", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                if (tryGetState == null || getAxis == null)
+                {
+                    return 0f;
+                }
+
+                var args = new object[] { null };
+                bool ok;
+                try
+                {
+                    ok = (bool)tryGetState.Invoke(null, args);
+                }
+                catch
+                {
+                    ok = false;
+                }
+                if (!ok || args[0] == null)
+                {
+                    return 0f;
+                }
+
+                object state = args[0];
+
+                // AxisId enum type is the second param of GetAxisValue.
+                var axisParamType = getAxis.GetParameters()[1].ParameterType;
+                object axisId = axisParamType.IsEnum
+                    ? Enum.ToObject(axisParamType, Mathf.Clamp(axisIdCode, 0, 7))
+                    : (object)Mathf.Clamp(axisIdCode, 0, 7);
+
+                int raw = (int)getAxis.Invoke(null, new[] { state, axisId });
+
+                // Typical joystick raw range is 0..65535.
+                const float mid = 32767.5f;
+                float v = (raw - mid) / mid;
+                return Mathf.Clamp(v, -1f, 1f);
+            }
+            catch
+            {
+                return 0f;
+            }
+        }
+
         internal static bool IsWheelMenuActive()
         {
             if (!EnsureWheelReflection() || _isWheelMenuActive == null)

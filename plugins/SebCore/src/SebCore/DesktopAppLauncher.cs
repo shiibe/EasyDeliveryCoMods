@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace SebCore
 {
-    internal static class DesktopAppLauncher
+    public static class DesktopAppLauncher
     {
-        internal static bool TryOpen(DesktopDotExe desktop, string fileName)
+        public static bool TryOpen(DesktopDotExe desktop, string fileName)
         {
             if (desktop == null || desktop.files == null || string.IsNullOrWhiteSpace(fileName))
             {
@@ -46,7 +46,7 @@ namespace SebCore
             return true;
         }
 
-        internal static bool TryOpenProgramListener(DesktopDotExe desktop, string fileName, string listenerData)
+        public static bool TryOpenProgramListener(DesktopDotExe desktop, string fileName, string listenerData)
         {
             if (desktop == null || string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(listenerData))
             {

@@ -13,6 +13,8 @@ namespace SebLogiWheel
         private float _mouseYLock;
         private UIUtil _util;
 
+        private DesktopDotExe.WindowView _view;
+
         private Page _page;
         private CalStep _calStep;
 
@@ -105,6 +107,8 @@ namespace SebLogiWheel
                 return;
             }
 
+            _view = view;
+
             // Allow external UIs (SebBinds) to deep-link into calibration.
             if (Plugin.ConsumeOpenCalibrationWizardRequest())
             {
@@ -155,7 +159,12 @@ namespace SebLogiWheel
             {
                 _calStep = CalStep.None;
                 _page = Page.Main;
+                return;
             }
+
+            // From the main page, return to SebCore.
+            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+            _view?.Kill();
         }
 
         private void DrawMenu(Rect p)
@@ -242,13 +251,20 @@ namespace SebLogiWheel
                 _page = Page.Misc;
             }
 
-            // SDK status at bottom.
-            float statusY = p.y + p.height - 30f;
-            float retryY = p.y + p.height - 18f;
+            // Bottom buttons.
+            float statusY = p.y + p.height - 42f;
+            float retryY = p.y + p.height - 30f;
+            float backY = p.y + p.height - 18f;
             _util.Label("Logitech SDK: " + Plugin.GetLogitechStatus(), cx, statusY);
             if (_util.SimpleButton("Retry SDK", cx, retryY))
             {
                 Plugin.ForceReinitLogitech(true);
+            }
+
+            if (_util.SimpleButton("Back", cx, backY))
+            {
+                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
+                _view?.Kill();
             }
         }
 
@@ -499,7 +515,8 @@ namespace SebLogiWheel
             _util.Label(GetVehicleHudPageTitle(_vehicleHudPage), p.x + p.width / 2f, y);
             y += line;
 
-            if (_util.SimpleButtonRaw("Defaults", p.x + p.width / 2f, y))
+            float resetY = navY - 12f;
+            if (_util.SimpleButtonRaw("Reset Defaults", p.x + p.width / 2f, resetY))
             {
                 if (_vehicleHudPage == VehicleHudPage.Vehicle)
                 {
@@ -511,7 +528,7 @@ namespace SebLogiWheel
                 }
             }
 
-            y += line + sectionGap;
+            y += sectionGap;
 
             bool manual = Plugin.GetManualTransmissionEnabled();
             if (_vehicleHudPage == VehicleHudPage.Vehicle)

@@ -4,37 +4,63 @@ namespace SebBinds
 {
     internal static class AxisCapture
     {
+        private static bool _wheelBaselineValid;
+        private static readonly float[] _wheelBaseline = new float[8];
+        private static Vector2 _wheelPovBaseline;
+
+        internal static void BeginCaptureSession(BindingScheme scheme)
+        {
+            if (scheme != BindingScheme.Wheel)
+            {
+                _wheelBaselineValid = false;
+                return;
+            }
+
+            for (int i = 0; i < _wheelBaseline.Length; i++)
+            {
+                _wheelBaseline[i] = WheelInterop.GetWheelRawAxisValue(i);
+            }
+            _wheelBaselineValid = true;
+
+            if (WheelInterop.TryGetPov8Vector(out var pov))
+            {
+                _wheelPovBaseline = -pov;
+            }
+            else
+            {
+                _wheelPovBaseline = Vector2.zero;
+            }
+        }
+
         internal static bool TryCaptureNextAxis(BindingScheme scheme, out BindingInput input)
         {
             // Wheel axes via providers.
             if (scheme == BindingScheme.Wheel)
             {
-                // Prefer axis movement from the wheel device directly.
-                float steer = WheelInterop.GetWheelAxisValue(0);
-                float throttle = WheelInterop.GetWheelAxisValue(1);
-                float brake = WheelInterop.GetWheelAxisValue(2);
-                float clutch = WheelInterop.GetWheelAxisValue(3);
+                // Pick the axis that changed the most since capture started.
+                float bestDelta = 0f;
+                int best = -1;
 
-                // Simple capture: pick the largest magnitude delta.
-                float best = 0f;
-                int bestCode = -1;
-                void Consider(int code, float v)
+                if (!_wheelBaselineValid)
                 {
-                    float a = Mathf.Abs(v);
-                    if (a > best)
+                    BeginCaptureSession(BindingScheme.Wheel);
+                }
+
+                for (int code = 0; code <= 7; code++)
+                {
+                    float cur = WheelInterop.GetWheelRawAxisValue(code);
+                    float prev = _wheelBaseline[code];
+                    float delta = Mathf.Abs(cur - prev);
+                    if (delta > bestDelta)
                     {
-                        best = a;
-                        bestCode = code;
+                        bestDelta = delta;
+                        best = code;
                     }
                 }
-                Consider(0, steer);
-                Consider(1, throttle);
-                Consider(2, brake);
-                Consider(3, clutch);
 
-                if (bestCode >= 0 && best > 0.35f)
+                if (best >= 0 && bestDelta > 0.35f)
                 {
-                    input = new BindingInput { Kind = BindingKind.WheelAxis, Code = bestCode };
+                    input = new BindingInput { Kind = BindingKind.WheelAxis, Code = best };
                     return true;
                 }
 
@@ -42,12 +68,12 @@ namespace SebBinds
                 if (WheelInterop.TryGetPov8Vector(out var pov))
                 {
                     var v = -pov;
-                    if (Mathf.Abs(v.x) > 0.5f)
+                    if (Mathf.Abs(v.x - _wheelPovBaseline.x) > 0.5f && Mathf.Abs(v.x) > 0.5f)
                     {
                         input = new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = 0 };
                         return true;
                     }
-                    if (Mathf.Abs(v.y) > 0.5f)
+                    if (Mathf.Abs(v.y - _wheelPovBaseline.y) > 0.5f && Mathf.Abs(v.y) > 0.5f)
                     {
                         input = new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = 1 };
                         return true;

@@ -4,33 +4,43 @@ namespace SebBinds
 {
     public static class AxisBindingStore
     {
-        private static string Key(AxisAction action)
+        private static string Key(BindingScheme scheme, AxisAction action)
         {
             // Stable numeric key.
+            if (scheme == BindingScheme.Wheel)
+            {
+                return "SebBinds_Wheel_Axis_" + (int)action;
+            }
             return "SebBinds_Axis_" + (int)action;
         }
 
-        public static BindingInput GetAxisBinding(AxisAction action)
+        public static BindingInput GetAxisBinding(BindingScheme scheme, AxisAction action)
         {
-            int raw = PlayerPrefs.GetInt(Key(action), -1);
+            int raw = PlayerPrefs.GetInt(Key(scheme, action), -1);
             return Decode(raw);
         }
 
-        public static void SetAxisBinding(AxisAction action, BindingInput input)
+        public static void SetAxisBinding(BindingScheme scheme, AxisAction action, BindingInput input)
         {
-            PlayerPrefs.SetInt(Key(action), Encode(input));
+            PlayerPrefs.SetInt(Key(scheme, action), Encode(input));
         }
 
-        public static void ClearAxisBinding(AxisAction action)
+        public static void ClearAxisBinding(BindingScheme scheme, AxisAction action)
         {
-            PlayerPrefs.DeleteKey(Key(action));
+            PlayerPrefs.DeleteKey(Key(scheme, action));
         }
+
+        // Back-compat: controller scheme.
+        public static BindingInput GetAxisBinding(AxisAction action) => GetAxisBinding(BindingScheme.Controller, action);
+        public static void SetAxisBinding(AxisAction action, BindingInput input) => SetAxisBinding(BindingScheme.Controller, action, input);
+        public static void ClearAxisBinding(AxisAction action) => ClearAxisBinding(BindingScheme.Controller, action);
 
         public static void ClearAll()
         {
             foreach (AxisAction a in System.Enum.GetValues(typeof(AxisAction)))
             {
-                PlayerPrefs.DeleteKey(Key(a));
+                PlayerPrefs.DeleteKey(Key(BindingScheme.Controller, a));
+                PlayerPrefs.DeleteKey(Key(BindingScheme.Wheel, a));
             }
         }
 
