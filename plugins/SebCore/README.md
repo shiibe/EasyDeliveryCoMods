@@ -22,8 +22,11 @@
 ## About
 SebCore is the base mod that provides the in-game launcher UI and some shared utilities for my other mods.
 
-- Adds desktop icon/program (`seb.exe`) on the main menu.
+- Adds desktop icon/program (`mods.exe`) on the main menu.
 - Hosts the cartridge launcher window where you open the other mods.
+
+### Config
+- `Menu.sebcore_icon_name` (string, default: `mods`): Desktop icon file name. Change this if you want to use a custom icon without SebCore overwriting it.
 
 ## Mods
 - SebBinds: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebBinds/ (`../SebBinds/README.md`)

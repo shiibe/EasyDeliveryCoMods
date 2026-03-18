@@ -10,6 +10,19 @@ namespace SebCore
     {
         private static ConfigEntry<string> _desktopMenuIconX;
         private static ConfigEntry<string> _desktopMenuIconY;
+        private static ConfigEntry<string> _desktopMenuIconName;
+
+        internal static string GetMenuIconName()
+        {
+            string name = _desktopMenuIconName != null ? _desktopMenuIconName.Value : null;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return SebCoreMenuWindow.DefaultFileName;
+            }
+
+            string trimmed = name.Trim();
+            return trimmed.Length == 0 ? SebCoreMenuWindow.DefaultFileName : trimmed;
+        }
 
         private void Awake()
         {
@@ -18,6 +31,7 @@ namespace SebCore
 
             _desktopMenuIconX = Config.Bind("Menu", "sebcore_icon_x", "5.5", "Main Menu icon X position. Example: 5.5");
             _desktopMenuIconY = Config.Bind("Menu", "sebcore_icon_y", "3.25", "Main Menu icon Y position. Example: 3.25");
+            _desktopMenuIconName = Config.Bind("Menu", "sebcore_icon_name", SebCoreMenuWindow.DefaultFileName, "Main Menu icon file name (default: mods). Change this if you want to keep a custom icon with the same name from being overwritten.");
 
             _clearModPrefs ??= Config.Bind(
                 "Maintenance",
@@ -71,21 +85,48 @@ namespace SebCore
             float y = ParseDesktopIconFloat(_desktopMenuIconY != null ? _desktopMenuIconY.Value : null, 3.25f, "sebcore_icon_y");
             var position = new Vector2(x, y);
 
+            string desiredName = GetMenuIconName();
+            const string legacyName = "seb";
+
             DesktopDotExe.File existingFile = null;
+            DesktopDotExe.File legacyFile = null;
             foreach (var file in __instance.files)
             {
-                if (file != null && string.Equals(file.name, SebCoreMenuWindow.FileName, StringComparison.OrdinalIgnoreCase))
+                if (file == null)
+                {
+                    continue;
+                }
+
+                if (existingFile == null && string.Equals(file.name, desiredName, StringComparison.OrdinalIgnoreCase))
                 {
                     existingFile = file;
-                    break;
                 }
+
+                if (legacyFile == null && !string.Equals(desiredName, legacyName, StringComparison.OrdinalIgnoreCase) && string.Equals(file.name, legacyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    legacyFile = file;
+                }
+            }
+
+            // If we're renaming away from the legacy icon, reuse it instead of leaving a stale extra icon.
+            if (existingFile == null && legacyFile != null)
+            {
+                legacyFile.name = desiredName;
+                existingFile = legacyFile;
+                legacyFile = null;
+            }
+
+            // If both exist, hide the legacy one.
+            if (legacyFile != null)
+            {
+                legacyFile.visible = false;
             }
 
             if (existingFile == null)
             {
                 var file = new DesktopDotExe.File(__instance.R, __instance)
                 {
-                    name = SebCoreMenuWindow.FileName,
+                    name = desiredName,
                     type = DesktopDotExe.FileType.exe,
                     data = SebCoreMenuWindow.ListenerData,
                     icon = 7,
@@ -102,6 +143,7 @@ namespace SebCore
                 existingFile.iconHover = 7;
                 existingFile.position = position;
                 existingFile.visible = visible;
+                existingFile.name = desiredName;
             }
 
             var root = __instance.transform;

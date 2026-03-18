@@ -145,13 +145,13 @@ namespace SebBinds
                 switch (Mathf.Clamp(input.Code, 0, 3))
                 {
                     case 0:
-                        return "DP Up";
+                        return "DP-U";
                     case 1:
-                        return "DP Right";
+                        return "DP-R";
                     case 2:
-                        return "DP Down";
+                        return "DP-D";
                     default:
-                        return "DP Left";
+                        return "DP-L";
                 }
             }
             if (input.Kind == BindingKind.Key)
@@ -188,13 +188,13 @@ namespace SebBinds
                 switch (Mathf.Clamp(input.Code, 0, 3))
                 {
                     case 0:
-                        return "Dpad Up";
+                        return "DP-U";
                     case 1:
-                        return "Dpad Right";
+                        return "DP-R";
                     case 2:
-                        return "Dpad Down";
+                        return "DP-D";
                     default:
-                        return "Dpad Left";
+                        return "DP-L";
                 }
             }
             if (input.Kind == BindingKind.GamepadAxis)
@@ -298,7 +298,7 @@ namespace SebBinds
                 case BindAction.SteerAxis:
                     return "Steer Axis";
                 case BindAction.Camera:
-                    return "Camera";
+                    return "1P/3P Camera";
                 case BindAction.ResetVehicle:
                     return "Reset";
                 case BindAction.Headlights:

@@ -8,7 +8,8 @@ namespace SebCore
 {
     public class SebCoreMenuWindow : MonoBehaviour
     {
-        public const string FileName = "seb";
+        public const string DefaultFileName = "mods";
+        public static string FileName => Plugin.GetMenuIconName();
         public const string ListenerName = "SebCoreMenu";
         public const string ListenerData = "listener_SebCoreMenu";
 

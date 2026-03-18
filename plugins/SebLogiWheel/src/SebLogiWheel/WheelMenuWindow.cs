@@ -33,9 +33,6 @@ namespace SebLogiWheel
         private Plugin.BindingLayer _bindingDupPendingLayer;
         private List<BindingConflict> _bindingDupConflicts;
 
-        private bool _miscClearConfirmActive;
-        private float _miscClearedUntil;
-
         private struct BindingConflict
         {
             public Plugin.BindingLayer Layer;
@@ -85,8 +82,7 @@ namespace SebLogiWheel
             Calibration = 4,
             CalibrationWizard = 5,
             Bindings = 6,
-            BindingCapture = 7,
-            Misc = 8
+            BindingCapture = 7
         }
 
         private enum VehicleHudPage
@@ -220,10 +216,6 @@ namespace SebLogiWheel
             {
                 DrawBindingCapture(p, center, ref y, line, sectionGap);
             }
-            else if (_page == Page.Misc)
-            {
-                DrawMisc(p, center, ref y, line, sectionGap);
-            }
             else
             {
                 DrawBindings(p, center, ref y, line, sectionGap);
@@ -234,42 +226,39 @@ namespace SebLogiWheel
         {
             float cx = p.x + p.width / 2f;
 
-            // Main navigation buttons.
+            // Main navigation buttons (requested order).
             float btnGap = 22f;
-            if (_util.FancyButton("Force Feedback", cx, y))
+            if (_util.FancyButton("Button Binds", cx, y))
             {
-                _page = Page.Ffb;
+                if (SebCore.CartridgeApps.EnsureListener(_util.M, SebCore.CartridgeApps.Binds))
+                {
+                    SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "binds", "listener_SebBindsMenu");
+                }
             }
-            y += btnGap;
-            if (_util.FancyButton("Steering", cx, y))
-            {
-                _page = Page.Steering;
-            }
+
             y += btnGap;
             if (_util.FancyButton("Axis Mapping", cx, y))
             {
                 _bindingsPage = BindingsPage.Axes;
                 _page = Page.Bindings;
             }
+
+            y += btnGap;
+            if (_util.FancyButton("Force Feedback", cx, y))
+            {
+                _page = Page.Ffb;
+            }
+
+            y += btnGap;
+            if (_util.FancyButton("Steering", cx, y))
+            {
+                _page = Page.Steering;
+            }
+
             y += btnGap;
             if (_util.FancyButton("Calibration", cx, y))
             {
                 _page = Page.Calibration;
-            }
-            y += btnGap;
-            if (_util.FancyButton("Misc", cx, y))
-            {
-                _miscClearConfirmActive = false;
-                _page = Page.Misc;
-            }
-
-            y += btnGap;
-            if (_util.FancyButton("Binds", cx, y))
-            {
-                if (SebCore.CartridgeApps.EnsureListener(_util.M, SebCore.CartridgeApps.Binds))
-                {
-                    SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "binds", "listener_SebBindsMenu");
-                }
             }
 
             // Bottom buttons.
@@ -639,59 +628,6 @@ namespace SebLogiWheel
                     }
                 }
                 return;
-            }
-        }
-
-        private void DrawMisc(Rect p, float center, ref float y, float line, float sectionGap)
-        {
-            _util.Label("Misc", p.x + p.width / 2f, y);
-            y += line;
-
-            float cx = p.x + p.width / 2f;
-            float backY = p.y + p.height - 18f;
-            if (_util.SimpleButton("Back", cx, backY))
-            {
-                _miscClearConfirmActive = false;
-                _page = Page.Main;
-                return;
-            }
-
-            y += sectionGap;
-
-            if (_miscClearedUntil > Time.unscaledTime)
-            {
-                _util.Label("Saved settings cleared.", p.x + p.width / 2f, y);
-                y += line + sectionGap;
-            }
-
-            if (!_miscClearConfirmActive)
-            {
-                if (_util.FancyButton("Clear Saved Settings", cx, y))
-                {
-                    _miscClearConfirmActive = true;
-                }
-                // FancyButton draws a 24px-tall hitbox; give the label below enough space.
-                y += 22f;
-                _util.Label("Clears Wheel mod prefs.", p.x + p.width / 2f, y);
-                y += line - 2f;
-                _util.Label("(FFB, binds, calib)", p.x + p.width / 2f, y);
-                return;
-            }
-
-            _util.Label("Clear ALL saved settings?", p.x + p.width / 2f, y);
-            y += line + sectionGap;
-
-            float yesY = p.y + p.height - 52f;
-            float cancelY = p.y + p.height - 34f;
-            if (_util.SimpleButton("Yes", cx, yesY))
-            {
-                Plugin.ClearAllUserPrefs();
-                _miscClearConfirmActive = false;
-                _miscClearedUntil = Time.unscaledTime + 2.5f;
-            }
-            if (_util.SimpleButton("Cancel", cx, cancelY))
-            {
-                _miscClearConfirmActive = false;
             }
         }
 

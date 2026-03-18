@@ -399,8 +399,7 @@ namespace SebBinds
                             BindAction.Map,
                             BindAction.Items,
                             BindAction.Jobs,
-                            BindAction.ResetVehicle,
-                            BindAction.Camera
+                            BindAction.ResetVehicle
                         }
                     },
                     new PageDef
@@ -408,6 +407,7 @@ namespace SebBinds
                         Title = "Vehicle",
                         Actions = new[]
                         {
+                            BindAction.Camera,
                             BindAction.Headlights,
                             BindAction.Horn,
                         }
@@ -454,8 +454,7 @@ namespace SebBinds
                             BindAction.Map,
                             BindAction.Items,
                             BindAction.Jobs,
-                            BindAction.ResetVehicle,
-                            BindAction.Camera
+                            BindAction.ResetVehicle
                         }
                     },
                     new PageDef
@@ -463,6 +462,7 @@ namespace SebBinds
                         Title = "Vehicle",
                         Actions = new[]
                         {
+                            BindAction.Camera,
                             BindAction.Headlights,
                             BindAction.Horn,
                         }
@@ -506,8 +506,7 @@ namespace SebBinds
                             BindAction.Map,
                             BindAction.Items,
                             BindAction.Jobs,
-                            BindAction.ResetVehicle,
-                            BindAction.Camera
+                            BindAction.ResetVehicle
                         }
                     },
                     new PageDef
@@ -530,6 +529,7 @@ namespace SebBinds
                             BindAction.SteerRight,
                             BindAction.Drive,
                             BindAction.Brake,
+                            BindAction.Camera,
                             BindAction.Headlights,
                             BindAction.Horn,
                         }
@@ -842,13 +842,20 @@ namespace SebBinds
                 return;
             }
 
-            _util.Label("Press a button for:", cx, promptY);
-            _util.Label(secondLine, cx, promptY + line);
+            bool requireModifierHeld = !_isCapturingModifier && _bindingCaptureLayer == BindingLayer.Modified;
+            var modifier = requireModifierHeld ? BindingStore.GetModifierBinding(_scheme) : default;
+            bool modifierHeld = !requireModifierHeld || BindingEvaluator.IsDown(modifier);
 
-            if (!_isCapturingModifier && _bindingCaptureLayer == BindingLayer.Modified)
+            if (requireModifierHeld && !modifierHeld)
             {
-                _util.Label("Hold modifier first", p.x + p.width / 2f, promptY + line * 2f);
-                _util.Label("or binding won't register.", p.x + p.width / 2f, promptY + line * 3f);
+                _util.Label("Hold modifier to bind:", cx, promptY);
+                _util.Label(secondLine, cx, promptY + line);
+                _util.Label("Then press button.", cx, promptY + line * 2f);
+            }
+            else
+            {
+                _util.Label("Press a button for:", cx, promptY);
+                _util.Label(secondLine, cx, promptY + line);
             }
 
             if (_bindingDupConfirmActive)
@@ -903,8 +910,21 @@ namespace SebBinds
                 return;
             }
 
+            // For Modif. bindings, wait for the modifier to be held before capturing.
+            // Also ignore the modifier itself (pressing it is how the user starts holding it).
+            if (requireModifierHeld && !modifierHeld)
+            {
+                return;
+            }
+
             if (!InputCapture.TryCaptureNextBinding(_scheme, _bindingCaptureAction, _bindingCaptureLayer, out var captured))
             {
+                return;
+            }
+
+            if (requireModifierHeld && captured.Kind == modifier.Kind && captured.Code == modifier.Code)
+            {
+                // User just pressed the modifier; keep waiting for the actual bind input.
                 return;
             }
 

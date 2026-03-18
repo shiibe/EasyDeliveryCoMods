@@ -397,8 +397,11 @@ namespace SebTruck
 
             const float baseKmh = 25f;
             const float topKmh = 125f;
-            float growth = Mathf.Pow(topKmh / baseKmh, 1f / Mathf.Max(1, count - 1));
-            return baseKmh * Mathf.Pow(growth, gear - 1);
+
+            // Use a linear distribution so the last gear isn't a huge jump.
+            // (With 5 gears, this yields 25/50/75/100/125 instead of an exponential ramp.)
+            float t = count <= 1 ? 1f : (gear - 1f) / (count - 1f);
+            return Mathf.Lerp(baseKmh, topKmh, Mathf.Clamp01(t));
         }
 
         private static float GetMaxSpeedForCurrentGearKmh()
@@ -469,6 +472,14 @@ namespace SebTruck
             float band = 1f - t;
             float shaped = Mathf.Pow(band, 0.55f);
             float torque = Mathf.Lerp(0.55f, 1.20f, shaped);
+
+            // Higher gears should not add a large acceleration "kick".
+            // Give lower gears more pull; taper off toward top gear.
+            int count = GetManualGearCount();
+            int gAbs = Mathf.Clamp(Mathf.Abs(_manualGear), 1, count);
+            float gt = count <= 1 ? 1f : (gAbs - 1f) / (count - 1f);
+            float gearTorqueScale = Mathf.Lerp(1.25f, 0.85f, Mathf.Clamp01(gt));
+            torque *= gearTorqueScale;
 
             float a = Mathf.Clamp01(gas) * torque;
             return _manualGear < 0 ? -a : a;
