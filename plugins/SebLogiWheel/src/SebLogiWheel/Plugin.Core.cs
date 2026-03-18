@@ -847,7 +847,6 @@ namespace SebLogiWheel
 
         private static bool _logiSelectionDone;
         private static float _logiLastSelectionAttemptTime;
-        private static bool _logiWarnedMultipleDevices;
         private static bool _logiWarnedSelectedNotWheel;
 
         private static bool _isInWalkingMode;
@@ -1519,12 +1518,7 @@ namespace SebLogiWheel
                 return;
             }
 
-            if (connectedDevices.Count > 1)
-            {
-                _log.LogWarning($"Multiple controller devices detected by Unity ({connectedDevices.Count}). SebLogiWheel works best with only the wheel plugged in (see README).");
-            }
-
-            bool logDevices = connectedDevices.Count > 1 || (_logDetectedDevices != null && _logDetectedDevices.Value);
+            bool logDevices = _logDetectedDevices != null && _logDetectedDevices.Value;
             if (logDevices)
             {
                 for (int i = 0; i < connectedDevices.Count; i++)
@@ -1739,21 +1733,7 @@ namespace SebLogiWheel
                 }
             }
 
-            // Warn if the SDK sees multiple devices (wheel + other controllers).
-            if (_log != null && devices.Count > 1 && !_logiWarnedMultipleDevices)
-            {
-                _log.LogWarning($"Logitech SDK reports multiple input devices ({devices.Count}). For best results, unplug extra controllers.");
-                for (int i = 0; i < devices.Count; i++)
-                {
-                    var d = devices[i];
-                    string type = d.IsWheel ? "wheel" : (d.IsGamepad ? "gamepad" : (d.IsJoystick ? "joystick" : "other"));
-                    string id = (d.Vid > 0 && d.Pid > 0) ? $" vid=0x{d.Vid:X4} pid=0x{d.Pid:X4}" : string.Empty;
-                    string label = !string.IsNullOrWhiteSpace(d.Name) ? d.Name : (!string.IsNullOrWhiteSpace(d.Path) ? d.Path : "(unknown)");
-                    string selected = d.Index == _logiIndex ? " [selected]" : "";
-                    _log.LogInfo($"SDK device {d.Index}: {type}{id}: {label}{selected}");
-                }
-                _logiWarnedMultipleDevices = true;
-            }
+            // Multiple devices are fine; we just want to make sure we're using the wheel.
 
             // If the selected device is not a wheel, call it out explicitly.
             if (_log != null && !_logiWarnedSelectedNotWheel)
@@ -1896,7 +1876,6 @@ namespace SebLogiWheel
             _logiLastPath = null;
             _logiSelectionDone = false;
             _logiLastSelectionAttemptTime = 0f;
-            _logiWarnedMultipleDevices = false;
             _logiWarnedSelectedNotWheel = false;
 
             // Attempt immediately.
