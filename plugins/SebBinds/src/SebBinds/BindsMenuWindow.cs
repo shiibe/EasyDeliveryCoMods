@@ -825,7 +825,7 @@ namespace SebBinds
                 _bindingCaptureMissingModifier = true;
             }
 
-            bool allowUiClicks = Time.unscaledTime - _axisCaptureEnterTime > 0.25f;
+            bool allowUiClicks = Time.unscaledTime - _bindingCaptureEnterTime > 0.25f;
 
             if (_bindingCaptureMissingModifier)
             {
@@ -860,12 +860,21 @@ namespace SebBinds
 
             if (_bindingDupConfirmActive)
             {
-                _util.Label("Already used by:", p.x + p.width / 2f, promptY + line * 4f);
-                _util.Label(GetDupConflictsText(_bindingDupConflicts), p.x + p.width / 2f, promptY + line * 5f);
+                bool hasDupConflicts = _bindingDupConflicts != null && _bindingDupConflicts.Count > 0;
+                if (hasDupConflicts)
+                {
+                    _util.Label("Already used by:", p.x + p.width / 2f, promptY + line * 4f);
+                    _util.Label(GetDupConflictsText(_bindingDupConflicts), p.x + p.width / 2f, promptY + line * 5f);
+                }
 
                 if (!string.IsNullOrWhiteSpace(_bindingDupAxisConflict))
                 {
                     _util.Label(_bindingDupAxisConflict, p.x + p.width / 2f, promptY + line * 6f);
+                }
+
+                if (hasDupConflicts)
+                {
+                    _util.Label("Press another button to try again.", p.x + p.width / 2f, promptY + line * 7f);
                 }
 
                 if (allowUiClicks && _util.SimpleButtonRaw("Replace", cx, clearY))
@@ -877,37 +886,41 @@ namespace SebBinds
                 if (allowUiClicks && _util.SimpleButtonRaw("Cancel", cx, cancelY))
                 {
                     _bindingDupConfirmActive = false;
+                    _bindingDupAxisConflict = null;
                     return;
                 }
 
-                return;
+                // Keep listening for other inputs so the user can correct conflicts.
             }
 
-            if (allowUiClicks && _util.SimpleButtonRaw("Clear", cx, clearY))
+            if (!_bindingDupConfirmActive)
             {
-                if (_isCapturingModifier)
+                if (allowUiClicks && _util.SimpleButtonRaw("Clear", cx, clearY))
                 {
-                    BindingStore.SetModifierBinding(_scheme, new BindingInput { Kind = BindingKind.None, Code = 0 });
-                }
-                else
-                {
-                    BindingStore.SetBinding(_scheme, _bindingCaptureLayer, _bindingCaptureAction, new BindingInput { Kind = BindingKind.None, Code = 0 });
+                    if (_isCapturingModifier)
+                    {
+                        BindingStore.SetModifierBinding(_scheme, new BindingInput { Kind = BindingKind.None, Code = 0 });
+                    }
+                    else
+                    {
+                        BindingStore.SetBinding(_scheme, _bindingCaptureLayer, _bindingCaptureAction, new BindingInput { Kind = BindingKind.None, Code = 0 });
+                    }
+
+                    _bindingDupConfirmActive = false;
+                    _isCapturingModifier = false;
+                    _bindingCaptureMissingModifier = false;
+                    _page = Page.Bindings;
+                    return;
                 }
 
-                _bindingDupConfirmActive = false;
-                _isCapturingModifier = false;
-                _bindingCaptureMissingModifier = false;
-                _page = Page.Bindings;
-                return;
-            }
-
-            if (allowUiClicks && _util.SimpleButtonRaw("Cancel", cx, cancelY))
-            {
-                _bindingDupConfirmActive = false;
-                _isCapturingModifier = false;
-                _bindingCaptureMissingModifier = false;
-                _page = Page.Bindings;
-                return;
+                if (allowUiClicks && _util.SimpleButtonRaw("Cancel", cx, cancelY))
+                {
+                    _bindingDupConfirmActive = false;
+                    _isCapturingModifier = false;
+                    _bindingCaptureMissingModifier = false;
+                    _page = Page.Bindings;
+                    return;
+                }
             }
 
             // For Modif. bindings, wait for the modifier to be held before capturing.
@@ -940,25 +953,15 @@ namespace SebBinds
 
             var targetLayer = _bindingCaptureLayer;
 
-            if (TryFindDuplicateBindings(captured, _bindingCaptureAction, targetLayer, out var conflicts))
+            string axisConflict = GetAxisConflictForButton(_bindingCaptureAction);
+            bool dupConflict = TryFindDuplicateBindings(captured, _bindingCaptureAction, targetLayer, out var conflicts);
+            if (dupConflict || !string.IsNullOrWhiteSpace(axisConflict))
             {
                 _bindingDupConfirmActive = true;
                 _bindingDupPendingCaptured = captured;
                 _bindingDupPendingLayer = targetLayer;
-                _bindingDupConflicts = conflicts;
-                _bindingDupAxisConflict = GetAxisConflictForButton(_bindingCaptureAction);
-                return;
-            }
-
-            // Axis conflict only.
-            string axisOnlyConflict = GetAxisConflictForButton(_bindingCaptureAction);
-            if (!string.IsNullOrWhiteSpace(axisOnlyConflict))
-            {
-                _bindingDupConfirmActive = true;
-                _bindingDupPendingCaptured = captured;
-                _bindingDupPendingLayer = targetLayer;
-                _bindingDupConflicts = new List<BindingConflict>();
-                _bindingDupAxisConflict = axisOnlyConflict;
+                _bindingDupConflicts = conflicts ?? new List<BindingConflict>();
+                _bindingDupAxisConflict = axisConflict;
                 return;
             }
 
@@ -985,7 +988,7 @@ namespace SebBinds
             float clearY = p.y + p.height - 30f;
             float cancelY = p.y + p.height - 18f;
 
-            bool allowUiClicks = Time.unscaledTime - _bindingCaptureEnterTime > 0.25f;
+            bool allowUiClicks = Time.unscaledTime - _axisCaptureEnterTime > 0.25f;
 
             if (allowUiClicks && _util.SimpleButtonRaw("Clear", cx, clearY))
             {

@@ -41,6 +41,11 @@ namespace SebTruck
             public readonly List<Light> Left = new List<Light>();
             public readonly List<Light> Right = new List<Light>();
             public readonly Dictionary<int, (float intensity, bool enabled)> Defaults = new Dictionary<int, (float intensity, bool enabled)>();
+
+            public readonly List<Material> LeftMats = new List<Material>();
+            public readonly List<Material> RightMats = new List<Material>();
+            public readonly Dictionary<int, (Color emissionColor, Color emissiveColor, bool emissionKeyword)> MatDefaults =
+                new Dictionary<int, (Color emissionColor, Color emissiveColor, bool emissionKeyword)>();
         }
 
         private static readonly Dictionary<int, IndicatorCache> _indicatorCaches = new Dictionary<int, IndicatorCache>();
@@ -49,6 +54,9 @@ namespace SebTruck
         {
             public readonly List<Light> Lights = new List<Light>();
             public readonly Dictionary<int, (float intensity, bool enabled)> Defaults = new Dictionary<int, (float intensity, bool enabled)>();
+
+            public readonly List<Component> Flares = new List<Component>();
+            public readonly Dictionary<int, (float intensity, bool enabled)> FlareDefaults = new Dictionary<int, (float intensity, bool enabled)>();
         }
 
         private static readonly Dictionary<int, TailLightCache> _tailLightCaches = new Dictionary<int, TailLightCache>();
@@ -143,7 +151,7 @@ namespace SebTruck
             }
 
             ForceTailLightsOff(car);
-            SetIndicators(car, IndicatorMode.Off, blinkOn: false);
+            SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: true);
         }
 
         private static void ForceTailLightsOff(sCarController car)
@@ -168,6 +176,43 @@ namespace SebTruck
                 }
                 l.intensity = 0f;
                 l.enabled = false;
+            }
+
+            // Also shut off rear lens flare components (tail flares).
+            for (int i = 0; i < cache.Flares.Count; i++)
+            {
+                var f = cache.Flares[i];
+                if (f == null)
+                {
+                    continue;
+                }
+                int id = f.GetInstanceID();
+                if (!cache.FlareDefaults.ContainsKey(id))
+                {
+                    float inten = 0f;
+                    bool en = true;
+                    try
+                    {
+                        var pI = f.GetType().GetProperty("intensity");
+                        if (pI != null)
+                        {
+                            inten = (float)pI.GetValue(f, null);
+                        }
+                    }
+                    catch { }
+                    try
+                    {
+                        var pE = f.GetType().GetProperty("enabled");
+                        if (pE != null)
+                        {
+                            en = (bool)pE.GetValue(f, null);
+                        }
+                    }
+                    catch { }
+                    cache.FlareDefaults[id] = (inten, en);
+                }
+                try { SetProp(f, "intensity", 0f); } catch { }
+                try { SetProp(f, "enabled", false); } catch { }
             }
         }
 
@@ -196,6 +241,21 @@ namespace SebTruck
                 {
                     l.enabled = d.enabled;
                     l.intensity = d.intensity;
+                }
+            }
+
+            for (int i = 0; i < cache.Flares.Count; i++)
+            {
+                var f = cache.Flares[i];
+                if (f == null)
+                {
+                    continue;
+                }
+                int id = f.GetInstanceID();
+                if (cache.FlareDefaults.TryGetValue(id, out var d))
+                {
+                    try { SetProp(f, "enabled", d.enabled); } catch { }
+                    try { SetProp(f, "intensity", d.intensity); } catch { }
                 }
             }
         }
@@ -279,6 +339,61 @@ namespace SebTruck
                 }
             }
 
+            // Lens flare components (SRP) for tail lights.
+            try
+            {
+                var comps = car.GetComponentsInChildren<Component>(true);
+                if (comps != null)
+                {
+                    for (int i = 0; i < comps.Length; i++)
+                    {
+                        var c = comps[i];
+                        if (c == null)
+                        {
+                            continue;
+                        }
+                        string tn = c.GetType().Name;
+                        if (tn == null || tn.IndexOf("LensFlareComponentSRP", StringComparison.OrdinalIgnoreCase) < 0)
+                        {
+                            continue;
+                        }
+
+                        bool isRear = false;
+                        try
+                        {
+                            Vector3 lp = car.transform.InverseTransformPoint(c.transform.position);
+                            isRear = lp.z < -0.2f;
+                        }
+                        catch
+                        {
+                            isRear = false;
+                        }
+
+                        if (!isRear)
+                        {
+                            continue;
+                        }
+
+                        string n = c.name ?? string.Empty;
+                        bool nameMatch = n.IndexOf("tail", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || n.IndexOf("rear", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || n.IndexOf("brake", StringComparison.OrdinalIgnoreCase) >= 0;
+                        if (!nameMatch)
+                        {
+                            continue;
+                        }
+
+                        if (!cache.Flares.Contains(c))
+                        {
+                            cache.Flares.Add(c);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
             return cache;
         }
 
@@ -320,7 +435,7 @@ namespace SebTruck
 
             if (lights == null)
             {
-                return cache;
+                // Still try renderer/material indicators.
             }
 
             for (int i = 0; i < lights.Length; i++)
@@ -382,15 +497,133 @@ namespace SebTruck
                 }
             }
 
+            // Material emissive indicators (the truck uses emissive materials, not actual Light components).
+            try
+            {
+                var renderers = car.GetComponentsInChildren<Renderer>(true);
+                if (renderers != null)
+                {
+                    for (int i = 0; i < renderers.Length; i++)
+                    {
+                        var r = renderers[i];
+                        if (r == null)
+                        {
+                            continue;
+                        }
+
+                        float lx = 0f;
+                        float lz = 0f;
+                        try
+                        {
+                            Vector3 lp = car.transform.InverseTransformPoint(r.transform.position);
+                            lx = lp.x;
+                            lz = lp.z;
+                        }
+                        catch
+                        {
+                            lz = 0f;
+                        }
+
+                        // Some meshes have their pivot near center; be generous.
+                        if (lz < -0.35f)
+                        {
+                            continue;
+                        }
+
+                        string rn = r.name ?? string.Empty;
+                        bool rNameHint = rn.IndexOf("indicator", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || rn.IndexOf("blinker", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || rn.IndexOf("blink", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || rn.IndexOf("turn", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || rn.IndexOf("signal", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || rn.IndexOf("lamp", StringComparison.OrdinalIgnoreCase) >= 0
+                                         || rn.IndexOf("light", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        Material[] mats = null;
+                        try { mats = r.materials; } catch { mats = null; }
+                        if (mats == null || mats.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        for (int mi = 0; mi < mats.Length; mi++)
+                        {
+                            var m = mats[mi];
+                            if (m == null)
+                            {
+                                continue;
+                            }
+
+                            if (!m.HasProperty("_EmissionColor"))
+                            {
+                                continue;
+                            }
+
+                            string mn = m.name ?? string.Empty;
+                            bool mNameHint = mn.IndexOf("indicator", StringComparison.OrdinalIgnoreCase) >= 0
+                                             || mn.IndexOf("blinker", StringComparison.OrdinalIgnoreCase) >= 0
+                                             || mn.IndexOf("blink", StringComparison.OrdinalIgnoreCase) >= 0
+                                             || mn.IndexOf("turn", StringComparison.OrdinalIgnoreCase) >= 0
+                                             || mn.IndexOf("signal", StringComparison.OrdinalIgnoreCase) >= 0
+                                             || mn.IndexOf("lamp", StringComparison.OrdinalIgnoreCase) >= 0
+                                             || mn.IndexOf("light", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                            Color baseC = Color.white;
+                            bool hasBase = false;
+                            try { if (m.HasProperty("_BaseColor")) { baseC = m.GetColor("_BaseColor"); hasBase = true; } } catch { }
+                            try { if (!hasBase && m.HasProperty("_Color")) { baseC = m.GetColor("_Color"); hasBase = true; } } catch { }
+                            bool amberBase = baseC.r > 0.7f && baseC.g > 0.25f && baseC.b < 0.35f;
+
+                            if (!(amberBase || rNameHint || mNameHint))
+                            {
+                                continue;
+                            }
+
+                            bool left = rn.IndexOf("left", StringComparison.OrdinalIgnoreCase) >= 0 || rn.IndexOf("_l", StringComparison.OrdinalIgnoreCase) >= 0;
+                            bool right = rn.IndexOf("right", StringComparison.OrdinalIgnoreCase) >= 0 || rn.IndexOf("_r", StringComparison.OrdinalIgnoreCase) >= 0;
+                            if (!left && !right)
+                            {
+                                left = lx < 0f;
+                                right = !left;
+                            }
+
+                            if (left && !cache.LeftMats.Contains(m))
+                            {
+                                cache.LeftMats.Add(m);
+                            }
+                            if (right && !cache.RightMats.Contains(m))
+                            {
+                                cache.RightMats.Add(m);
+                            }
+
+                            int id = m.GetInstanceID();
+                            if (!cache.MatDefaults.ContainsKey(id))
+                            {
+                                Color e = Color.black;
+                                Color ee = Color.black;
+                                bool kw = false;
+                                try { if (m.HasProperty("_EmissionColor")) { e = m.GetColor("_EmissionColor"); } } catch { }
+                                try { if (m.HasProperty("_EmissiveColor")) { ee = m.GetColor("_EmissiveColor"); } } catch { }
+                                try { kw = m.IsKeywordEnabled("_EMISSION"); } catch { }
+                                cache.MatDefaults[id] = (e, ee, kw);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
             if (_debugLogging != null && _debugLogging.Value)
             {
-                LogDebug("Indicators: found left=" + cache.Left.Count + " right=" + cache.Right.Count);
+                LogDebug("Indicators: lights left=" + cache.Left.Count + " right=" + cache.Right.Count + " mats left=" + cache.LeftMats.Count + " right=" + cache.RightMats.Count);
             }
 
             return cache;
         }
 
-        private static void SetIndicators(sCarController car, IndicatorMode mode, bool blinkOn)
+        private static void SetIndicators(sCarController car, IndicatorMode mode, bool blinkOn, bool forceOff)
         {
             if (car == null)
             {
@@ -434,6 +667,57 @@ namespace SebTruck
 
             Apply(cache.Left, leftOn);
             Apply(cache.Right, rightOn);
+
+            void ApplyMat(List<Material> ms, bool on)
+            {
+                for (int i = 0; i < ms.Count; i++)
+                {
+                    var m = ms[i];
+                    if (m == null)
+                    {
+                        continue;
+                    }
+
+                    int id = m.GetInstanceID();
+                    if (!cache.MatDefaults.TryGetValue(id, out var d))
+                    {
+                        d = (Color.black, Color.black, false);
+                    }
+
+                    if (on)
+                    {
+                        Color e = d.emissionColor;
+                        Color ee = d.emissiveColor;
+                        if (e.maxColorComponent <= 0.01f && ee.maxColorComponent <= 0.01f)
+                        {
+                            e = new Color(1.0f, 0.55f, 0.12f) * 2.0f;
+                            ee = e;
+                        }
+                        try { m.EnableKeyword("_EMISSION"); } catch { }
+                        try { if (m.HasProperty("_EmissionColor")) { m.SetColor("_EmissionColor", e); } } catch { }
+                        try { if (m.HasProperty("_EmissiveColor")) { m.SetColor("_EmissiveColor", ee); } } catch { }
+                    }
+                    else
+                    {
+                        if (forceOff)
+                        {
+                            try { m.DisableKeyword("_EMISSION"); } catch { }
+                            try { if (m.HasProperty("_EmissionColor")) { m.SetColor("_EmissionColor", Color.black); } } catch { }
+                            try { if (m.HasProperty("_EmissiveColor")) { m.SetColor("_EmissiveColor", Color.black); } } catch { }
+                        }
+                        else
+                        {
+                            // Restore defaults when off.
+                            try { if (!d.emissionKeyword) { m.DisableKeyword("_EMISSION"); } else { m.EnableKeyword("_EMISSION"); } } catch { }
+                            try { if (m.HasProperty("_EmissionColor")) { m.SetColor("_EmissionColor", d.emissionColor); } } catch { }
+                            try { if (m.HasProperty("_EmissiveColor")) { m.SetColor("_EmissiveColor", d.emissiveColor); } } catch { }
+                        }
+                    }
+                }
+            }
+
+            ApplyMat(cache.LeftMats, leftOn);
+            ApplyMat(cache.RightMats, rightOn);
         }
 
         private static void UpdateIndicators(sCarController car)
@@ -446,9 +730,11 @@ namespace SebTruck
             if (_indicatorMode == IndicatorMode.Off)
             {
                 _indicatorBlinkOn = false;
-                SetIndicators(car, IndicatorMode.Off, blinkOn: false);
+                SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: false);
                 return;
             }
+
+            bool blinkWasOn = _indicatorBlinkOn;
 
             float now = Time.unscaledTime;
             if (_indicatorNextBlinkTime <= 0f)
@@ -462,7 +748,13 @@ namespace SebTruck
                 _indicatorNextBlinkTime = now + 0.45f;
             }
 
-            SetIndicators(car, _indicatorMode, _indicatorBlinkOn);
+            // Click sound on each blink edge.
+            if (_indicatorBlinkOn != blinkWasOn)
+            {
+                PlayIndicatorClick(car, highPitch: _indicatorBlinkOn);
+            }
+
+            SetIndicators(car, _indicatorMode, _indicatorBlinkOn, forceOff: false);
         }
 
         private static void RestoreVehicleLightState(sCarController car, bool wantOn)
@@ -495,22 +787,16 @@ namespace SebTruck
                 // ignore
             }
 
+            // Always restore the vehicle emissive map while ignition is on.
+            // Headlights themselves are controlled by the headLights GameObject.
             var mat = _headlightsCarMatField != null ? _headlightsCarMatField.GetValue(hl) as Material : null;
             var regular = _headlightsEmissiveRegularField != null ? _headlightsEmissiveRegularField.GetValue(hl) as Texture : null;
-            if (wantOn && mat != null && regular != null)
+            if (mat != null && regular != null)
             {
                 mat.SetTexture("_EmissionMap", regular);
                 if (mat.HasProperty("_EmissionColor"))
                 {
                     mat.SetColor("_EmissionColor", Color.white);
-                }
-            }
-            if (!wantOn && mat != null)
-            {
-                mat.SetTexture("_EmissionMap", GetIgnitionBlackEmissionTex());
-                if (mat.HasProperty("_EmissionColor"))
-                {
-                    mat.SetColor("_EmissionColor", Color.black);
                 }
             }
         }
@@ -539,6 +825,18 @@ namespace SebTruck
                 _ignitionOffSince = Time.unscaledTime;
 
                 ForceVehicleLightsOff(car);
+
+                // Play the headlight toggle click when shutting the engine off.
+                if (_ignitionPrevHeadlightsOn && hl != null)
+                {
+                    try
+                    {
+                        AccessTools.Method(hl.GetType(), "PlaySound", new[] { typeof(bool) })?.Invoke(hl, new object[] { false });
+                    }
+                    catch
+                    {
+                    }
+                }
                 if (radioIsForCar && radioOn)
                 {
                     radio.ToggleRadio();

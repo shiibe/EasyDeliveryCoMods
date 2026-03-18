@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
@@ -28,6 +29,9 @@ namespace SebTruck
 
         private static GameObject _ignitionHoldSfxGo;
         private static Component _ignitionHoldSfxSource;
+
+        private static GameObject _indicatorClickSfxGo;
+        private static Component _indicatorClickSfxSource;
 
         private void Awake()
         {
@@ -291,7 +295,7 @@ namespace SebTruck
             }
         }
 
-        private static void Call(Component c, string method)
+        private static void Call(Component c, string method, params object[] args)
         {
             if (c == null || string.IsNullOrWhiteSpace(method))
             {
@@ -299,11 +303,84 @@ namespace SebTruck
             }
             try
             {
-                var m = c.GetType().GetMethod(method, Type.EmptyTypes);
+                var ms = c.GetType().GetMethods();
+                MethodInfo m = null;
+                for (int i = 0; i < ms.Length; i++)
+                {
+                    var cand = ms[i];
+                    if (cand == null || !string.Equals(cand.Name, method, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    var ps = cand.GetParameters();
+                    if (ps != null && ps.Length == (args != null ? args.Length : 0))
+                    {
+                        m = cand;
+                        break;
+                    }
+                }
                 if (m != null)
                 {
-                    m.Invoke(c, null);
+                    m.Invoke(c, args);
                 }
+            }
+            catch
+            {
+            }
+        }
+
+        internal static void PlayIndicatorClick(sCarController car, bool highPitch)
+        {
+            if (car == null || car.GuyActive)
+            {
+                return;
+            }
+
+            var hl = car.headlights;
+            if (hl == null)
+            {
+                return;
+            }
+
+            try
+            {
+                // Reuse the headlight toggle OFF clip as the indicator click.
+                var clip = AccessTools.Field(hl.GetType(), "headlightsOff")?.GetValue(hl) as UnityEngine.Object;
+                if (clip == null)
+                {
+                    return;
+                }
+
+                float vol = 0.22f;
+                float pitch = highPitch ? 1.08f : 0.92f;
+
+                if (_indicatorClickSfxGo == null)
+                {
+                    _indicatorClickSfxGo = new GameObject("SebTruck_IndicatorClickSFX");
+                    _indicatorClickSfxGo.hideFlags = HideFlags.HideAndDontSave;
+                    var audioSourceType = Type.GetType("UnityEngine.AudioSource, UnityEngine.AudioModule");
+                    if (audioSourceType == null)
+                    {
+                        return;
+                    }
+                    _indicatorClickSfxSource = _indicatorClickSfxGo.AddComponent(audioSourceType);
+                    SetProp(_indicatorClickSfxSource, "loop", false);
+                    SetProp(_indicatorClickSfxSource, "playOnAwake", false);
+                    SetProp(_indicatorClickSfxSource, "spatialBlend", 1f);
+                    SetProp(_indicatorClickSfxSource, "dopplerLevel", 0f);
+                    SetProp(_indicatorClickSfxSource, "minDistance", 3f);
+                    SetProp(_indicatorClickSfxSource, "maxDistance", 30f);
+                }
+
+                if (_indicatorClickSfxGo.transform.parent != car.transform)
+                {
+                    _indicatorClickSfxGo.transform.SetParent(car.transform, false);
+                }
+                _indicatorClickSfxGo.transform.localPosition = Vector3.zero;
+
+                SetProp(_indicatorClickSfxSource, "volume", vol);
+                SetProp(_indicatorClickSfxSource, "pitch", pitch);
+                Call(_indicatorClickSfxSource, "PlayOneShot", clip, vol);
             }
             catch
             {
