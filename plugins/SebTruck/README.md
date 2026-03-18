@@ -31,7 +31,7 @@ SebTruck adds practical driving upgrades like manual transmission, ignition cont
 ## Features
 - Manual transmission mode (gears, neutral, reverse)
 - Ignition toggle with hold-to-start behavior
-- Turn indicators (L / R / 4-way hazards)
+- Turn indicators (L / R / 4-way hazards) (WIP: currently only triggers indicator sound)
 - HUD readouts (speed/tach/gear)
 - Optional ignition sound (`ignition_on.wav`)
 - Works with any input bindings from SebBinds
@@ -71,6 +71,11 @@ Truck page:
 - `Debug.debug_logging` (bool): Verbose logging
 - `Ignition.sfx_on_path` (string): Ignition ON sound file name inside `sfx/`
 - `Ignition.sfx_volume` (float): Ignition sound volume (0..1)
+
+## Future plans
+- Add indicator blinking
+- Custom truck sound effect overrides
+- Better HUD elements
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`

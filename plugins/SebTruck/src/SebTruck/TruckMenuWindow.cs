@@ -17,8 +17,11 @@ namespace SebTruck
 
         private enum Page
         {
-            Vehicle = 0,
-            Hud = 1
+            Transmission = 0,
+            Ignition = 1,
+            Indicators = 2,
+            Hud = 3,
+            Tweaks = 4
         }
 
         public void FrameUpdate(DesktopDotExe.WindowView view)
@@ -64,6 +67,8 @@ namespace SebTruck
             float line = 12f;
             float sectionGap = 4f;
 
+            const int pageCount = 5;
+
             _util.Label("Truck", cx, y);
             y += line;
 
@@ -73,7 +78,7 @@ namespace SebTruck
 
             if (_util.SimpleButtonRaw("Prev", prevX, navY))
             {
-                _page = _page == Page.Vehicle ? Page.Hud : Page.Vehicle;
+                _page = (Page)(((int)_page + pageCount - 1) % pageCount);
             }
             if (_util.SimpleButtonRaw("Back", cx, navY))
             {
@@ -83,21 +88,25 @@ namespace SebTruck
             }
             if (_util.SimpleButtonRaw("Next", nextX, navY))
             {
-                _page = _page == Page.Vehicle ? Page.Hud : Page.Vehicle;
+                _page = (Page)(((int)_page + 1) % pageCount);
             }
 
-            _util.Label(((int)_page + 1) + "/2", p.x + p.width - 18f, p.y + 10f);
+            _util.Label(((int)_page + 1) + "/" + pageCount, p.x + p.width - 18f, p.y + 10f);
 
             y += sectionGap;
-            _util.Label(_page == Page.Vehicle ? "Vehicle" : "HUD", cx, y);
+            string pageLabel = _page == Page.Hud ? "HUD" : _page.ToString();
+            _util.Label(pageLabel, cx, y);
             y += line;
 
             // Reset button sits above Back.
             float resetY = navY - 12f;
             if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
-                if (_page == Page.Vehicle) Plugin.ResetVehicleDefaults();
-                else Plugin.ResetHudDefaults();
+                if (_page == Page.Transmission) Plugin.ResetTransmissionDefaults();
+                else if (_page == Page.Ignition) Plugin.ResetIgnitionDefaults();
+                else if (_page == Page.Indicators) Plugin.ResetIndicatorDefaults();
+                else if (_page == Page.Hud) Plugin.ResetHudDefaults();
+                else Plugin.ResetTweaksDefaults();
             }
 
             y += sectionGap;
@@ -109,7 +118,7 @@ namespace SebTruck
         {
             bool manual = Plugin.GetManualTransmissionEnabled();
 
-            if (_page == Page.Vehicle)
+            if (_page == Page.Transmission)
             {
                 string modeLabel = manual ? "Manual" : "Auto";
                 if (_util.CycleButtonRaw("Transmission", modeLabel, center, y))
@@ -128,6 +137,12 @@ namespace SebTruck
                     y += line;
                 }
 
+                return;
+            }
+
+            if (_page == Page.Ignition)
+            {
+                
                 bool ignFeature = Plugin.GetIgnitionFeatureEnabled();
                 string ignLabel = ignFeature ? "Enabled" : "Disabled";
                 if (_util.CycleButtonRaw("Ignition", ignLabel, center, y))
@@ -154,6 +169,87 @@ namespace SebTruck
                 }
                 y += line;
 
+                return;
+            }
+
+            if (_page == Page.Indicators)
+            {
+                bool indFeature = Plugin.GetIndicatorFeatureEnabled();
+                string indLabel = indFeature ? "Enabled" : "Disabled";
+                if (_util.CycleButtonRaw("Indicators", indLabel, center, y))
+                {
+                    Plugin.SetIndicatorFeatureEnabled(!indFeature);
+                }
+                y += line;
+
+                return;
+            }
+
+            if (_page == Page.Hud)
+            {
+                var units = Plugin.GetHudSpeedUnit();
+                if (_util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(units), center, y))
+                {
+                    Plugin.SetHudSpeedUnit(Plugin.NextHudSpeedUnit(units));
+                }
+                y += line;
+
+                bool hudSpeed = Plugin.GetHudShowSpeed();
+                bool? newHudSpeed = _util.Toggle("Speedomtr", hudSpeed, center, y);
+                if (newHudSpeed.HasValue)
+                {
+                    Plugin.SetHudShowSpeed(newHudSpeed.Value);
+                }
+                y += line;
+
+                if (manual)
+                {
+                    bool hudTach = Plugin.GetHudShowTach();
+                    bool? newHudTach = _util.Toggle("Tachomtr", hudTach, center, y);
+                    if (newHudTach.HasValue)
+                    {
+                        Plugin.SetHudShowTach(newHudTach.Value);
+                    }
+                    y += line;
+
+                    bool hudGear = Plugin.GetHudShowGear();
+                    bool? newHudGear = _util.Toggle("Gear Ind", hudGear, center, y);
+                    if (newHudGear.HasValue)
+                    {
+                        Plugin.SetHudShowGear(newHudGear.Value);
+                    }
+                    y += line;
+                }
+
+                var spPos = Plugin.GetHudSpeedAnchor();
+                if (_util.CycleButtonRaw("Speedomtr Pos", Plugin.GetHudReadoutAnchorLabel(spPos), center, y))
+                {
+                    Plugin.SetHudSpeedAnchor(Plugin.NextHudReadoutAnchor(spPos));
+                }
+                y += line;
+
+                if (manual)
+                {
+                    var tPos = Plugin.GetHudTachAnchor();
+                    if (_util.CycleButtonRaw("Tachomtr Pos", Plugin.GetHudReadoutAnchorLabel(tPos), center, y))
+                    {
+                        Plugin.SetHudTachAnchor(Plugin.NextHudReadoutAnchor(tPos));
+                    }
+                    y += line;
+
+                    var gPos = Plugin.GetHudGearAnchor();
+                    if (_util.CycleButtonRaw("Gear Ind. Pos", Plugin.GetHudReadoutAnchorLabel(gPos), center, y))
+                    {
+                        Plugin.SetHudGearAnchor(Plugin.NextHudReadoutAnchor(gPos));
+                    }
+                }
+
+                return;
+            }
+
+            // Tweaks
+            {
+                
                 float fwd = Plugin.GetManualSpeedMultForward();
                 _util.ValueLabel($"{Mathf.RoundToInt(fwd * 100f)}%", p.x + p.width - 12f, y);
                 float fwdNorm = Mathf.InverseLerp(0.5f, 1.5f, fwd);
@@ -192,65 +288,8 @@ namespace SebTruck
                 {
                     Plugin.SetHeadlightRangeMult(Mathf.Lerp(0.25f, 2.0f, newDistNorm.Value));
                 }
-                return;
-            }
 
-            // HUD
-            var units = Plugin.GetHudSpeedUnit();
-            if (_util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(units), center, y))
-            {
-                Plugin.SetHudSpeedUnit(Plugin.NextHudSpeedUnit(units));
-            }
-            y += line;
-
-            bool hudSpeed = Plugin.GetHudShowSpeed();
-            bool? newHudSpeed = _util.Toggle("Speedomtr", hudSpeed, center, y);
-            if (newHudSpeed.HasValue)
-            {
-                Plugin.SetHudShowSpeed(newHudSpeed.Value);
-            }
-            y += line;
-
-            if (manual)
-            {
-                bool hudTach = Plugin.GetHudShowTach();
-                bool? newHudTach = _util.Toggle("Tachomtr", hudTach, center, y);
-                if (newHudTach.HasValue)
-                {
-                    Plugin.SetHudShowTach(newHudTach.Value);
-                }
-                y += line;
-
-                bool hudGear = Plugin.GetHudShowGear();
-                bool? newHudGear = _util.Toggle("Gear Ind", hudGear, center, y);
-                if (newHudGear.HasValue)
-                {
-                    Plugin.SetHudShowGear(newHudGear.Value);
-                }
-                y += line;
-            }
-
-            var spPos = Plugin.GetHudSpeedAnchor();
-            if (_util.CycleButtonRaw("Speedomtr Pos", Plugin.GetHudReadoutAnchorLabel(spPos), center, y))
-            {
-                Plugin.SetHudSpeedAnchor(Plugin.NextHudReadoutAnchor(spPos));
-            }
-            y += line;
-
-            if (manual)
-            {
-                var tPos = Plugin.GetHudTachAnchor();
-                if (_util.CycleButtonRaw("Tachomtr Pos", Plugin.GetHudReadoutAnchorLabel(tPos), center, y))
-                {
-                    Plugin.SetHudTachAnchor(Plugin.NextHudReadoutAnchor(tPos));
-                }
-                y += line;
-
-                var gPos = Plugin.GetHudGearAnchor();
-                if (_util.CycleButtonRaw("Gear Ind. Pos", Plugin.GetHudReadoutAnchorLabel(gPos), center, y))
-                {
-                    Plugin.SetHudGearAnchor(Plugin.NextHudReadoutAnchor(gPos));
-                }
+                // (HUD controls moved to their own page)
             }
         }
     }

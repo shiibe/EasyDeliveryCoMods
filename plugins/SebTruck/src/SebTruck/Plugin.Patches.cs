@@ -727,6 +727,26 @@ namespace SebTruck
                 return;
             }
 
+            // Feature toggle: if disabled, restore defaults and bail.
+            if (!GetIndicatorFeatureEnabled())
+            {
+                _indicatorMode = IndicatorMode.Off;
+                _indicatorBlinkOn = false;
+                _indicatorNextBlinkTime = 0f;
+                SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: false);
+                return;
+            }
+
+            // Keep indicators forced off while ignition is effectively off.
+            if (!GetIgnitionEnabledEffective())
+            {
+                _indicatorMode = IndicatorMode.Off;
+                _indicatorBlinkOn = false;
+                _indicatorNextBlinkTime = 0f;
+                SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: true);
+                return;
+            }
+
             if (_indicatorMode == IndicatorMode.Off)
             {
                 _indicatorBlinkOn = false;
@@ -1155,6 +1175,13 @@ namespace SebTruck
             {
                 EnforceIgnitionOffForCurrentCar();
             }
+
+            // Indicator blink/update should run continuously while driving,
+            // not only when input is queried.
+            if (!__instance.GuyActive)
+            {
+                UpdateIndicators(__instance);
+            }
         }
 
 
@@ -1254,6 +1281,7 @@ namespace SebTruck
                 bool ignitionDown = DownAny(BindAction.IgnitionToggle);
                 bool ignitionReleased = ReleasedAny(BindAction.IgnitionToggle);
 
+                bool indicatorFeature = GetIndicatorFeatureEnabled();
                 bool indicatorLeftPressed = PressedAny(BindAction.IndicatorLeft);
                 bool indicatorRightPressed = PressedAny(BindAction.IndicatorRight);
                 bool indicatorHazardsPressed = PressedAny(BindAction.IndicatorHazards);
@@ -1326,7 +1354,7 @@ namespace SebTruck
                 }
 
                 // Indicators (only while ignition is effectively on).
-                if (GetIgnitionEnabledEffective())
+                if (indicatorFeature && GetIgnitionEnabledEffective())
                 {
                     if (indicatorHazardsPressed)
                     {
@@ -1348,8 +1376,6 @@ namespace SebTruck
                 {
                     _indicatorMode = IndicatorMode.Off;
                 }
-
-                UpdateIndicators(car);
 
                 _ignitionHoldWasDown = ignitionDown;
 

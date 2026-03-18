@@ -14,6 +14,8 @@ namespace SebTruck
         internal const string PrefKeyIgnitionHoldSeconds = "SebTruck_IgnitionHoldSeconds";
         internal const string PrefKeyIgnitionSfxEnabled = "SebTruck_IgnitionSfxEnabled";
 
+        internal const string PrefKeyIndicatorFeatureEnabled = "SebTruck_IndicatorFeatureEnabled";
+
         internal const string PrefKeyHudShowSpeed = "SebTruck_HudShowSpeed";
         internal const string PrefKeyHudShowTach = "SebTruck_HudShowTach";
         internal const string PrefKeyHudShowGear = "SebTruck_HudShowGear";
@@ -223,6 +225,17 @@ namespace SebTruck
         }
 
 
+        internal static bool GetIndicatorFeatureEnabled()
+        {
+            return PlayerPrefs.GetInt(PrefKeyIndicatorFeatureEnabled, 1) != 0;
+        }
+
+        internal static void SetIndicatorFeatureEnabled(bool enabled)
+        {
+            PlayerPrefs.SetInt(PrefKeyIndicatorFeatureEnabled, enabled ? 1 : 0);
+        }
+
+
         internal static bool GetHudShowSpeed()
         {
             return PlayerPrefs.GetInt(PrefKeyHudShowSpeed, 1) != 0;
@@ -390,6 +403,38 @@ namespace SebTruck
             SetIgnitionEnabled(true);
             SetIgnitionHoldSeconds(1.35f);
             SetIgnitionSfxEnabled(true);
+            SetIndicatorFeatureEnabled(true);
+            SetManualSpeedMultForward(1.0f);
+            SetManualSpeedMultReverse(1.0f);
+            SetHeadlightIntensityMult(1.0f);
+            SetHeadlightRangeMult(1.0f);
+            PlayerPrefs.Save();
+        }
+
+        internal static void ResetTransmissionDefaults()
+        {
+            SetManualTransmissionEnabled(false);
+            SetManualGearCount(5);
+            PlayerPrefs.Save();
+        }
+
+        internal static void ResetIgnitionDefaults()
+        {
+            SetIgnitionFeatureEnabled(true);
+            SetIgnitionEnabled(true);
+            SetIgnitionHoldSeconds(1.35f);
+            SetIgnitionSfxEnabled(true);
+            PlayerPrefs.Save();
+        }
+
+        internal static void ResetIndicatorDefaults()
+        {
+            SetIndicatorFeatureEnabled(true);
+            PlayerPrefs.Save();
+        }
+
+        internal static void ResetTweaksDefaults()
+        {
             SetManualSpeedMultForward(1.0f);
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
