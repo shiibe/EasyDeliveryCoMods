@@ -645,7 +645,10 @@ namespace SebBinds
             if (_util.FancyButton("Open Wheel Menu", cx, openY))
             {
                 WheelInterop.RequestOpenAxisMapping();
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "wheel", "listener_G920Menu");
+                if (SebCore.CartridgeApps.EnsureListener(_util.M, SebCore.CartridgeApps.Wheel))
+                {
+                    SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "wheel", "listener_G920Menu");
+                }
             }
         }
 

@@ -5,9 +5,9 @@ using UnityEngine;
 
 namespace SebCore
 {
-    internal static class CartridgeApps
+    public static class CartridgeApps
     {
-        internal struct App
+        public struct App
         {
             public string DisplayName;
             public string FileName;
@@ -17,7 +17,7 @@ namespace SebCore
             public string WindowTypeName;
         }
 
-        internal static readonly App Wheel = new App
+        public static readonly App Wheel = new App
         {
             DisplayName = "Wheel",
             FileName = "wheel",
@@ -27,7 +27,7 @@ namespace SebCore
             WindowTypeName = "SebLogiWheel.WheelMenuWindow"
         };
 
-        internal static readonly App Ultrawide = new App
+        public static readonly App Ultrawide = new App
         {
             DisplayName = "Graphics",
             FileName = "wide",
@@ -37,7 +37,7 @@ namespace SebCore
             WindowTypeName = "SebUltrawide.UltrawideMenuWindow"
         };
 
-        internal static readonly App Binds = new App
+        public static readonly App Binds = new App
         {
             DisplayName = "Binds",
             FileName = "binds",
@@ -47,7 +47,7 @@ namespace SebCore
             WindowTypeName = "SebBinds.BindsMenuWindow"
         };
 
-        internal static readonly App Truck = new App
+        public static readonly App Truck = new App
         {
             DisplayName = "Truck",
             FileName = "truck",
@@ -57,12 +57,12 @@ namespace SebCore
             WindowTypeName = "SebTruck.TruckMenuWindow"
         };
 
-        internal static bool IsInstalled(App app)
+        public static bool IsInstalled(App app)
         {
             return Chainloader.PluginInfos.ContainsKey(app.PluginGuid);
         }
 
-        internal static bool EnsureListener(DesktopDotExe desktop, App app)
+        public static bool EnsureListener(DesktopDotExe desktop, App app)
         {
             if (desktop == null)
             {

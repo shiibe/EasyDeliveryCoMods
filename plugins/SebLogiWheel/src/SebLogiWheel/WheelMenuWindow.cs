@@ -20,10 +20,7 @@ namespace SebLogiWheel
 
         private enum BindingsPage
         {
-            Axes = 0,
-            Global = 1,
-            Vehicle = 2,
-            Radio = 3,
+            Axes = 0
         }
 
         private BindingsPage _bindingsPage;
@@ -249,6 +246,12 @@ namespace SebLogiWheel
                 _page = Page.Steering;
             }
             y += btnGap;
+            if (_util.FancyButton("Axis Mapping", cx, y))
+            {
+                _bindingsPage = BindingsPage.Axes;
+                _page = Page.Bindings;
+            }
+            y += btnGap;
             if (_util.FancyButton("Calibration", cx, y))
             {
                 _page = Page.Calibration;
@@ -258,6 +261,15 @@ namespace SebLogiWheel
             {
                 _miscClearConfirmActive = false;
                 _page = Page.Misc;
+            }
+
+            y += btnGap;
+            if (_util.FancyButton("Binds", cx, y))
+            {
+                if (SebCore.CartridgeApps.EnsureListener(_util.M, SebCore.CartridgeApps.Binds))
+                {
+                    SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "binds", "listener_SebBindsMenu");
+                }
             }
 
             // Bottom buttons.
@@ -388,82 +400,21 @@ namespace SebLogiWheel
 
         private void DrawBindings(Rect p, float center, ref float y, float line, float sectionGap)
         {
-            _util.Label("Bindings", p.x + p.width / 2f, y);
+            _util.Label("Axis Mapping", p.x + p.width / 2f, y);
             y += line;
 
             float cx = p.x + p.width / 2f;
             float navY = p.y + p.height - 18f;
 
-            // Bottom navigation: Prev / Back / Next
-            float prevX = p.x + 40f;
-            float nextX = p.x + p.width - 40f;
-
-            if (_util.SimpleButtonRaw("Prev", prevX, navY))
-            {
-                _bindingsPage = PrevBindingsPage(_bindingsPage);
-                Plugin.LogDebug("Bindings: page -> " + _bindingsPage);
-            }
             if (_util.SimpleButton("Back", cx, navY))
             {
                 _page = Page.Main;
                 return;
             }
-            if (_util.SimpleButtonRaw("Next", nextX, navY))
-            {
-                _bindingsPage = NextBindingsPage(_bindingsPage);
-                Plugin.LogDebug("Bindings: page -> " + _bindingsPage);
-            }
 
             y += sectionGap;
 
-            _util.Label(GetBindingsPageTitle(_bindingsPage), p.x + p.width / 2f, y);
-            y += line + sectionGap;
-
-            // Page indicator (page/total)
-            int pageNum = (int)_bindingsPage + 1;
-            int pageTotal = (int)BindingsPage.Radio + 1;
-            _util.Label(pageNum + "/" + pageTotal, p.x + p.width - 18f, p.y + 10f);
-
-            if (_bindingsPage == BindingsPage.Axes)
-            {
-                DrawBindingsAxes(p, center, ref y, line, sectionGap);
-                return;
-            }
-
-            if (_bindingsPage == BindingsPage.Global)
-            {
-                DrawBindingsButtonsPage(p, center, ref y, line, new[]
-                {
-                    Plugin.ButtonBindAction.InteractOk,
-                    Plugin.ButtonBindAction.Back,
-                    Plugin.ButtonBindAction.MapItems,
-                    Plugin.ButtonBindAction.Pause,
-                    Plugin.ButtonBindAction.ResetVehicle
-                });
-                return;
-            }
-
-            if (_bindingsPage == BindingsPage.Vehicle)
-            {
-                DrawBindingsButtonsPage(p, center, ref y, line, new[]
-                {
-                    Plugin.ButtonBindAction.Headlights,
-                    Plugin.ButtonBindAction.Horn,
-                    Plugin.ButtonBindAction.IgnitionToggle,
-                    Plugin.ButtonBindAction.ToggleGearbox,
-                    Plugin.ButtonBindAction.ShiftUp,
-                    Plugin.ButtonBindAction.ShiftDown
-                });
-                return;
-            }
-
-            DrawBindingsButtonsPage(p, center, ref y, line, new[]
-            {
-                Plugin.ButtonBindAction.RadioPower,
-                Plugin.ButtonBindAction.RadioScanRight,
-                Plugin.ButtonBindAction.RadioScanLeft,
-                Plugin.ButtonBindAction.RadioScanToggle
-            });
+            DrawBindingsAxes(p, center, ref y, line, sectionGap);
         }
 
         private static VehicleHudPage PrevVehicleHudPage(VehicleHudPage p)
@@ -744,42 +695,7 @@ namespace SebLogiWheel
             }
         }
 
-        private static BindingsPage NextBindingsPage(BindingsPage p)
-        {
-            int v = (int)p + 1;
-            if (v > (int)BindingsPage.Radio)
-            {
-                v = (int)BindingsPage.Axes;
-            }
-            return (BindingsPage)v;
-        }
-
-        private static BindingsPage PrevBindingsPage(BindingsPage p)
-        {
-            int v = (int)p - 1;
-            if (v < (int)BindingsPage.Axes)
-            {
-                v = (int)BindingsPage.Radio;
-            }
-            return (BindingsPage)v;
-        }
-
-        private static string GetBindingsPageTitle(BindingsPage p)
-        {
-            switch (p)
-            {
-                case BindingsPage.Axes:
-                    return "Axis Mapping";
-                case BindingsPage.Global:
-                    return "Global";
-                case BindingsPage.Vehicle:
-                    return "Vehicle";
-                case BindingsPage.Radio:
-                    return "Radio";
-                default:
-                    return "Global";
-            }
-        }
+        // Note: button-binding pages removed; wheel binds live in SebBinds.
 
         private void DrawBindingsAxes(Rect p, float center, ref float y, float line, float sectionGap)
         {
