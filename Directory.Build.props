@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <!-- Keep projects consistent across the monorepo -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!--
+      Build-time paths.
+      You can override these per-machine with environment variables or /p: properties.
+
+      - EASYDELIVERYCO_GAME_DIR: e.g. G:\SteamLibrary\steamapps\common\Easy Delivery Co
+      - EASYDELIVERYCO_PROFILE_DIR: r2modman profile folder with BepInEx (defaults to your SebCore profile)
+    -->
+    <GameDir Condition="'$(GameDir)' == ''">$(EASYDELIVERYCO_GAME_DIR)</GameDir>
+    <GameDir Condition="'$(GameDir)' == ''">G:\SteamLibrary\steamapps\common\Easy Delivery Co</GameDir>
+    <ProfileDir Condition="'$(ProfileDir)' == ''">$(EASYDELIVERYCO_PROFILE_DIR)</ProfileDir>
+    <ProfileDir Condition="'$(ProfileDir)' == ''">C:\Users\Shibe\AppData\Roaming\r2modmanPlus-local\EasyDeliveryCo\profiles\SebCore</ProfileDir>
+
+    <BepInExCoreDir>$(ProfileDir)\BepInEx\core</BepInExCoreDir>
+  </PropertyGroup>
+
+  <!-- Optional per-machine overrides (not checked in) -->
+  <Import Project="Directory.Build.props.local" Condition="Exists('Directory.Build.props.local')" />
+</Project>

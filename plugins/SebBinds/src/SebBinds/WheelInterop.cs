@@ -1,0 +1,320 @@
+using System;
+using System.Reflection;
+using BepInEx.Bootstrap;
+using UnityEngine;
+
+namespace SebBinds
+{
+    internal static class WheelInterop
+    {
+        // Current wheel plugin GUID (pre-refactor). Keep this until we rename the wheel plugin.
+        private const string WheelPluginGuid = "shibe.easydeliveryco.logiwheel";
+
+        private static Type _wheelPluginType;
+        private static Type _wheelBindingInputType;
+        private static FieldInfo _wheelBindKindField;
+        private static FieldInfo _wheelBindCodeField;
+        private static MethodInfo _tryCaptureNextBinding;
+        private static MethodInfo _isBindingDownForCurrentFrame;
+        private static MethodInfo _isBindingPressedThisFrame;
+        private static MethodInfo _isBindingReleasedThisFrame;
+        private static MethodInfo _tryGetPov8Vector;
+        private static MethodInfo _isWheelMenuActive;
+        private static MethodInfo _isWheelBindingCaptureActive;
+        private static MethodInfo _isWheelCalibrationWizardActive;
+        private static FieldInfo _isInWalkingModeField;
+
+        private static void SetWheelBindingFields(object boxedWheelBindingInput, BindingInput input)
+        {
+            if (boxedWheelBindingInput == null || _wheelBindKindField == null || _wheelBindCodeField == null)
+            {
+                return;
+            }
+
+            object kindValue;
+            Type kindType = _wheelBindKindField.FieldType;
+            if (kindType.IsEnum)
+            {
+                kindValue = Enum.ToObject(kindType, (int)input.Kind);
+            }
+            else
+            {
+                kindValue = Convert.ChangeType((int)input.Kind, kindType);
+            }
+
+            _wheelBindKindField.SetValue(boxedWheelBindingInput, kindValue);
+            _wheelBindCodeField.SetValue(boxedWheelBindingInput, input.Code);
+        }
+
+        private static Type GetWheelPluginType()
+        {
+            if (_wheelPluginType != null)
+            {
+                return _wheelPluginType;
+            }
+
+            if (!Chainloader.PluginInfos.TryGetValue(WheelPluginGuid, out var info) || info == null)
+            {
+                return null;
+            }
+            var inst = info.Instance;
+            _wheelPluginType = inst != null ? inst.GetType() : null;
+            return _wheelPluginType;
+        }
+
+        internal static bool IsWheelPluginPresent()
+        {
+            return Chainloader.PluginInfos.ContainsKey(WheelPluginGuid);
+        }
+
+        private static bool EnsureWheelReflection()
+        {
+            Type t = GetWheelPluginType();
+            if (t == null)
+            {
+                return false;
+            }
+
+            if (_tryCaptureNextBinding != null &&
+                _isBindingDownForCurrentFrame != null &&
+                _isBindingPressedThisFrame != null &&
+                _isBindingReleasedThisFrame != null &&
+                _tryGetPov8Vector != null &&
+                _wheelBindingInputType != null)
+            {
+                return true;
+            }
+
+            _wheelBindingInputType = t.GetNestedType("BindingInput", BindingFlags.NonPublic | BindingFlags.Public);
+            if (_wheelBindingInputType == null)
+            {
+                return false;
+            }
+
+            _wheelBindKindField = _wheelBindingInputType.GetField("Kind", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            _wheelBindCodeField = _wheelBindingInputType.GetField("Code", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (_wheelBindKindField == null || _wheelBindCodeField == null)
+            {
+                return false;
+            }
+
+            _tryCaptureNextBinding = t.GetMethod("TryCaptureNextBinding", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _isBindingDownForCurrentFrame = t.GetMethod("IsBindingDownForCurrentFrame", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _isBindingPressedThisFrame = t.GetMethod("IsBindingPressedThisFrameForCurrentFrame", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _isBindingReleasedThisFrame = t.GetMethod("IsBindingReleasedThisFrameForCurrentFrame", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _tryGetPov8Vector = t.GetMethod("TryGetPov8Vector", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+            // Private/internal helpers for gating input while wheel UI is active.
+            _isWheelMenuActive = t.GetMethod("IsWheelMenuActive", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _isWheelBindingCaptureActive = t.GetMethod("IsBindingCaptureActive", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _isWheelCalibrationWizardActive = t.GetMethod("IsCalibrationWizardActive", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+            _isInWalkingModeField = t.GetField("_isInWalkingMode", BindingFlags.NonPublic | BindingFlags.Static);
+
+            return _tryCaptureNextBinding != null &&
+                   _isBindingDownForCurrentFrame != null &&
+                   _isBindingPressedThisFrame != null &&
+                   _isBindingReleasedThisFrame != null &&
+                   _tryGetPov8Vector != null;
+        }
+
+        internal static bool IsWheelMenuActive()
+        {
+            if (!EnsureWheelReflection() || _isWheelMenuActive == null)
+            {
+                return false;
+            }
+            try
+            {
+                return (bool)_isWheelMenuActive.Invoke(null, null);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static bool IsWheelBindingCaptureActive()
+        {
+            if (!EnsureWheelReflection() || _isWheelBindingCaptureActive == null)
+            {
+                return false;
+            }
+            try
+            {
+                return (bool)_isWheelBindingCaptureActive.Invoke(null, null);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static bool IsWheelCalibrationWizardActive()
+        {
+            if (!EnsureWheelReflection() || _isWheelCalibrationWizardActive == null)
+            {
+                return false;
+            }
+            try
+            {
+                return (bool)_isWheelCalibrationWizardActive.Invoke(null, null);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static bool TryCaptureNextBinding(out BindingInput input)
+        {
+            input = default;
+            if (!EnsureWheelReflection())
+            {
+                return false;
+            }
+
+            object boxed = Activator.CreateInstance(_wheelBindingInputType);
+            object[] args = { boxed };
+            bool ok;
+            try
+            {
+                ok = (bool)_tryCaptureNextBinding.Invoke(null, args);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (!ok)
+            {
+                return false;
+            }
+
+            if (args.Length < 1 || args[0] == null)
+            {
+                return false;
+            }
+
+            object wheelBi = args[0];
+            int kind = (int)Convert.ChangeType(_wheelBindKindField.GetValue(wheelBi), typeof(int));
+            int code = (int)Convert.ChangeType(_wheelBindCodeField.GetValue(wheelBi), typeof(int));
+
+            input = new BindingInput { Kind = (BindingKind)kind, Code = code };
+            return true;
+        }
+
+        internal static bool IsBindingDownForCurrentFrame(BindingInput input)
+        {
+            if (!EnsureWheelReflection())
+            {
+                return false;
+            }
+
+            object boxed = Activator.CreateInstance(_wheelBindingInputType);
+            SetWheelBindingFields(boxed, input);
+            try
+            {
+                return (bool)_isBindingDownForCurrentFrame.Invoke(null, new object[] { boxed });
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static bool IsBindingPressedThisFrameForCurrentFrame(BindingInput input)
+        {
+            if (!EnsureWheelReflection())
+            {
+                return false;
+            }
+
+            object boxed = Activator.CreateInstance(_wheelBindingInputType);
+            SetWheelBindingFields(boxed, input);
+            try
+            {
+                return (bool)_isBindingPressedThisFrame.Invoke(null, new object[] { boxed });
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static bool IsBindingReleasedThisFrameForCurrentFrame(BindingInput input)
+        {
+            if (!EnsureWheelReflection())
+            {
+                return false;
+            }
+
+            object boxed = Activator.CreateInstance(_wheelBindingInputType);
+            SetWheelBindingFields(boxed, input);
+            try
+            {
+                return (bool)_isBindingReleasedThisFrame.Invoke(null, new object[] { boxed });
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static bool TryGetPov8Vector(out Vector2 v)
+        {
+            v = Vector2.zero;
+            if (!EnsureWheelReflection())
+            {
+                return false;
+            }
+
+            object[] args = { v };
+            bool ok;
+            try
+            {
+                ok = (bool)_tryGetPov8Vector.Invoke(null, args);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (!ok)
+            {
+                return false;
+            }
+
+            if (args.Length > 0 && args[0] is Vector2 vec)
+            {
+                v = vec;
+            }
+            return true;
+        }
+
+        internal static bool TryGetIsInWalkingMode(out bool isWalking)
+        {
+            isWalking = false;
+            if (!EnsureWheelReflection() || _isInWalkingModeField == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                object v = _isInWalkingModeField.GetValue(null);
+                if (v is bool b)
+                {
+                    isWalking = b;
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
+        }
+    }
+}

@@ -1,0 +1,17 @@
+.vs/
+.idea/
+*.user
+*.suo
+*.cache
+
+# Build outputs
+**/bin/
+**/obj/
+**/dist/
+**/Thunderstore/
+
+# Local reference files (not for source control)
+dump/
+
+# Local game/mod profile paths
+Directory.Build.props.local
