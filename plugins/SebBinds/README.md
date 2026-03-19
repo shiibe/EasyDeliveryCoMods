@@ -29,10 +29,11 @@ SebBinds provides the binding UI + runtime input mapping used by the rest of the
 - Dedicated `Axes` page for movement/camera/vehicle axes
 - Modifier layer (`Modif.`): bind extra inputs by holding the modifier
 - Vehicle page includes `1P/3P Camera`
+- Supports vanilla-style shared binds (e.g. `MapItems` hold for on-foot items / in-vehicle map)
 - Other mods can add pages via `SebBindsApi.RegisterActionsPage(...)`
 
 ### API
-- Full docs: [API Docs](docs/API.md)
+- Full docs: [API Docs](https://github.com/shiibe/EasyDeliveryCoMods/blob/master/plugins/SebBinds/docs/API.md)
 
 ## Screenshots
 <table>
@@ -53,7 +54,7 @@ SebBinds provides the binding UI + runtime input mapping used by the rest of the
 ## Installation
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
-- `shiibe-SebCore-1.0.0`
+- `shiibe-SebCore-1.0.2`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebBinds/
@@ -70,4 +71,4 @@ Install
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.0`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.2`

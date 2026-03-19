@@ -1,3 +1,7 @@
+## 1.0.4
+- Manual transmission braking: treat negative `driveInput.y` as brake/reverse input (better controller/wheel support), while still honoring handbrake.
+- Add `SebTruckApi` (stable interop surface) for setting manual gear without hard mod dependencies.
+
 ## 1.0.3
 - Manual transmission: restore neutral rev + overrev engine SFX (including distortion/stutter) after plugin split.
 - Manual transmission: resetting the truck (reset key / ice crack / explosion) now returns to gear 1.

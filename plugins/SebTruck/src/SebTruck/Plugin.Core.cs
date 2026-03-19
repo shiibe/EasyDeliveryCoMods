@@ -448,6 +448,39 @@ namespace SebTruck
             return _manualGear;
         }
 
+        // Interop hook: direct gear set (used by wheel/shifter integrations).
+        // Expects manual mode already enabled.
+        internal static void SetManualGearDirect(int gear)
+        {
+            if (!GetManualTransmissionEnabled())
+            {
+                return;
+            }
+
+            int count = GetManualGearCount();
+            int before = _manualGear;
+
+            if (gear > 0)
+            {
+                gear = Mathf.Clamp(gear, 1, count);
+            }
+            else if (gear < 0)
+            {
+                gear = -1;
+            }
+            else
+            {
+                gear = 0;
+            }
+
+            _manualGear = gear;
+
+            if (before != _manualGear)
+            {
+                LogDebug("Gear: " + before + " -> " + _manualGear);
+            }
+        }
+
         internal static string GetManualGearLabel()
         {
             if (_manualGear < 0) return "R";

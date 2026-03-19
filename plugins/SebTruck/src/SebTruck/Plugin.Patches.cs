@@ -1496,10 +1496,16 @@ namespace SebTruck
             // Manual transmission + ignition enforcement (applies to any input source).
             if (!PauseSystem.paused)
             {
-                float throttle = Mathf.Clamp01(__instance.driveInput.y);
+                float y = __instance.driveInput.y;
+
+                // Vanilla uses a combined axis for brake/reverse (negative y).
+                // Also keep supporting the separate handbrake/back flag.
+                float throttle = Mathf.Clamp01(y);
                 if (throttle < 0f) throttle = 0f;
 
-                float brake = __instance.breakPressed ? 1f : 0f;
+                float brake = Mathf.Clamp01(-y);
+                float handbrake = __instance.breakPressed ? 1f : 0f;
+                brake = Mathf.Max(brake, handbrake);
 
                 // Track rev input for Neutral.
                 _lastThrottle01 = throttle;

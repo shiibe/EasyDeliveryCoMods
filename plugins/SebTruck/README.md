@@ -33,6 +33,7 @@ SebTruck adds driving upgrades like manual transmission, ignition controls, and 
 - HUD readouts (speed/tach/gear)
 - Optional ignition sound (`ignition_on.wav`)
 - Works with any input bindings from SebBinds
+- Manual braking supports the combined brake/reverse axis (`driveInput.y < 0`) and a separate handbrake
 
 ## Screenshots
 <table>
@@ -58,7 +59,7 @@ SebTruck adds driving upgrades like manual transmission, ignition controls, and 
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
 - `shiibe-SebCore-1.0.1`
-- `shiibe-SebBinds-1.0.0`
+- `shiibe-SebBinds-1.0.2`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/
@@ -91,4 +92,4 @@ Truck page:
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.1`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.4`

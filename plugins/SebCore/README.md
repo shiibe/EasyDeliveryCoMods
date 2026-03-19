@@ -30,7 +30,7 @@ SebCore exposes a small public API so other mods can plug into the launcher.
 
 - `SebCore.CartridgeApps.RegisterApp(...)`: register a custom cartridge so it appears in the SebCore launcher.
   - If more than 10 cartridges are installed, the launcher automatically shows paging controls.
-- Full docs: [API Docs](docs/API.md)
+- Full docs: [API Docs](https://github.com/shiibe/EasyDeliveryCoMods/blob/master/plugins/SebBinds/docs/API.md)
 
 Example:
 ```csharp
