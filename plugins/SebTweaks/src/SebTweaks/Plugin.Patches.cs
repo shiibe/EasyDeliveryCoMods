@@ -22,6 +22,12 @@ namespace SebTweaks
 
         internal static float FogMult => Mathf.Clamp(GetFloat(PrefKeyFogMult, 1f), 0f, 3f);
 
+        internal static float WorldLightMult => Mathf.Clamp(GetFloat(PrefKeyWorldLightMult, 1f), 0f, 3f);
+
+        internal static float WorldLightColorR => Mathf.Clamp(GetFloat(PrefKeyWorldLightColorR, 1f), 0f, 2f);
+        internal static float WorldLightColorG => Mathf.Clamp(GetFloat(PrefKeyWorldLightColorG, 1f), 0f, 2f);
+        internal static float WorldLightColorB => Mathf.Clamp(GetFloat(PrefKeyWorldLightColorB, 1f), 0f, 2f);
+
         internal static bool TimeManual => GetInt(PrefKeyTimeMode, 0) == 1;
         internal static float ManualTime01 => Mathf.Repeat(GetFloat(PrefKeyTimeOfDay, 0.25f), 1f);
 
@@ -389,6 +395,30 @@ namespace SebTweaks
                     {
                         sWeatherSystem.instance.intensity = ManualWeatherIntensity01;
                     }
+                }
+
+                // Atmosphere tuning (works even when oldLighting is disabled).
+                float lm = WorldLightMult;
+                float mr = WorldLightColorR;
+                float mg = WorldLightColorG;
+                float mb = WorldLightColorB;
+                if (Mathf.Abs(lm - 1f) < 0.0001f && Mathf.Abs(mr - 1f) < 0.0001f && Mathf.Abs(mg - 1f) < 0.0001f && Mathf.Abs(mb - 1f) < 0.0001f)
+                {
+                    return;
+                }
+
+                try
+                {
+                    var c = RenderSettings.fogColor;
+                    c.r = Mathf.Clamp01(c.r * mr * lm);
+                    c.g = Mathf.Clamp01(c.g * mg * lm);
+                    c.b = Mathf.Clamp01(c.b * mb * lm);
+                    RenderSettings.fogColor = c;
+                    RenderSettings.ambientLight = c;
+                }
+                catch
+                {
+                    // ignore
                 }
             }
         }

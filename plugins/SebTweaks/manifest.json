@@ -1,6 +1,6 @@
 {
   "name": "SebTweaks",
-  "version_number": "1.0.0",
+  "version_number": "1.0.1",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
   "description": "An in-game config menu for Easy Delivery Co. with various gameplay tweaks.",
   "dependencies": [
@@ -8,4 +8,3 @@
     "shiibe-SebCore-1.0.2"
   ]
 }
-

@@ -731,12 +731,14 @@ namespace SebTruck
 
         internal static float GetHeadlightRangeMult()
         {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHeadlightRangeMult, 1f), 0.1f, 3.0f);
+            // Range > 1.0 has no practical effect with the current headlight setup.
+            // Keep 1.0 as the default and maximum.
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHeadlightRangeMult, 1f), 0.1f, 1.0f);
         }
 
         internal static void SetHeadlightRangeMult(float mult)
         {
-            PlayerPrefs.SetFloat(PrefKeyHeadlightRangeMult, Mathf.Clamp(mult, 0.1f, 3.0f));
+            PlayerPrefs.SetFloat(PrefKeyHeadlightRangeMult, Mathf.Clamp(mult, 0.1f, 1.0f));
         }
 
 

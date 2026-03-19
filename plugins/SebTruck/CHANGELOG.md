@@ -1,3 +1,9 @@
+## 1.0.3
+- Manual transmission: restore neutral rev + overrev engine SFX (including distortion/stutter) after plugin split.
+- Manual transmission: resetting the truck (reset key / ice crack / explosion) now returns to gear 1.
+- Headlights: headlight distance/brightness tuning applies reliably across different headlight hierarchies.
+- Headlght Dist: cap at 1.00x since values above 1.0 are ineffective.
+
 ## 1.0.2
 - Add Tweaks menu selectors for bobblehead (locked-aware) and truck paint (locked-aware).
 

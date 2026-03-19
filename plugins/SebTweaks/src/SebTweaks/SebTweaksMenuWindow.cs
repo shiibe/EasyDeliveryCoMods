@@ -14,9 +14,10 @@ namespace SebTweaks
         private enum Page
         {
             Gameplay = 0,
-            World = 1,
-            Cheats = 2,
-            GodMode = 3
+            Atmosphere = 1,
+            TimeWeather = 2,
+            Cheats = 3,
+            GodMode = 4
         }
 
         // (Cheats page has fixed increment buttons.)
@@ -46,7 +47,7 @@ namespace SebTweaks
             float prevX = p.x + 44f;
             float nextX = p.x + p.width - 44f;
 
-            if (_page == Page.Gameplay || _page == Page.World)
+            if (_page == Page.Gameplay || _page == Page.Atmosphere || _page == Page.TimeWeather)
             {
                 // Reset button sits above Back.
                 float resetY = navY - 12f;
@@ -56,9 +57,13 @@ namespace SebTweaks
                     {
                         ResetGameplayDefaults();
                     }
+                    else if (_page == Page.Atmosphere)
+                    {
+                        ResetAtmosphereDefaults();
+                    }
                     else
                     {
-                        ResetWorldDefaults();
+                        ResetTimeWeatherDefaults();
                     }
 
                     MouseYLock = 0f;
@@ -96,9 +101,14 @@ namespace SebTweaks
                 DrawGameplay(p, center, ref y, line);
                 return;
             }
-            if (_page == Page.World)
+            if (_page == Page.Atmosphere)
             {
-                DrawWorld(p, center, ref y, line);
+                DrawAtmosphere(p, center, ref y, line);
+                return;
+            }
+            if (_page == Page.TimeWeather)
+            {
+                DrawTimeWeather(p, center, ref y, line);
                 return;
             }
 
@@ -118,16 +128,31 @@ namespace SebTweaks
             Plugin.SetFloat(Plugin.PrefKeyGasConsumptionMult, 1f);
             Plugin.SetFloat(Plugin.PrefKeyEnergyLossMult, 1f);
             Plugin.SetFloat(Plugin.PrefKeyTempLossMult, 1f);
+            Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, 1);
         }
 
         private static void ResetWorldDefaults()
         {
+            // Kept for binary compatibility; no longer used by the menu.
+            ResetAtmosphereDefaults();
+            ResetTimeWeatherDefaults();
+        }
+
+        private static void ResetAtmosphereDefaults()
+        {
             Plugin.SetFloat(Plugin.PrefKeyFogMult, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyWorldLightMult, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyWorldLightColorR, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyWorldLightColorG, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyWorldLightColorB, 1f);
+        }
+
+        private static void ResetTimeWeatherDefaults()
+        {
             Plugin.SetFloat(Plugin.PrefKeyTimeOfDay, 0.25f);
             Plugin.SetInt(Plugin.PrefKeyFreezeTime, 0);
             Plugin.SetInt(Plugin.PrefKeyWeatherMode, 0);
             Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f);
-            Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, 1);
         }
 
         private static string PageLabel(Page p)
@@ -135,7 +160,8 @@ namespace SebTweaks
             return p switch
             {
                 Page.Gameplay => "Gameplay",
-                Page.World => "World",
+                Page.Atmosphere => "Atmosphere",
+                Page.TimeWeather => "Time & Weather",
                 Page.Cheats => "Cheats",
                 Page.GodMode => "God Mode",
                 _ => ""
@@ -213,9 +239,17 @@ namespace SebTweaks
             DrawMultSlider(p, center, ref y, line, "Gas Use", Plugin.PrefKeyGasConsumptionMult, 0.1f, 3f);
             DrawMultSlider(p, center, ref y, line, "Energy Loss", Plugin.PrefKeyEnergyLossMult, 0.1f, 3f);
             DrawMultSlider(p, center, ref y, line, "Temp Loss", Plugin.PrefKeyTempLossMult, 0.1f, 3f);
+
+            bool iceCrack = Plugin.GetInt(Plugin.PrefKeyIceCrackEnabled, 1) == 1;
+            bool? newIceCrack = Util.Toggle("Ice Cracking", iceCrack, center, y);
+            if (newIceCrack.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, newIceCrack.Value ? 1 : 0);
+            }
+            y += line;
         }
 
-        private void DrawWorld(Rect p, float center, ref float y, float line)
+        private void DrawAtmosphere(Rect p, float center, ref float y, float line)
         {
             // These systems typically don't exist on the main menu scene.
             // The settings still save, and will apply when you're in-game.
@@ -236,6 +270,59 @@ namespace SebTweaks
                 Plugin.SetFloat(Plugin.PrefKeyFogMult, Mathf.Lerp(0f, 3f, newFog01.Value));
             }
             y += line;
+
+            // World light
+            float light = Plugin.GetFloat(Plugin.PrefKeyWorldLightMult, 1f);
+            float light01 = Mathf.InverseLerp(0f, 2f, light);
+            Util.ValueLabel($"x{light:0.00}", p.x + p.width - 12f, y);
+            float? newLight01 = Util.Slider("World Light", light01, center, y, ref MouseYLock);
+            if (newLight01.HasValue)
+            {
+                Plugin.SetFloat(Plugin.PrefKeyWorldLightMult, Mathf.Lerp(0f, 2f, newLight01.Value));
+            }
+            y += line;
+
+            float r = Plugin.GetFloat(Plugin.PrefKeyWorldLightColorR, 1f);
+            float r01 = Mathf.InverseLerp(0f, 2f, r);
+            Util.ValueLabel($"x{r:0.00}", p.x + p.width - 12f, y);
+            float? newR01 = Util.Slider("Light Red", r01, center, y, ref MouseYLock);
+            if (newR01.HasValue)
+            {
+                Plugin.SetFloat(Plugin.PrefKeyWorldLightColorR, Mathf.Lerp(0f, 2f, newR01.Value));
+            }
+            y += line;
+
+            float g = Plugin.GetFloat(Plugin.PrefKeyWorldLightColorG, 1f);
+            float g01 = Mathf.InverseLerp(0f, 2f, g);
+            Util.ValueLabel($"x{g:0.00}", p.x + p.width - 12f, y);
+            float? newG01 = Util.Slider("Light Green", g01, center, y, ref MouseYLock);
+            if (newG01.HasValue)
+            {
+                Plugin.SetFloat(Plugin.PrefKeyWorldLightColorG, Mathf.Lerp(0f, 2f, newG01.Value));
+            }
+            y += line;
+
+            float b = Plugin.GetFloat(Plugin.PrefKeyWorldLightColorB, 1f);
+            float b01 = Mathf.InverseLerp(0f, 2f, b);
+            Util.ValueLabel($"x{b:0.00}", p.x + p.width - 12f, y);
+            float? newB01 = Util.Slider("Light Blue", b01, center, y, ref MouseYLock);
+            if (newB01.HasValue)
+            {
+                Plugin.SetFloat(Plugin.PrefKeyWorldLightColorB, Mathf.Lerp(0f, 2f, newB01.Value));
+            }
+            y += line;
+        }
+
+        private void DrawTimeWeather(Rect p, float center, ref float y, float line)
+        {
+            // These systems typically don't exist on the main menu scene.
+            // The settings still save, and will apply when you're in-game.
+            if (Object.FindFirstObjectByType<sDayNightCycle>() == null && sWeatherSystem.instance == null)
+            {
+                float cx = p.x + p.width / 2f;
+                Util.Label("(time & weather apply in-game)", cx, y);
+                y += line + 2f;
+            }
 
             // Time
             bool freezeTime = Plugin.GetInt(Plugin.PrefKeyFreezeTime, 0) == 1;
@@ -279,6 +366,9 @@ namespace SebTweaks
             }
             y += line;
 
+            // Spacing between Time and Weather sections.
+            y += line * 2f;
+
             // Weather
             bool weatherManual = Plugin.GetInt(Plugin.PrefKeyWeatherMode, 0) == 1;
             if (Util.CycleButtonRaw("Weather", weatherManual ? "Manual" : "Auto", center, y))
@@ -291,7 +381,7 @@ namespace SebTweaks
             {
                 float w = Mathf.Clamp01(Plugin.GetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f));
                 Util.ValueLabel($"{Mathf.RoundToInt(w * 100f)}%", p.x + p.width - 12f, y);
-                float? newW = Util.Slider("Snow", w, center, y, ref MouseYLock);
+                float? newW = Util.Slider("Intensity", w, center, y, ref MouseYLock);
                 if (newW.HasValue)
                 {
                     Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, newW.Value);
@@ -305,14 +395,6 @@ namespace SebTweaks
                 }
                 y += line;
             }
-
-            bool iceCrack = Plugin.GetInt(Plugin.PrefKeyIceCrackEnabled, 1) == 1;
-            bool? newIceCrack = Util.Toggle("Ice Cracking", iceCrack, center, y);
-            if (newIceCrack.HasValue)
-            {
-                Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, newIceCrack.Value ? 1 : 0);
-            }
-            y += line;
         }
 
         private void DrawCheats(Rect p, float center, ref float y, float line)

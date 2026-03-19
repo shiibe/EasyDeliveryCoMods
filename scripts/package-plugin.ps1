@@ -20,7 +20,8 @@ function Get-PluginDefs()
         @{ Name = "SebBinds";     Csproj = "plugins/SebBinds/src/SebBinds/SebBinds.csproj";    ExtraDlls = @(); },
         @{ Name = "SebUltrawide"; Csproj = "plugins/SebUltrawide/src/SebUltrawide/SebUltrawide.csproj"; ExtraDlls = @(); },
         @{ Name = "SebTruck";     Csproj = "plugins/SebTruck/src/SebTruck/SebTruck.csproj";    ExtraDlls = @(); },
-        @{ Name = "SebLogiWheel"; Csproj = "plugins/SebLogiWheel/src/SebLogiWheel/SebLogiWheel.csproj"; ExtraDlls = @("LogitechSteeringWheelEnginesWrapper.dll"); }
+        @{ Name = "SebLogiWheel"; Csproj = "plugins/SebLogiWheel/src/SebLogiWheel/SebLogiWheel.csproj"; ExtraDlls = @("LogitechSteeringWheelEnginesWrapper.dll"); },
+        @{ Name = "SebTweaks";    Csproj = "plugins/SebTweaks/src/SebTweaks/SebTweaks.csproj"; ExtraDlls = @(); }
     )
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "SebTruck",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
   "description": "Truck/driving feature extensions (manual transmission, ignition, HUD) for Easy Delivery Co.",
   "dependencies": [

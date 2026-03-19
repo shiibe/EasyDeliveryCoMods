@@ -16,7 +16,7 @@ namespace SebTruck
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtruck";
         public const string PluginName = "SebTruck";
-        public const string PluginVersion = "1.0.2";
+        public const string PluginVersion = "1.0.3";
 
         internal static ManualLogSource Log;
 
@@ -293,6 +293,29 @@ namespace SebTruck
             catch
             {
             }
+        }
+
+        private static float GetFloatProp(Component c, string name, float def = 0f)
+        {
+            if (c == null || string.IsNullOrWhiteSpace(name))
+            {
+                return def;
+            }
+            try
+            {
+                var p = c.GetType().GetProperty(name);
+                if (p != null && p.CanRead)
+                {
+                    object v = p.GetValue(c, null);
+                    if (v is float f) return f;
+                    if (v is double d) return (float)d;
+                    if (v is int i) return i;
+                }
+            }
+            catch
+            {
+            }
+            return def;
         }
 
         private static void Call(Component c, string method, params object[] args)

@@ -36,17 +36,27 @@ SebTweaks currently includes the following options:
 | Gas Use | `0.10x` - `3.00x` | Multiplies fuel consumption |
 | Energy Loss | `0.10x` - `3.00x` | Multiplies energy drain |
 | Temp Loss | `0.10x` - `3.00x` | Multiplies freezing/temperature loss |
+| Ice Cracking | `on/off` | Toggles falling-through-ice mechanic |
 
-**World**
+**Atmosphere**
 
 | Option | Values | Notes |
 | --- | --- | --- |
 | Fog | `0.00x` - `3.00x` | Fog density multiplier |
+| World Light | `0.00x` - `2.00x` | Multiplies ambient + fog color brightness |
+| Light Red | `0.00x` - `2.00x` | Multiplies ambient + fog red channel |
+| Light Green | `0.00x` - `2.00x` | Multiplies ambient + fog green channel |
+| Light Blue | `0.00x` - `2.00x` | Multiplies ambient + fog blue channel |
+
+**Time & Weather**
+
+| Option | Values | Notes |
+| --- | --- | --- |
 | Time | `00:00` - `23:59` | Tracks current world time unless Freeze Time is on |
 | Freeze Time | `on/off` | Freezes time at the slider value |
 | Weather | `Auto/Manual` | Auto = vanilla behavior |
-| Snow | `0%` - `100%` | Manual snow intensity |
-| Ice Cracking | `on/off` | Toggles falling-through-ice mechanic |
+| Intensity | `0%` - `100%` | Manual weather intensity |
+| Preset | `Clear/Snow/Storm` | Cycles a few common intensity presets |
 
 **Cheats**
 

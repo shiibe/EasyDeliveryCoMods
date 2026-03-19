@@ -68,6 +68,15 @@ namespace SebTruck
         private static readonly Dictionary<int, (float intensity, float range)> _lightDefaults =
             new Dictionary<int, (float intensity, float range)>();
 
+        private static Type _engineSfxRuntimeType;
+        private static FieldInfo _engineCarField;
+        private static FieldInfo _engineIdleField;
+        private static FieldInfo _engineDriveField;
+        private static FieldInfo _engineIntenseField;
+        private static FieldInfo _engineDistortionField;
+
+        private static readonly Dictionary<int, float> _enginePitchMulApplied = new Dictionary<int, float>();
+
         private static Type _headlightsRuntimeType;
         private static FieldInfo _headlightsHeadLightsField;
         private static FieldInfo _headlightsCarMatField;
@@ -964,7 +973,73 @@ namespace SebTruck
 
             EnsureHeadlightsRefs(hl);
             var go = _headlightsHeadLightsField != null ? _headlightsHeadLightsField.GetValue(hl) as GameObject : null;
-            if (go == null)
+
+            var list = new List<Light>();
+
+            void AddLightsFrom(GameObject root)
+            {
+                if (root == null)
+                {
+                    return;
+                }
+                try
+                {
+                    var ls = root.GetComponentsInChildren<Light>(true);
+                    if (ls == null)
+                    {
+                        return;
+                    }
+                    for (int i = 0; i < ls.Length; i++)
+                    {
+                        var l = ls[i];
+                        if (l != null && !list.Contains(l))
+                        {
+                            list.Add(l);
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            // Primary: Headlights.headLights object.
+            AddLightsFrom(go);
+
+            // TrueNight-style: some prefabs put the main light objects under child(0) instead.
+            try
+            {
+                var t0 = hl.transform != null && hl.transform.childCount > 0 ? hl.transform.GetChild(0) : null;
+                AddLightsFrom(t0 != null ? t0.gameObject : null);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            // Fallback: grab anything under the headlights component.
+            try
+            {
+                var ls = hl.GetComponentsInChildren<Light>(true);
+                if (ls != null)
+                {
+                    for (int i = 0; i < ls.Length; i++)
+                    {
+                        var l = ls[i];
+                        if (l != null && !list.Contains(l))
+                        {
+                            list.Add(l);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            if (list.Count == 0)
             {
                 return;
             }
@@ -977,24 +1052,9 @@ namespace SebTruck
                 rangeMul = 0f;
             }
 
-            Light[] lights;
-            try
+            for (int i = 0; i < list.Count; i++)
             {
-                lights = go.GetComponentsInChildren<Light>(true);
-            }
-            catch
-            {
-                lights = null;
-            }
-
-            if (lights == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < lights.Length; i++)
-            {
-                var l = lights[i];
+                var l = list[i];
                 if (l == null)
                 {
                     continue;
@@ -1008,6 +1068,27 @@ namespace SebTruck
                 l.intensity = d.intensity * intenMul;
                 l.range = d.range * rangeMul;
             }
+        }
+
+        private static void EnsureEngineSfxRefs(object instance)
+        {
+            if (instance == null)
+            {
+                return;
+            }
+
+            var t = instance.GetType();
+            if (_engineSfxRuntimeType == t)
+            {
+                return;
+            }
+
+            _engineSfxRuntimeType = t;
+            _engineCarField = AccessTools.Field(t, "car");
+            _engineIdleField = AccessTools.Field(t, "idle");
+            _engineDriveField = AccessTools.Field(t, "drive");
+            _engineIntenseField = AccessTools.Field(t, "intense");
+            _engineDistortionField = AccessTools.Field(t, "distortionFilter");
         }
 
         private static void ApplySpeedScaleTuning(sCarController car)
@@ -1554,6 +1635,27 @@ namespace SebTruck
             {
                 return GetIgnitionEnabledEffective();
             }
+
+            private static void Postfix(Headlights __instance)
+            {
+                try
+                {
+                    if (__instance == null)
+                    {
+                        return;
+                    }
+                    var car = __instance.GetComponentInParent<sCarController>();
+                    if (car == null)
+                    {
+                        return;
+                    }
+                    ApplyHeadlightTuning(car);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
         }
 
         [HarmonyPatch]
@@ -1582,27 +1684,173 @@ namespace SebTruck
                 return;
             }
 
-            if (!GetIgnitionFeatureEnabled() || GetIgnitionEnabledEffective())
+            EnsureEngineSfxRefs(__instance);
+
+            var car = _engineCarField != null ? _engineCarField.GetValue(__instance) as sCarController : null;
+            if (car == null || car.GuyActive)
             {
                 return;
             }
 
-            // Mute idle/engine loops while ignition is off.
-            try
+            // Only adjust the active car.
+            if (_currentCar != null && !ReferenceEquals(car, _currentCar))
             {
-                var idle = AccessTools.Field(typeof(sEngineSFX), "idle")?.GetValue(__instance) as Component;
-                var idleLow = AccessTools.Field(typeof(sEngineSFX), "idleLowFuel")?.GetValue(__instance) as Component;
-                var drive = AccessTools.Field(typeof(sEngineSFX), "drive")?.GetValue(__instance) as Component;
-                var intense = AccessTools.Field(typeof(sEngineSFX), "intense")?.GetValue(__instance) as Component;
+                return;
+            }
 
-                SetProp(idle, "volume", 0f);
-                SetProp(idleLow, "volume", 0f);
-                SetProp(drive, "volume", 0f);
-                SetProp(intense, "volume", 0f);
-            }
-            catch
+            // Ignition off: hard-mute engine loops.
+            if (GetIgnitionFeatureEnabled() && !GetIgnitionEnabledEffective())
             {
+                try
+                {
+                    var idle0 = _engineIdleField != null ? _engineIdleField.GetValue(__instance) as Component : null;
+                    var drive0 = _engineDriveField != null ? _engineDriveField.GetValue(__instance) as Component : null;
+                    var intense0 = _engineIntenseField != null ? _engineIntenseField.GetValue(__instance) as Component : null;
+                    if (idle0 != null) SetProp(idle0, "volume", 0f);
+                    if (drive0 != null) SetProp(drive0, "volume", 0f);
+                    if (intense0 != null) SetProp(intense0, "volume", 0f);
+
+                    var dist0 = _engineDistortionField != null ? _engineDistortionField.GetValue(__instance) as Component : null;
+                    if (dist0 != null) SetProp(dist0, "distortionLevel", 0f);
+                }
+                catch
+                {
+                    // ignore
+                }
+                return;
             }
+
+            // Manual-mode-only sound tweaks.
+            if (!GetManualTransmissionEnabled())
+            {
+                return;
+            }
+
+            float rpmNorm = GetEstimatedRpmNormForSound();
+            float over = Mathf.Clamp01((rpmNorm - 1f) / 0.2f);
+            float neutral = (_manualGear == 0) ? Mathf.Clamp01(_neutralRev01) : 0f;
+
+            // Warning ramp for high RPM (aligns with HUD suffix thresholds).
+            float warn = Mathf.Clamp01((rpmNorm - 0.92f) / (1.0f - 0.92f));
+
+            // Apply pitch boost to all loops so revving in Neutral is audible.
+            float pitchMul = 1f + neutral * 0.85f + over * 0.35f;
+
+            var idle = _engineIdleField != null ? _engineIdleField.GetValue(__instance) as Component : null;
+            var drive = _engineDriveField != null ? _engineDriveField.GetValue(__instance) as Component : null;
+            var intense = _engineIntenseField != null ? _engineIntenseField.GetValue(__instance) as Component : null;
+
+            void ApplyPitchMul(Component src)
+            {
+                if (src == null)
+                {
+                    return;
+                }
+
+                int id = src.GetInstanceID();
+                float last = 1f;
+                if (_enginePitchMulApplied.TryGetValue(id, out float prev) && prev > 0.0001f)
+                {
+                    last = prev;
+                }
+
+                // Avoid compounding multipliers frame-to-frame.
+                float cur = GetFloatProp(src, "pitch", 1f);
+                SetProp(src, "pitch", (cur / last) * pitchMul);
+                _enginePitchMulApplied[id] = pitchMul;
+            }
+
+            ApplyPitchMul(idle);
+            ApplyPitchMul(drive);
+            ApplyPitchMul(intense);
+
+            // In neutral, also push volume up so it actually sounds like revving.
+            if (neutral > 0.01f)
+            {
+                if (drive != null)
+                {
+                    float v = GetFloatProp(drive, "volume", 0f);
+                    SetProp(drive, "volume", Mathf.Max(v, neutral * 0.55f));
+                }
+                if (intense != null)
+                {
+                    float v = GetFloatProp(intense, "volume", 0f);
+                    SetProp(intense, "volume", Mathf.Max(v, neutral * 0.35f));
+                }
+            }
+
+            // Overrev: ramp up the same "revving" feel as Neutral (warn -> !, over -> !!).
+            if (warn > 0.01f)
+            {
+                float driveBoost = Mathf.Min(1f, warn * 0.35f + over * 0.45f);
+                float intenseBoost = Mathf.Min(1f, warn * 0.22f + over * 0.35f);
+                if (drive != null)
+                {
+                    float v = GetFloatProp(drive, "volume", 0f);
+                    SetProp(drive, "volume", Mathf.Max(v, driveBoost));
+                }
+                if (intense != null)
+                {
+                    float v = GetFloatProp(intense, "volume", 0f);
+                    SetProp(intense, "volume", Mathf.Max(v, intenseBoost));
+                }
+            }
+
+            // Over-rev: make it sound like a strained neutral rev with sputter.
+            if (over > 0.01f)
+            {
+                float freq = Mathf.Lerp(7f, 14f, over);
+                float saw = Mathf.Repeat(Time.time * freq, 1f);
+                float ramp = 1f - saw; // 1..0
+                float cut = (saw < 0.12f) ? Mathf.Lerp(0.25f, 1f, saw / 0.12f) : 1f;
+
+                float baseMul = Mathf.Lerp(1.0f, 0.72f, over);
+                float stutterMul = Mathf.Lerp(1.0f, ramp, over) * cut;
+                float volMul = baseMul * stutterMul;
+                float pitchJitter = 1f + (Mathf.Sin(Time.time * 55f) * 0.012f * over);
+
+                if (drive != null)
+                {
+                    SetProp(drive, "volume", GetFloatProp(drive, "volume", 0f) * volMul);
+                    SetProp(drive, "pitch", GetFloatProp(drive, "pitch", 1f) * pitchJitter);
+                }
+                if (intense != null)
+                {
+                    SetProp(intense, "volume", GetFloatProp(intense, "volume", 0f) * volMul);
+                    SetProp(intense, "pitch", GetFloatProp(intense, "pitch", 1f) * pitchJitter);
+                }
+            }
+
+            // Extra distortion when over-revving (simulated).
+            var dist = _engineDistortionField != null ? _engineDistortionField.GetValue(__instance) as Component : null;
+            if (dist != null)
+            {
+                float target = GetFloatProp(dist, "distortionLevel", 0f);
+                if (over > 0f)
+                {
+                    target = Mathf.Max(target, 0.10f + over * 0.55f);
+                }
+                if (neutral > 0.1f)
+                {
+                    target = Mathf.Max(target, 0.05f + neutral * 0.10f);
+                }
+                SetProp(dist, "distortionLevel", target);
+            }
+        }
+
+
+        [HarmonyPatch(typeof(sPathFinder), "DoResetCar")]
+        [HarmonyPostfix]
+        private static void SPathFinder_DoResetCar_Postfix()
+        {
+            if (!GetManualTransmissionEnabled())
+            {
+                return;
+            }
+
+            // Any reset path (manual reset, ice crack, explosion) should leave you in 1st gear.
+            _manualGear = 1;
+            _neutralRev01 = 0f;
         }
 
 
@@ -1732,6 +1980,6 @@ namespace SebTruck
             }
         }
 
-        // Note: engine SFX patching removed (requires UnityEngine.AudioModule).
+        // Note: engine SFX patching uses reflection to avoid AudioModule reference.
     }
 }

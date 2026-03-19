@@ -293,11 +293,11 @@ namespace SebTruck
 
                 float dist = Plugin.GetHeadlightRangeMult();
                 _util.ValueLabel($"{dist:0.00}x", p.x + p.width - 12f, y);
-                float distNorm = Mathf.InverseLerp(0.25f, 2.0f, dist);
+                float distNorm = Mathf.InverseLerp(0.25f, 1.0f, dist);
                 float? newDistNorm = _util.Slider("Headlght Dist", distNorm, center, y, ref _mouseYLock);
                 if (newDistNorm.HasValue)
                 {
-                    Plugin.SetHeadlightRangeMult(Mathf.Lerp(0.25f, 2.0f, newDistNorm.Value));
+                    Plugin.SetHeadlightRangeMult(Mathf.Lerp(0.25f, 1.0f, newDistNorm.Value));
                 }
 
                 y += line;
