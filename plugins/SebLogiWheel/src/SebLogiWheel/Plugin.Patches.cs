@@ -407,7 +407,8 @@ namespace SebLogiWheel
 
             float accel = Mathf.Clamp(throttle - brake, -1f, 1f);
             __instance.driveInput = new Vector2(steering, accel);
-            __instance.breakPressed = brake > 0.1f;
+            // Handbrake/back is handled via SebBinds (Back/Handbrake) so wheel brake pedal
+            // behaves like brake/reverse (analog), not handbrake.
 
             SetWheelLastInput(steering, accel);
         }
