@@ -9,12 +9,14 @@ namespace SebBinds
             // Only fill unset actions.
             SetIfUnset(BindAction.InteractOk, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.E });
 
-            // Brake/back
+            // Handbrake/back
             SetIfUnset(BindAction.Back, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Space });
-            SetIfUnset(BindAction.Brake, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Space });
 
-            // Map (hold)
-            SetIfUnset(BindAction.Map, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.LeftShift });
+            // Brake/reverse
+            SetIfUnset(BindAction.Brake, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.S });
+
+            // Map/Items (hold)
+            SetIfUnset(BindAction.MapItems, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.LeftShift });
 
             // Job selection
             SetIfUnset(BindAction.Jobs, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Tab });

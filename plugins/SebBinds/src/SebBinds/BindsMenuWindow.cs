@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SebCore;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace SebBinds
 {
@@ -60,12 +61,10 @@ namespace SebBinds
         {
             BindAction.InteractOk,
             BindAction.Back,
-            BindAction.MapItems,
             BindAction.Pause,
             BindAction.Drive,
             BindAction.Brake,
-            BindAction.Map,
-            BindAction.Items,
+            BindAction.MapItems,
             BindAction.Jobs,
             BindAction.Camera,
             BindAction.ResetVehicle,
@@ -404,8 +403,7 @@ namespace SebBinds
                             BindAction.InteractOk,
                             BindAction.Back,
                             BindAction.Pause,
-                            BindAction.Map,
-                            BindAction.Items,
+                            BindAction.MapItems,
                             BindAction.Jobs,
                             BindAction.ResetVehicle
                         }
@@ -459,8 +457,7 @@ namespace SebBinds
                             BindAction.InteractOk,
                             BindAction.Back,
                             BindAction.Pause,
-                            BindAction.Map,
-                            BindAction.Items,
+                            BindAction.MapItems,
                             BindAction.Jobs,
                             BindAction.ResetVehicle
                         }
@@ -511,8 +508,7 @@ namespace SebBinds
                             BindAction.InteractOk,
                             BindAction.Back,
                             BindAction.Pause,
-                            BindAction.Map,
-                            BindAction.Items,
+                            BindAction.MapItems,
                             BindAction.Jobs,
                             BindAction.ResetVehicle
                         }
@@ -871,34 +867,83 @@ namespace SebBinds
                 bool hasDupConflicts = _bindingDupConflicts != null && _bindingDupConflicts.Count > 0;
                 if (hasDupConflicts)
                 {
-                    _util.Label("Already used by:", p.x + p.width / 2f, promptY + line * 4f);
-                    _util.Label(GetDupConflictsText(_bindingDupConflicts), p.x + p.width / 2f, promptY + line * 5f);
+                    _util.Label("Also used by:", p.x + p.width / 2f, promptY + line * 4f);
+
+                    var lines = GetDupConflictsTextLines(_bindingDupConflicts, maxCharsPerLine: 28);
+                    float yy = promptY + line * 5f;
+                    if (lines != null)
+                    {
+                        for (int i = 0; i < lines.Count; i++)
+                        {
+                            _util.Label(lines[i], p.x + p.width / 2f, yy + line * i);
+                        }
+                        yy += line * Mathf.Max(1, lines.Count);
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(_bindingDupAxisConflict))
                 {
-                    _util.Label(_bindingDupAxisConflict, p.x + p.width / 2f, promptY + line * 6f);
+                    float axisY = promptY + line * 6f;
+                    if (hasDupConflicts)
+                    {
+                        var lines = GetDupConflictsTextLines(_bindingDupConflicts, maxCharsPerLine: 28);
+                        axisY = promptY + line * (5f + Mathf.Max(1, (lines?.Count ?? 1)));
+                    }
+                    _util.Label(_bindingDupAxisConflict, p.x + p.width / 2f, axisY);
                 }
 
                 if (hasDupConflicts)
                 {
-                    _util.Label("Press another button to try again.", p.x + p.width / 2f, promptY + line * 7f);
+                    _util.Label("Enter=Keep  Esc=Try", p.x + p.width / 2f, promptY + line * 7f);
                 }
 
-                if (allowUiClicks && _util.SimpleButtonRaw("Replace", cx, clearY))
+                // Keyboard shortcuts while conflict prompt is open.
+                if (_scheme == BindingScheme.Keyboard)
+                {
+                    var kb = Keyboard.current;
+                    if (kb != null)
+                    {
+                        if (kb.enterKey != null && kb.enterKey.wasPressedThisFrame)
+                        {
+                            ApplyPendingBinding(replaceDuplicates: false);
+                            return;
+                        }
+                        if (kb.escapeKey != null && kb.escapeKey.wasPressedThisFrame)
+                        {
+                            _bindingDupConfirmActive = false;
+                            _bindingDupAxisConflict = null;
+                            _bindingDupConflicts = null;
+                            return;
+                        }
+                    }
+                }
+
+                float keepY = clearY - 12f;
+                float replaceY = clearY;
+                float tryY = cancelY;
+
+                if (allowUiClicks && _util.SimpleButtonRaw("Keep Both", cx, keepY))
+                {
+                    ApplyPendingBinding(replaceDuplicates: false);
+                    return;
+                }
+
+                if (allowUiClicks && _util.SimpleButtonRaw("Replace", cx, replaceY))
                 {
                     ApplyPendingBinding(replaceDuplicates: true);
                     return;
                 }
 
-                if (allowUiClicks && _util.SimpleButtonRaw("Cancel", cx, cancelY))
+                if (allowUiClicks && _util.SimpleButtonRaw("Try Another", cx, tryY))
                 {
                     _bindingDupConfirmActive = false;
                     _bindingDupAxisConflict = null;
+                    _bindingDupConflicts = null;
                     return;
                 }
 
-                // Keep listening for other inputs so the user can correct conflicts.
+                // Don't capture bindings while the user is deciding.
+                return;
             }
 
             if (!_bindingDupConfirmActive)
@@ -936,6 +981,15 @@ namespace SebBinds
             if (requireModifierHeld && !modifierHeld)
             {
                 return;
+            }
+
+            // If the user is clicking UI buttons, don't treat the click as a bind.
+            if (allowUiClicks && _util.M != null && _util.M.mouseButton)
+            {
+                if (_util.M.MouseOver((int)cx - 32, (int)clearY, 64, 8) || _util.M.MouseOver((int)cx - 32, (int)cancelY, 64, 8))
+                {
+                    return;
+                }
             }
 
             if (!InputCapture.TryCaptureNextBinding(_scheme, _bindingCaptureAction, _bindingCaptureLayer, out var captured))
@@ -1158,24 +1212,68 @@ namespace SebBinds
                 return true;
             }
 
-            // Jobs is a convenience alias of Map.
-            if ((a == BindAction.Map && b == BindAction.Jobs) || (a == BindAction.Jobs && b == BindAction.Map))
-            {
-                return true;
-            }
+            // Keyboard context-reuse: the same key commonly drives both on-foot movement and vehicle controls.
+            if ((a == BindAction.MoveUp && b == BindAction.Drive) || (a == BindAction.Drive && b == BindAction.MoveUp)) return true;
+            if ((a == BindAction.MoveLeft && b == BindAction.SteerLeft) || (a == BindAction.SteerLeft && b == BindAction.MoveLeft)) return true;
+            if ((a == BindAction.MoveRight && b == BindAction.SteerRight) || (a == BindAction.SteerRight && b == BindAction.MoveRight)) return true;
 
             return false;
         }
 
-        private static string GetDupConflictsText(List<BindingConflict> conflicts)
+        private static List<string> GetDupConflictsTextLines(List<BindingConflict> conflicts, int maxCharsPerLine)
         {
-            if (conflicts == null || conflicts.Count == 0)
+            if (conflicts == null || conflicts.Count == 0) return null;
+
+            // De-dupe and keep stable ordering.
+            var names = new List<string>();
+            for (int i = 0; i < conflicts.Count; i++)
             {
-                return string.Empty;
+                string n = BindingStore.GetActionLabel(conflicts[i].Action);
+                if (string.IsNullOrWhiteSpace(n)) continue;
+                if (!names.Contains(n)) names.Add(n);
+            }
+            return WrapCommaList(names, maxCharsPerLine);
+        }
+
+        private static List<string> WrapCommaList(List<string> items, int maxCharsPerLine)
+        {
+            if (items == null || items.Count == 0) return null;
+            maxCharsPerLine = Mathf.Max(8, maxCharsPerLine);
+
+            string TrimItem(string s)
+            {
+                s = (s ?? string.Empty).Trim();
+                if (s.Length <= maxCharsPerLine) return s;
+                if (maxCharsPerLine <= 3) return s.Substring(0, maxCharsPerLine);
+                return s.Substring(0, maxCharsPerLine - 3) + "...";
             }
 
-            var c = conflicts[0];
-            return LayerLabel(c.Layer) + ": " + BindingStore.GetActionLabel(c.Action);
+            var lines = new List<string>();
+            string cur = string.Empty;
+            for (int i = 0; i < items.Count; i++)
+            {
+                string item = TrimItem(items[i]);
+                if (string.IsNullOrEmpty(item)) continue;
+
+                if (string.IsNullOrEmpty(cur))
+                {
+                    cur = item;
+                    continue;
+                }
+
+                string candidate = cur + ", " + item;
+                if (candidate.Length > maxCharsPerLine)
+                {
+                    lines.Add(cur);
+                    cur = item;
+                }
+                else
+                {
+                    cur = candidate;
+                }
+            }
+            if (!string.IsNullOrEmpty(cur)) lines.Add(cur);
+            return lines;
         }
 
         private static string LayerLabel(BindingLayer layer)

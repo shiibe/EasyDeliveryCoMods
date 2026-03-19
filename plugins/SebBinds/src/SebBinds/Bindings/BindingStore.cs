@@ -256,7 +256,7 @@ namespace SebBinds
                 case BindAction.InteractOk:
                     return "Interact";
                 case BindAction.Back:
-                    return "Back";
+                    return "Back/Handbrake";
                 case BindAction.MapItems:
                     return "Map/Items";
                 case BindAction.Pause:
@@ -264,7 +264,7 @@ namespace SebBinds
                 case BindAction.Drive:
                     return "Drive";
                 case BindAction.Brake:
-                    return "Brake";
+                    return "Brake/Reverse";
                 case BindAction.Map:
                     return "Map";
                 case BindAction.Items:

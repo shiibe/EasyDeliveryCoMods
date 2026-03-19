@@ -65,14 +65,18 @@ namespace SebBinds
 
             // Primary buttons.
             anySet |= SetFromActionIfUnset(pi, onController, "Click", BindAction.InteractOk);
+
+            // Vanilla: "Break" is Back (menus) + Handbrake (vehicle).
             anySet |= SetFromActionIfUnset(pi, onController, "Break", BindAction.Back);
-            // Brake uses the same default as Back (game uses the same action).
-            anySet |= SetFromActionIfUnset(pi, onController, "Break", BindAction.Brake);
 
             anySet |= SetFromActionIfUnset(pi, onController, "Pause", BindAction.Pause);
-            anySet |= SetFromActionIfUnset(pi, onController, "Map", BindAction.Map);
+
+            // Vanilla behavior:
+            // - Inventory action: on-foot items, in-vehicle hold-map
+            // - Map action: jobs/menu toggle
+            anySet |= SetFromActionIfUnset(pi, onController, "Inventory", BindAction.MapItems);
             anySet |= SetFromActionIfUnset(pi, onController, "Map", BindAction.Jobs);
-            anySet |= SetFromActionIfUnset(pi, onController, "Inventory", BindAction.Items);
+
             anySet |= SetFromActionIfUnset(pi, onController, "ChangeCamera", BindAction.Camera);
             anySet |= SetFromActionIfUnset(pi, onController, "Reset", BindAction.ResetVehicle);
             anySet |= SetFromActionIfUnset(pi, onController, "Headlights", BindAction.Headlights);

@@ -14,9 +14,7 @@ namespace SebBinds
         private static bool _resetHoldFired;
         private static bool _resetHoldWasDown;
 
-        private static float _mapHoldStart = -1f;
-        private static bool _mapHoldFired;
-        private static bool _mapHoldWasDown;
+        private static bool _didMigrateLegacyBinds;
 
         private void Awake()
         {
@@ -67,7 +65,45 @@ namespace SebBinds
             // Non-destructive keyboard defaults.
             KeyboardDefaults.EnsureDefaults();
 
+            // One-time migration from earlier action IDs.
+            if (!_didMigrateLegacyBinds)
+            {
+                _didMigrateLegacyBinds = true;
+                MigrateLegacyBinds();
+            }
+
             InjectBindings(__instance);
+        }
+
+        private static void MigrateLegacyBinds()
+        {
+            // Legacy: Map was used for the jobs/map menu toggle; Items was used for inventory.
+            // New: Jobs drives input.mapPressed; MapItems drives input.inventory*.
+            foreach (BindingScheme scheme in (BindingScheme[])System.Enum.GetValues(typeof(BindingScheme)))
+            {
+                foreach (BindingLayer layer in (BindingLayer[])System.Enum.GetValues(typeof(BindingLayer)))
+                {
+                    var jobs = BindingStore.GetBinding(scheme, layer, BindAction.Jobs);
+                    if (jobs.Kind == BindingKind.None)
+                    {
+                        var legacyMap = BindingStore.GetBinding(scheme, layer, BindAction.Map);
+                        if (legacyMap.Kind != BindingKind.None)
+                        {
+                            BindingStore.SetBinding(scheme, layer, BindAction.Jobs, legacyMap);
+                        }
+                    }
+
+                    var mapItems = BindingStore.GetBinding(scheme, layer, BindAction.MapItems);
+                    if (mapItems.Kind == BindingKind.None)
+                    {
+                        var legacyItems = BindingStore.GetBinding(scheme, layer, BindAction.Items);
+                        if (legacyItems.Kind != BindingKind.None)
+                        {
+                            BindingStore.SetBinding(scheme, layer, BindAction.MapItems, legacyItems);
+                        }
+                    }
+                }
+            }
         }
 
         private static void InjectBindings(sInputManager input)
@@ -322,27 +358,12 @@ namespace SebBinds
                 }
             }
 
-            // Brake (hold)
+            // Handbrake (hold) - vanilla uses the Back action (Space/B).
+            if (!PauseSystem.paused && !inWalkingMode)
             {
-                // Prefer axis binding.
-                var axis = AxisBindingStore.GetAxisBinding(AxisAction.Brake);
-                bool appliedAxis = false;
-                if (axis.Kind == BindingKind.GamepadAxis)
+                if (DownAny(BindAction.Back))
                 {
-                    float v = BindingEvaluator.GetAxisValue(axis);
-                    if (v > 0.1f)
-                    {
-                        input.breakPressed = true;
-                    }
-                    appliedAxis = true;
-                }
-
-                if (!appliedAxis)
-                {
-                    if (DownAny(BindAction.Brake))
-                    {
-                        input.breakPressed = true;
-                    }
+                    input.breakPressed = true;
                 }
             }
 
@@ -358,7 +379,11 @@ namespace SebBinds
                     if (v > 0.05f)
                     {
                         var drive = input.driveInput;
-                        drive.y = Mathf.Max(drive.y, Mathf.Clamp01(v));
+                        // Don't override braking/reverse (negative y).
+                        if (drive.y > -0.01f)
+                        {
+                            drive.y = Mathf.Max(drive.y, Mathf.Clamp01(v));
+                        }
                         input.driveInput = drive;
                     }
                     appliedAxis = true;
@@ -369,8 +394,40 @@ namespace SebBinds
                     if (DownAny(BindAction.Drive))
                     {
                         var v = input.driveInput;
-                        v.y = Mathf.Max(v.y, 1f);
+                        if (v.y > -0.01f)
+                        {
+                            v.y = Mathf.Max(v.y, 1f);
+                        }
                         input.driveInput = v;
+                    }
+                }
+            }
+
+            // Brake/Reverse (hold) - affects driveInput.y negative.
+            if (!PauseSystem.paused && !inWalkingMode)
+            {
+                // Prefer axis binding.
+                var axis = AxisBindingStore.GetAxisBinding(AxisAction.Brake);
+                bool appliedAxis = false;
+                if (axis.Kind == BindingKind.GamepadAxis)
+                {
+                    float v = BindingEvaluator.GetAxisValue(axis);
+                    if (v > 0.05f)
+                    {
+                        var drive = input.driveInput;
+                        drive.y = Mathf.Min(drive.y, -Mathf.Clamp01(v));
+                        input.driveInput = drive;
+                    }
+                    appliedAxis = true;
+                }
+
+                if (!appliedAxis)
+                {
+                    if (DownAny(BindAction.Brake))
+                    {
+                        var drive = input.driveInput;
+                        drive.y = Mathf.Min(drive.y, -1f);
+                        input.driveInput = drive;
                     }
                 }
             }
@@ -476,39 +533,28 @@ namespace SebBinds
                 input.pausePressed = true;
             }
 
-            // Map / Jobs
+            // Jobs (jobs/map menu toggle) - press to open/close.
             {
-                // If Map is bound, require a short hold to avoid accidental opens.
-                if (AnyBindingExists(BindAction.Map))
+                bool jobsBound = AnyBindingExists(BindAction.Jobs);
+                // Vanilla blocks job-map access on foot (unless already paused).
+                if (!inWalkingMode || PauseSystem.paused)
                 {
-                    ApplyHoldToMapPressed(input, isDown: DownAny(BindAction.Map), holdSeconds: 0.25f);
-                }
-                else
-                {
-                    bool jobsBound = AnyBindingExists(BindAction.Jobs);
-                    if (PressedAny(BindAction.Jobs) || (!jobsBound && PressedAny(BindAction.MapItems)))
+                    if (PressedAny(BindAction.Jobs) || (!jobsBound && PressedAny(BindAction.Map)))
                     {
                         input.mapPressed = true;
                     }
                 }
             }
 
-            // Items
+            // Map/Items (inventory action) - used by vanilla for on-foot items and in-vehicle hold-map.
             {
-                var action = AnyBindingExists(BindAction.Items) ? BindAction.Items : BindAction.MapItems;
+                // Back-compat: older builds used Items for this.
+                var action = AnyBindingExists(BindAction.MapItems) ? BindAction.MapItems
+                    : (AnyBindingExists(BindAction.Items) ? BindAction.Items : BindAction.MapItems);
 
-                if (PressedAny(action))
-                {
-                    input.inventoryPressed = true;
-                }
-                if (ReleasedAny(action))
-                {
-                    input.inventoryReleased = true;
-                }
-                if (DownAny(action))
-                {
-                    input.inventoryHeld = true;
-                }
+                if (PressedAny(action)) input.inventoryPressed = true;
+                if (ReleasedAny(action)) input.inventoryReleased = true;
+                if (DownAny(action)) input.inventoryHeld = true;
             }
 
             // Camera toggle
@@ -601,36 +647,6 @@ namespace SebBinds
             }
 
             _resetHoldWasDown = isDown;
-        }
-
-        private static void ApplyHoldToMapPressed(sInputManager input, bool isDown, float holdSeconds)
-        {
-            if (input == null)
-            {
-                _mapHoldStart = -1f;
-                _mapHoldFired = false;
-                _mapHoldWasDown = false;
-                return;
-            }
-            if (isDown && !_mapHoldWasDown)
-            {
-                _mapHoldStart = Time.unscaledTime;
-                _mapHoldFired = false;
-            }
-
-            if (isDown && !_mapHoldFired && _mapHoldStart >= 0f && Time.unscaledTime - _mapHoldStart >= holdSeconds)
-            {
-                input.mapPressed = true;
-                _mapHoldFired = true;
-            }
-
-            if (!isDown)
-            {
-                _mapHoldStart = -1f;
-                _mapHoldFired = false;
-            }
-
-            _mapHoldWasDown = isDown;
         }
     }
 }
