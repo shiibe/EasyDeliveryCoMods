@@ -1,3 +1,7 @@
+## 1.0.1
+- Add Reset Defaults button to the in-game graphics menu.
+- 1st-person FOV slider now defaults to 90.
+
 ## 1.0.0
 - Rename to `SebUltrawide`.
 - Launch from `SebCore` (no standalone desktop icon).

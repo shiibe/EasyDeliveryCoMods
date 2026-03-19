@@ -252,6 +252,20 @@ namespace SebUltrawide
             }
         }
 
+        internal static void ResetGraphicsDefaults()
+        {
+            // Remove FOV overrides.
+            PlayerPrefs.DeleteKey(PrefKeyFovFirstPerson);
+            PlayerPrefs.DeleteKey(PrefKeyFovThirdPerson);
+            PlayerPrefs.DeleteKey(PrefKeyFovLegacy);
+
+            // Reset renderer knobs.
+            SavePixelationMode(3); // Default
+            SaveViewDistanceMode(1); // Default
+
+            PlayerPrefs.Save();
+        }
+
         internal static bool IsFirstPersonViewActive()
         {
             var controller = UnityEngine.Object.FindFirstObjectByType<sCameraController>();

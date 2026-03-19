@@ -9,8 +9,17 @@ namespace SebTweaks
         public const string ListenerName = "SebTweaksMenu";
         public const string ListenerData = "listener_SebTweaksMenu";
 
-        private bool _toggle;
-        private float _slider;
+        private Page _page;
+
+        private enum Page
+        {
+            Gameplay = 0,
+            World = 1,
+            Cheats = 2,
+            GodMode = 3
+        }
+
+        // (Cheats page has fixed increment buttons.)
 
         protected override void DrawWindow(Rect p)
         {
@@ -20,35 +29,418 @@ namespace SebTweaks
             float line = 12f;
             float sectionGap = 4f;
 
+            // Show a simple placeholder screen on non-gameplay scenes.
+            if (!Plugin.IsInGameNow())
+            {
+                float backY = GetNavY(p);
+                Util.Label("Use in-game only", cx, y + 24f);
+                if (Util.SimpleButtonRaw("Back", cx, backY))
+                {
+                    BackButtonPressed();
+                }
+                return;
+            }
+
             // Bottom nav.
             float navY = GetNavY(p);
+            float prevX = p.x + 44f;
+            float nextX = p.x + p.width - 44f;
+
+            if (_page == Page.Gameplay || _page == Page.World)
+            {
+                // Reset button sits above Back.
+                float resetY = navY - 12f;
+                if (Util.SimpleButtonRaw("Reset Defaults", cx, resetY))
+                {
+                    if (_page == Page.Gameplay)
+                    {
+                        ResetGameplayDefaults();
+                    }
+                    else
+                    {
+                        ResetWorldDefaults();
+                    }
+
+                    MouseYLock = 0f;
+                }
+            }
+
+            if (Util.SimpleButtonRaw("Prev", prevX, navY))
+            {
+                int pageCount = (int)Page.GodMode + 1;
+                _page = (Page)(((int)_page + pageCount - 1) % pageCount);
+            }
             if (Util.SimpleButtonRaw("Back", cx, navY))
             {
                 BackButtonPressed();
                 return;
             }
+            if (Util.SimpleButtonRaw("Next", nextX, navY))
+            {
+                int pageCount = (int)Page.GodMode + 1;
+                _page = (Page)(((int)_page + 1) % pageCount);
+            }
+
+            // Page indicator.
+            int pageNum = (int)_page + 1;
+            int pageTotal = (int)Page.GodMode + 1;
+            Util.Label(pageNum + "/" + pageTotal, p.x + p.width - 18f, p.y + 10f);
 
             Util.Label("Tweaks", cx, y);
+            y += line;
+            Util.Label(PageLabel(_page), cx, y);
             y += line + sectionGap;
 
-            bool? newToggle = Util.Toggle("Example Toggle", _toggle, center, y);
-            if (newToggle.HasValue)
+            if (_page == Page.Gameplay)
             {
-                _toggle = newToggle.Value;
+                DrawGameplay(p, center, ref y, line);
+                return;
+            }
+            if (_page == Page.World)
+            {
+                DrawWorld(p, center, ref y, line);
+                return;
+            }
+
+            if (_page == Page.GodMode)
+            {
+                DrawGodMode(p, center, ref y, line);
+                return;
+            }
+
+            DrawCheats(p, center, ref y, line);
+        }
+
+        private static void ResetGameplayDefaults()
+        {
+            Plugin.SetFloat(Plugin.PrefKeyJobPayoutMult, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyGasPriceMult, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyGasConsumptionMult, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyEnergyLossMult, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyTempLossMult, 1f);
+        }
+
+        private static void ResetWorldDefaults()
+        {
+            Plugin.SetFloat(Plugin.PrefKeyFogMult, 1f);
+            Plugin.SetFloat(Plugin.PrefKeyTimeOfDay, 0.25f);
+            Plugin.SetInt(Plugin.PrefKeyFreezeTime, 0);
+            Plugin.SetInt(Plugin.PrefKeyWeatherMode, 0);
+            Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f);
+            Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, 1);
+        }
+
+        private static string PageLabel(Page p)
+        {
+            return p switch
+            {
+                Page.Gameplay => "Gameplay",
+                Page.World => "World",
+                Page.Cheats => "Cheats",
+                Page.GodMode => "God Mode",
+                _ => ""
+            };
+        }
+
+        private void DrawGodMode(Rect p, float center, ref float y, float line)
+        {
+            float cx = p.x + p.width / 2f;
+
+            float labelX = p.x + 12f;
+            float valueX = p.x + p.width - 12f;
+
+            bool DrawToggleRow(string label, bool state, float rowY)
+            {
+                label = LocalizationDictionary.Translate(label);
+                string text = "[" + (state ? "on" : "off") + "]";
+                int rowW = (int)(valueX - labelX);
+                bool hovered = Util.M.MouseOver((int)labelX, (int)rowY, rowW, 8);
+                bool clicked = false;
+
+                if (hovered)
+                {
+                    Util.M.mouseIcon = 128;
+                    if (Util.M.mouseButton)
+                    {
+                        Util.M.mouseIcon = 160;
+                    }
+                    if (Util.M.mouseButtonUp)
+                    {
+                        clicked = true;
+                    }
+                    label = ">" + label;
+                }
+
+                Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+                Util.R.fput(label, labelX, rowY);
+                Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
+                Util.R.fput(text, valueX, rowY);
+                return clicked;
+            }
+
+            bool noEnergy = Plugin.GetInt(Plugin.PrefKeyGodNoEnergyLoss, 0) == 1;
+            if (DrawToggleRow("No Energy Loss", noEnergy, y))
+            {
+                Plugin.SetInt(Plugin.PrefKeyGodNoEnergyLoss, noEnergy ? 0 : 1);
             }
             y += line;
 
-            float? newSlider = Util.Slider("Example Slider", _slider, center, y, ref MouseYLock);
-            if (newSlider.HasValue)
+            bool noGas = Plugin.GetInt(Plugin.PrefKeyGodNoGasLoss, 0) == 1;
+            if (DrawToggleRow("No Gas Loss", noGas, y))
             {
-                _slider = newSlider.Value;
+                Plugin.SetInt(Plugin.PrefKeyGodNoGasLoss, noGas ? 0 : 1);
             }
             y += line;
 
-            if (Util.FancyButton("Do Something", cx, y + 8f))
+            bool noTemp = Plugin.GetInt(Plugin.PrefKeyGodNoTempLoss, 0) == 1;
+            if (DrawToggleRow("No Temp Loss", noTemp, y))
             {
-                // TODO: your action here
+                Plugin.SetInt(Plugin.PrefKeyGodNoTempLoss, noTemp ? 0 : 1);
             }
+            y += line;
+
+            bool invTruck = Plugin.GetInt(Plugin.PrefKeyGodInvincibleTruck, 0) == 1;
+            if (DrawToggleRow("Invincible Truck", invTruck, y))
+            {
+                Plugin.SetInt(Plugin.PrefKeyGodInvincibleTruck, invTruck ? 0 : 1);
+            }
+        }
+
+        private void DrawGameplay(Rect p, float center, ref float y, float line)
+        {
+            DrawMultSlider(p, center, ref y, line, "Job Payout", Plugin.PrefKeyJobPayoutMult, 0.1f, 5f);
+            DrawMultSlider(p, center, ref y, line, "Gas Price", Plugin.PrefKeyGasPriceMult, 0.1f, 3f);
+            DrawMultSlider(p, center, ref y, line, "Gas Use", Plugin.PrefKeyGasConsumptionMult, 0.1f, 3f);
+            DrawMultSlider(p, center, ref y, line, "Energy Loss", Plugin.PrefKeyEnergyLossMult, 0.1f, 3f);
+            DrawMultSlider(p, center, ref y, line, "Temp Loss", Plugin.PrefKeyTempLossMult, 0.1f, 3f);
+        }
+
+        private void DrawWorld(Rect p, float center, ref float y, float line)
+        {
+            // These systems typically don't exist on the main menu scene.
+            // The settings still save, and will apply when you're in-game.
+            if (Object.FindFirstObjectByType<sDayNightCycle>() == null && sWeatherSystem.instance == null)
+            {
+                float cx = p.x + p.width / 2f;
+                Util.Label("(world settings apply in-game)", cx, y);
+                y += line + 2f;
+            }
+
+            // Fog
+            float fog = Plugin.GetFloat(Plugin.PrefKeyFogMult, 1f);
+            float fog01 = Mathf.InverseLerp(0f, 3f, fog);
+            Util.ValueLabel($"x{fog:0.00}", p.x + p.width - 12f, y);
+            float? newFog01 = Util.Slider("Fog", fog01, center, y, ref MouseYLock);
+            if (newFog01.HasValue)
+            {
+                Plugin.SetFloat(Plugin.PrefKeyFogMult, Mathf.Lerp(0f, 3f, newFog01.Value));
+            }
+            y += line;
+
+            // Time
+            bool freezeTime = Plugin.GetInt(Plugin.PrefKeyFreezeTime, 0) == 1;
+
+            float t;
+            if (!freezeTime)
+            {
+                var cycle = Object.FindFirstObjectByType<sDayNightCycle>();
+                t = cycle != null ? Mathf.Repeat(cycle.time, 1f) : Mathf.Repeat(Plugin.GetFloat(Plugin.PrefKeyTimeOfDay, 0.25f), 1f);
+            }
+            else
+            {
+                t = Mathf.Repeat(Plugin.GetFloat(Plugin.PrefKeyTimeOfDay, 0.25f), 1f);
+            }
+
+            Util.ValueLabel(TimeLabel(t), p.x + p.width - 12f, y);
+            float? newT = Util.Slider("Time", t, center, y, ref MouseYLock);
+            if (newT.HasValue)
+            {
+                Plugin.SetFloat(Plugin.PrefKeyTimeOfDay, newT.Value);
+                Plugin.MarkTimeUser();
+            }
+            y += line;
+
+            bool? newFreeze = Util.Toggle("Freeze Time", freezeTime, center, y);
+            if (newFreeze.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyFreezeTime, newFreeze.Value ? 1 : 0);
+
+                // When enabling freeze, seed the stored time from the current world time.
+                if (newFreeze.Value)
+                {
+                    var cycle = Object.FindFirstObjectByType<sDayNightCycle>();
+                    if (cycle != null)
+                    {
+                        Plugin.SetFloat(Plugin.PrefKeyTimeOfDay, Mathf.Repeat(cycle.time, 1f));
+                    }
+                }
+
+                Plugin.MarkTimeUser();
+            }
+            y += line;
+
+            // Weather
+            bool weatherManual = Plugin.GetInt(Plugin.PrefKeyWeatherMode, 0) == 1;
+            if (Util.CycleButtonRaw("Weather", weatherManual ? "Manual" : "Auto", center, y))
+            {
+                Plugin.SetInt(Plugin.PrefKeyWeatherMode, weatherManual ? 0 : 1);
+            }
+            y += line;
+
+            if (Plugin.GetInt(Plugin.PrefKeyWeatherMode, 0) == 1)
+            {
+                float w = Mathf.Clamp01(Plugin.GetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f));
+                Util.ValueLabel($"{Mathf.RoundToInt(w * 100f)}%", p.x + p.width - 12f, y);
+                float? newW = Util.Slider("Snow", w, center, y, ref MouseYLock);
+                if (newW.HasValue)
+                {
+                    Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, newW.Value);
+                }
+                y += line;
+
+                if (Util.CycleButtonRaw("Preset", WeatherPresetLabel(w), center, y))
+                {
+                    float next = NextWeatherPreset(w);
+                    Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, next);
+                }
+                y += line;
+            }
+
+            bool iceCrack = Plugin.GetInt(Plugin.PrefKeyIceCrackEnabled, 1) == 1;
+            bool? newIceCrack = Util.Toggle("Ice Cracking", iceCrack, center, y);
+            if (newIceCrack.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, newIceCrack.Value ? 1 : 0);
+            }
+            y += line;
+        }
+
+        private void DrawCheats(Rect p, float center, ref float y, float line)
+        {
+            float cx = p.x + p.width / 2f;
+            float colGap = 72f;
+            float leftX = cx - colGap;
+            float rightX = cx + colGap;
+            var hud = Object.FindFirstObjectByType<sHUD>();
+
+            Util.Label("Money", cx, y);
+            y += line;
+
+            if (Util.SimpleButtonRaw("Add $10", leftX, y))
+            {
+                hud?.ReceivePayment(10f);
+            }
+            if (Util.SimpleButtonRaw("Remove $10", rightX, y))
+            {
+                if (hud != null)
+                {
+                    hud.money = Mathf.Max(0f, hud.money - 10f);
+                }
+            }
+            y += line;
+
+            if (Util.SimpleButtonRaw("Add $20", leftX, y))
+            {
+                hud?.ReceivePayment(20f);
+            }
+            if (Util.SimpleButtonRaw("Remove $20", rightX, y))
+            {
+                if (hud != null)
+                {
+                    hud.money = Mathf.Max(0f, hud.money - 20f);
+                }
+            }
+            y += line;
+
+            if (Util.SimpleButtonRaw("Add $50", leftX, y))
+            {
+                hud?.ReceivePayment(50f);
+            }
+            if (Util.SimpleButtonRaw("Remove $50", rightX, y))
+            {
+                if (hud != null)
+                {
+                    hud.money = Mathf.Max(0f, hud.money - 50f);
+                }
+            }
+            y += line;
+
+            if (Util.SimpleButtonRaw("Add $100", leftX, y))
+            {
+                hud?.ReceivePayment(100f);
+            }
+            if (Util.SimpleButtonRaw("Remove $100", rightX, y))
+            {
+                if (hud != null)
+                {
+                    hud.money = Mathf.Max(0f, hud.money - 100f);
+                }
+            }
+            y += line + 4f;
+
+            Util.Label("Refill", cx, y);
+            y += line;
+
+            if (hud == null)
+            {
+                Util.Label("(in-game only)", cx, y);
+                return;
+            }
+
+            // Energy slider
+            float energy01 = hud.energyCapacity > 0f ? Mathf.Clamp01(hud.energy / hud.energyCapacity) : 0f;
+            Util.ValueLabel($"{Mathf.RoundToInt(energy01 * 100f)}%", p.x + p.width - 12f, y);
+            float? newEnergy01 = Util.Slider("Energy", energy01, center, y, ref MouseYLock);
+            if (newEnergy01.HasValue)
+            {
+                hud.energy = newEnergy01.Value * hud.energyCapacity;
+            }
+            y += line;
+
+            // Fuel slider
+            float fuel01 = hud.fuelCapacity > 0f ? Mathf.Clamp01(hud.fuel / hud.fuelCapacity) : 0f;
+            Util.ValueLabel($"{Mathf.RoundToInt(fuel01 * 100f)}%", p.x + p.width - 12f, y);
+            float? newFuel01 = Util.Slider("Fuel", fuel01, center, y, ref MouseYLock);
+            if (newFuel01.HasValue)
+            {
+                hud.fuel = newFuel01.Value * hud.fuelCapacity;
+            }
+        }
+
+        private void DrawMultSlider(Rect p, float center, ref float y, float line, string label, string key, float min, float max)
+        {
+            float v = Mathf.Clamp(Plugin.GetFloat(key, 1f), min, max);
+            float v01 = Mathf.InverseLerp(min, max, v);
+            Util.ValueLabel($"x{v:0.00}", p.x + p.width - 12f, y);
+            float? new01 = Util.Slider(label, v01, center, y, ref MouseYLock);
+            if (new01.HasValue)
+            {
+                Plugin.SetFloat(key, Mathf.Lerp(min, max, new01.Value));
+            }
+            y += line;
+        }
+
+        private static string TimeLabel(float t01)
+        {
+            int totalMinutes = Mathf.RoundToInt(t01 * 24f * 60f) % (24 * 60);
+            int h = totalMinutes / 60;
+            int m = totalMinutes % 60;
+            return h.ToString("00") + ":" + m.ToString("00");
+        }
+
+        private static float NextWeatherPreset(float cur)
+        {
+            // Cycle: Clear -> Snow -> Storm -> Clear
+            if (cur < 0.2f) return 0.4f;
+            if (cur < 0.8f) return 1.0f;
+            return 0.0f;
+        }
+
+        private static string WeatherPresetLabel(float w)
+        {
+            if (w < 0.2f) return "Clear";
+            if (w < 0.8f) return "Snow";
+            return "Storm";
         }
     }
 }

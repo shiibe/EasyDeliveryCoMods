@@ -59,7 +59,7 @@ Ultrawide behavior is optional: set `aspect_ratio=default` to keep the game's or
 ## Installation
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
-- `shiibe-SebCore-1.0.0`
+- `shiibe-SebCore-1.0.2`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebUltrawide/

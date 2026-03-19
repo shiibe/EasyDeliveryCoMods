@@ -60,6 +60,15 @@ namespace SebUltrawide
             // Bottom nav.
             float cx = p.x + p.width / 2f;
             float navY = p.y + p.height - 18f;
+
+            // Reset button sits above Back.
+            float resetY = navY - 12f;
+            if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
+            {
+                Plugin.ResetGraphicsDefaults();
+                _mouseYLock = 0f;
+            }
+
             if (_util.SimpleButtonRaw("Back", cx, navY))
             {
                 SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
@@ -91,7 +100,8 @@ namespace SebUltrawide
 
             y += line;
 
-            float firstFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: true, fallback: currentFov), fovMin, fovMax);
+            // The game's default 1st-person FOV is higher than the menu camera's.
+            float firstFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
             float firstValue = Mathf.InverseLerp(fovMin, fovMax, firstFov);
             _util.ValueLabel($"{firstFov:0}", p.x + p.width - 12f, y);
             float? newFirstValue = _util.Slider("1st Person", firstValue, center, y, ref _mouseYLock);
