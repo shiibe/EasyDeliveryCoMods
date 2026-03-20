@@ -180,6 +180,15 @@ namespace SebTruck
                 }
                 y += line;
 
+                float vol = Plugin.GetIgnitionSfxVolume();
+                _util.ValueLabel($"{Mathf.RoundToInt(vol * 100f)}%", p.x + p.width - 12f, y);
+                float? newVol = _util.Slider("Ignition Vol.", vol, center, y, ref _mouseYLock);
+                if (newVol.HasValue)
+                {
+                    Plugin.SetIgnitionSfxVolume(newVol.Value);
+                }
+                y += line;
+
                 return;
             }
 
@@ -190,6 +199,14 @@ namespace SebTruck
                 if (_util.CycleButtonRaw("Indicators", indLabel, center, y))
                 {
                     Plugin.SetIndicatorFeatureEnabled(!indFeature);
+                }
+                y += line;
+
+                bool indSfx = Plugin.GetIndicatorSfxEnabled();
+                string indSfxLabel = indSfx ? "On" : "Off";
+                if (_util.CycleButtonRaw("Indicator SFX", indSfxLabel, center, y))
+                {
+                    Plugin.SetIndicatorSfxEnabled(!indSfx);
                 }
                 y += line;
 

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Globalization;
 using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
@@ -23,7 +24,6 @@ namespace SebTruck
         private static ConfigEntry<bool> _debugLogging;
 
         private static ConfigEntry<string> _ignitionSfxOnPath;
-        private static ConfigEntry<float> _ignitionSfxVolume;
 
         private static UnityEngine.Object _ignitionSfxOn;
 
@@ -40,7 +40,7 @@ namespace SebTruck
             _debugLogging = Config.Bind("Debug", "debug_logging", false, "Log debug information (verbose).");
 
             _ignitionSfxOnPath = Config.Bind("Ignition", "sfx_on_path", "", "Optional ignition ON sound. File name inside the plugin's sfx folder (e.g. ignition_on.wav). Leave blank to use sfx/ignition_on.wav.");
-            _ignitionSfxVolume = Config.Bind("Ignition", "sfx_volume", 0.6f, "Ignition sound volume (0..1).");
+            TryMigrateLegacyIgnitionSfxVolumeFromConfig();
             TryLoadIgnitionSfx();
 
             var harmony = new Harmony(PluginGuid);
@@ -67,6 +67,73 @@ namespace SebTruck
             }
 
             Log.LogInfo("Loaded");
+        }
+
+        private static void TryMigrateLegacyIgnitionSfxVolumeFromConfig()
+        {
+            try
+            {
+                if (PlayerPrefs.HasKey(PrefKeyIgnitionSfxVolume))
+                {
+                    return;
+                }
+
+                string cfgPath = Path.Combine(Paths.ConfigPath, PluginGuid + ".cfg");
+                if (!File.Exists(cfgPath))
+                {
+                    return;
+                }
+
+                bool inIgnition = false;
+                float found = -1f;
+
+                foreach (string raw in File.ReadAllLines(cfgPath))
+                {
+                    string line = raw != null ? raw.Trim() : string.Empty;
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    if (line.StartsWith("#") || line.StartsWith(";")) continue;
+
+                    if (line.StartsWith("[") && line.EndsWith("]"))
+                    {
+                        string sec = line.Substring(1, line.Length - 2).Trim();
+                        inIgnition = string.Equals(sec, "Ignition", StringComparison.OrdinalIgnoreCase);
+                        continue;
+                    }
+
+                    if (!inIgnition) continue;
+
+                    int eq = line.IndexOf('=');
+                    if (eq <= 0) continue;
+
+                    string key = line.Substring(0, eq).Trim();
+                    string val = line.Substring(eq + 1).Trim();
+                    if (!string.Equals(key, "sfx_volume", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out float v))
+                    {
+                        found = Mathf.Clamp01(v);
+                    }
+                    else if (float.TryParse(val, out v))
+                    {
+                        found = Mathf.Clamp01(v);
+                    }
+                    break;
+                }
+
+                if (found >= 0f)
+                {
+                    SetIgnitionSfxVolume(found);
+                    PlayerPrefs.Save();
+                    LogDebug("Migrated legacy ignition volume from config: " + found.ToString("0.00", CultureInfo.InvariantCulture));
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         internal static void LogDebug(string msg)
@@ -224,11 +291,11 @@ namespace SebTruck
 
         internal static void PlayIgnitionOnSfx(sCarController car)
         {
-            if (_ignitionSfxOn == null)
+            if (!GetIgnitionSfxEnabled())
             {
                 return;
             }
-            if (_ignitionSfxVolume == null)
+            if (_ignitionSfxOn == null)
             {
                 return;
             }
@@ -237,7 +304,7 @@ namespace SebTruck
                 return;
             }
 
-            float vol = Mathf.Clamp01(_ignitionSfxVolume.Value);
+            float vol = GetIgnitionSfxVolume();
 
             try
             {
@@ -354,6 +421,10 @@ namespace SebTruck
 
         internal static void PlayIndicatorClick(sCarController car, bool highPitch)
         {
+            if (!GetIndicatorSfxEnabled())
+            {
+                return;
+            }
             if (car == null || car.GuyActive)
             {
                 return;
@@ -412,12 +483,16 @@ namespace SebTruck
 
         internal static void StartIgnitionHoldSfx(sCarController car)
         {
+            if (!GetIgnitionSfxEnabled())
+            {
+                return;
+            }
             if (_ignitionSfxOn == null || car == null || car.GuyActive)
             {
                 return;
             }
 
-            float vol = _ignitionSfxVolume != null ? Mathf.Clamp01(_ignitionSfxVolume.Value) : 0.6f;
+            float vol = GetIgnitionSfxVolume();
             if (vol <= 0.001f)
             {
                 return;

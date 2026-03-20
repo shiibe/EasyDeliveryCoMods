@@ -15,8 +15,10 @@ namespace SebTruck
         internal const string PrefKeyIgnitionFeatureEnabled = "SebTruck_IgnitionFeatureEnabled";
         internal const string PrefKeyIgnitionHoldSeconds = "SebTruck_IgnitionHoldSeconds";
         internal const string PrefKeyIgnitionSfxEnabled = "SebTruck_IgnitionSfxEnabled";
+        internal const string PrefKeyIgnitionSfxVolume = "SebTruck_IgnitionSfxVolume";
 
         internal const string PrefKeyIndicatorFeatureEnabled = "SebTruck_IndicatorFeatureEnabled";
+        internal const string PrefKeyIndicatorSfxEnabled = "SebTruck_IndicatorSfxEnabled";
 
         internal const string PrefKeyHudShowSpeed = "SebTruck_HudShowSpeed";
         internal const string PrefKeyHudShowTach = "SebTruck_HudShowTach";
@@ -567,6 +569,16 @@ namespace SebTruck
             PlayerPrefs.SetInt(PrefKeyIgnitionSfxEnabled, enabled ? 1 : 0);
         }
 
+        internal static float GetIgnitionSfxVolume()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIgnitionSfxVolume, 0.6f), 0f, 1f);
+        }
+
+        internal static void SetIgnitionSfxVolume(float volume01)
+        {
+            PlayerPrefs.SetFloat(PrefKeyIgnitionSfxVolume, Mathf.Clamp01(volume01));
+        }
+
         internal static bool GetIgnitionEnabledEffective()
         {
             if (!GetIgnitionFeatureEnabled())
@@ -611,6 +623,16 @@ namespace SebTruck
         internal static void SetIndicatorFeatureEnabled(bool enabled)
         {
             PlayerPrefs.SetInt(PrefKeyIndicatorFeatureEnabled, enabled ? 1 : 0);
+        }
+
+        internal static bool GetIndicatorSfxEnabled()
+        {
+            return PlayerPrefs.GetInt(PrefKeyIndicatorSfxEnabled, 1) != 0;
+        }
+
+        internal static void SetIndicatorSfxEnabled(bool enabled)
+        {
+            PlayerPrefs.SetInt(PrefKeyIndicatorSfxEnabled, enabled ? 1 : 0);
         }
 
 
@@ -783,7 +805,9 @@ namespace SebTruck
             SetIgnitionEnabled(true);
             SetIgnitionHoldSeconds(1.35f);
             SetIgnitionSfxEnabled(true);
+            SetIgnitionSfxVolume(0.6f);
             SetIndicatorFeatureEnabled(true);
+            SetIndicatorSfxEnabled(true);
             SetManualSpeedMultForward(1.0f);
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
@@ -804,12 +828,14 @@ namespace SebTruck
             SetIgnitionEnabled(true);
             SetIgnitionHoldSeconds(1.35f);
             SetIgnitionSfxEnabled(true);
+            SetIgnitionSfxVolume(0.6f);
             PlayerPrefs.Save();
         }
 
         internal static void ResetIndicatorDefaults()
         {
             SetIndicatorFeatureEnabled(true);
+            SetIndicatorSfxEnabled(true);
             PlayerPrefs.Save();
         }
 

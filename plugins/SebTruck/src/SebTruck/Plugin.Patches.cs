@@ -37,6 +37,11 @@ namespace SebTruck
         private static bool _indicatorBlinkOn;
         private static float _indicatorNextBlinkTime;
 
+        private const float IndicatorCancelArmThreshold = 0.35f;
+        private const float IndicatorCancelCenterThreshold = 0.12f;
+        private static bool _indicatorCancelArmed;
+        private static IndicatorMode _indicatorCancelArmedForMode;
+
         private sealed class IndicatorCache
         {
             public readonly List<Light> Left = new List<Light>();
@@ -75,6 +80,11 @@ namespace SebTruck
         private static FieldInfo _engineIntenseField;
         private static FieldInfo _engineDistortionField;
 
+        private static FieldInfo _radioTargetVolumeField;
+        private static FieldInfo _radioRadioVolumeField;
+        private static FieldInfo _radioSourceField;
+        private static FieldInfo _radioNoiseField;
+
         private static readonly Dictionary<int, float> _enginePitchMulApplied = new Dictionary<int, float>();
 
         private static Type _headlightsRuntimeType;
@@ -104,6 +114,92 @@ namespace SebTruck
             _headlightsEmissiveRegularField = AccessTools.Field(t, "emissiveRegular");
             _headlightsHeadlightsOnField = AccessTools.Field(t, "headlightsOn");
             _headlightsModelField = AccessTools.Field(t, "model");
+        }
+
+        private static void EnsureRadioRefs()
+        {
+            if (_radioTargetVolumeField != null)
+            {
+                return;
+            }
+
+            _radioTargetVolumeField = AccessTools.Field(typeof(sRadioSystem), "targetVolume");
+            _radioRadioVolumeField = AccessTools.Field(typeof(sRadioSystem), "radioVolume");
+            _radioSourceField = AccessTools.Field(typeof(sRadioSystem), "source");
+            _radioNoiseField = AccessTools.Field(typeof(sRadioSystem), "noise");
+        }
+
+        private static void MuteRadioProximityIfIgnitionOff(sRadioSystem radio)
+        {
+            if (radio == null || radio.car == null)
+            {
+                return;
+            }
+
+            // Only mute the proximity/outside sound (player is out of the vehicle).
+            if (!radio.car.GuyActive)
+            {
+                return;
+            }
+
+            if (!GetIgnitionFeatureEnabled() || GetIgnitionEnabledEffective())
+            {
+                return;
+            }
+
+            EnsureRadioRefs();
+            try
+            {
+                _radioTargetVolumeField?.SetValue(radio, 0f);
+                _radioRadioVolumeField?.SetValue(radio, 0f);
+
+                var src = _radioSourceField != null ? _radioSourceField.GetValue(radio) as Component : null;
+                if (src != null) SetProp(src, "volume", 0f);
+
+                var noise = _radioNoiseField != null ? _radioNoiseField.GetValue(radio) as Component : null;
+                if (noise != null) SetProp(noise, "volume", 0f);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private static void UpdateIndicatorAutoCancel(float steerX)
+        {
+            if (_indicatorMode != IndicatorMode.Left && _indicatorMode != IndicatorMode.Right)
+            {
+                _indicatorCancelArmed = false;
+                _indicatorCancelArmedForMode = _indicatorMode;
+                return;
+            }
+
+            if (_indicatorCancelArmedForMode != _indicatorMode)
+            {
+                _indicatorCancelArmedForMode = _indicatorMode;
+                _indicatorCancelArmed = false;
+            }
+
+            if (!_indicatorCancelArmed)
+            {
+                if (_indicatorMode == IndicatorMode.Left && steerX <= -IndicatorCancelArmThreshold)
+                {
+                    _indicatorCancelArmed = true;
+                }
+                else if (_indicatorMode == IndicatorMode.Right && steerX >= IndicatorCancelArmThreshold)
+                {
+                    _indicatorCancelArmed = true;
+                }
+                return;
+            }
+
+            if (Mathf.Abs(steerX) <= IndicatorCancelCenterThreshold)
+            {
+                _indicatorMode = IndicatorMode.Off;
+                _indicatorBlinkOn = false;
+                _indicatorNextBlinkTime = 0f;
+                _indicatorCancelArmed = false;
+            }
         }
 
 
@@ -1463,6 +1559,8 @@ namespace SebTruck
                     _indicatorMode = IndicatorMode.Off;
                 }
 
+                UpdateIndicatorAutoCancel(__instance.driveInput.x);
+
                 _ignitionHoldWasDown = ignitionDown;
 
 
@@ -1579,6 +1677,14 @@ namespace SebTruck
                 v.y = accel;
                 __instance.driveInput = v;
             }
+        }
+
+
+        [HarmonyPatch(typeof(sRadioSystem), "Update")]
+        [HarmonyPostfix]
+        private static void SRadioSystem_Update_Postfix(sRadioSystem __instance)
+        {
+            MuteRadioProximityIfIgnitionOff(__instance);
         }
 
 
