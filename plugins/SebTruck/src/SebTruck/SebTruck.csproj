@@ -57,6 +57,14 @@
     
     <!-- Keep a dedicated item list for the r2modman profile copy target. -->
     <TruckSfx Include="sfx\**\*" />
+
+    <!-- Custom emissive maps for indicators. -->
+    <Content Include="emissives\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+
+    <!-- Keep a dedicated item list for the r2modman profile copy target. -->
+    <TruckEmissives Include="emissives\**\*" />
   </ItemGroup>
 
   <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
@@ -76,6 +84,12 @@
       DestinationFiles="@(TruckSfx->'$(ProfileDir)\BepInEx\plugins\SebTruck\sfx\%(RecursiveDir)%(Filename)%(Extension)')"
       SkipUnchangedFiles="true"
       Condition="@(TruckSfx) != ''" />
+
+    <Copy
+      SourceFiles="@(TruckEmissives)"
+      DestinationFiles="@(TruckEmissives->'$(ProfileDir)\BepInEx\plugins\SebTruck\emissives\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true"
+      Condition="@(TruckEmissives) != ''" />
   </Target>
 
 </Project>
