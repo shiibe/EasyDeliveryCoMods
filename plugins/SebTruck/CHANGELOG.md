@@ -1,6 +1,8 @@
 ## 1.0.5
 **Turn Signals**:
 - Add turn signal emitter materials so the turn signals actually glow when active/blinking.
+- Add dedicated emissive atlases for left/right/hazards (and brake variants) to control indicator glow.
+- Add world-space amber turn signal spot lights (front+rear) with an in-game intensity slider.
 - Add volume slider for turn signal click SFX.
 - Fix: Turn signals now automatically cancel after a full turn cycle to mimic real-world behavior.
 - Fix: Turn signals now pause while the pause menu is open.

@@ -216,6 +216,16 @@ namespace SebTruck
                 }
                 y += line;
 
+                float inten = Plugin.GetTurnSignalLightIntensity();
+                _util.ValueLabel($"{inten:0.00}", p.x + p.width - 12f, y);
+                float intenNorm = Mathf.InverseLerp(0.0f, 1.0f, inten);
+                float? newIntenNorm = _util.Slider("Intensity", intenNorm, center, y, ref _mouseYLock);
+                if (newIntenNorm.HasValue)
+                {
+                    Plugin.SetTurnSignalLightIntensity(Mathf.Lerp(0.0f, 1.0f, newIntenNorm.Value));
+                }
+                y += line;
+
                 bool indSfx = Plugin.GetIndicatorSfxEnabled();
                 string indSfxLabel = indSfx ? "On" : "Off";
                 if (_util.CycleButtonRaw("Signal SFX", indSfxLabel, center, y))

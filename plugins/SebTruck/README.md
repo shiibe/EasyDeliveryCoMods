@@ -27,13 +27,12 @@
 SebTruck adds driving upgrades like manual transmission, ignition controls, and compact HUD readouts (speed/tach/gear) while you drive for just a bit more realism.
 
 ## Features
-- Manual transmission mode (gears, neutral, reverse)
-- Ignition toggle with hold-to-start behavior
-- Turn indicators (L / R / 4-way hazards) `(WIP: currently only triggers indicator sound)`
-- HUD readouts (speed/tach/gear)
-- Optional ignition sound (`ignition_on.wav`)
-- Works with any input bindings from SebBinds
-- Manual braking supports the combined brake/reverse axis (`driveInput.y < 0`) and a separate handbrake
+- Manual transmission mode with shift up/down binds, and is bindable to a toggle for those who want to switch between auto/manual on the fly.
+- Engine overrev sound when nearing the redline of the tachometer.
+- Compact HUD elements for speed, tachometer, and gear display that can be toggled on/off and moved.
+- Turn signals that actually glow and react to steering input. Also a 4-way hazard mode.
+- Ignition toggle with hold-to-start behavior and sound effect.
+- Change selected Bobblehead and Truck Paint in the menu (if you have them unlocked).
 
 ## Screenshots
 <table>
@@ -42,7 +41,7 @@ SebTruck adds driving upgrades like manual transmission, ignition controls, and 
     <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/2.gif" alt="Screenshot 2" width="100%"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/3.gif" alt="Screenshot 3" width="100%"></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
   </tr>
   <tr>
@@ -51,7 +50,7 @@ SebTruck adds driving upgrades like manual transmission, ignition controls, and 
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/7.jpg" alt="Screenshot 7" width="100%"></td>
-    <td width="50%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTruck/assets/screenshots/8.jpg" alt="Screenshot 8" width="100%"></td>
   </tr>
 </table>
 

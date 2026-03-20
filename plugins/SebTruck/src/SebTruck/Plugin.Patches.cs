@@ -59,6 +59,23 @@ namespace SebTruck
 
         private static readonly Dictionary<int, bool> _truckBraking = new Dictionary<int, bool>();
 
+        private sealed class TurnSignalLightRig
+        {
+            public GameObject Root;
+            public Light FL;
+            public Light FR;
+            public Light RL;
+            public Light RR;
+
+            public bool BaseComputed;
+            public Vector3 BaseFL;
+            public Vector3 BaseFR;
+            public Vector3 BaseRL;
+            public Vector3 BaseRR;
+        }
+
+        private static readonly Dictionary<int, TurnSignalLightRig> _turnSignalLightRigs = new Dictionary<int, TurnSignalLightRig>();
+
         private sealed class TailLightCache
         {
             public readonly List<Light> Lights = new List<Light>();
@@ -255,6 +272,331 @@ namespace SebTruck
                     // ignore
                 }
             }
+        }
+
+        private static bool TryComputeModelBoundsInCarLocal(sCarController car, out Vector3 min, out Vector3 max)
+        {
+            min = Vector3.zero;
+            max = Vector3.zero;
+            if (car == null)
+            {
+                return false;
+            }
+
+            var hl = car.headlights;
+            if (hl == null)
+            {
+                return false;
+            }
+
+            EnsureHeadlightsRefs(hl);
+            var model = _headlightsModelField != null ? _headlightsModelField.GetValue(hl) as GameObject : null;
+            if (model == null)
+            {
+                return false;
+            }
+
+            bool any = false;
+            Vector3 vMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+
+            void AddPoint(Vector3 p)
+            {
+                if (!any)
+                {
+                    any = true;
+                    vMin = p;
+                    vMax = p;
+                    return;
+                }
+                vMin = Vector3.Min(vMin, p);
+                vMax = Vector3.Max(vMax, p);
+            }
+
+            try
+            {
+                var mfs = model.GetComponentsInChildren<MeshFilter>(true);
+                if (mfs != null)
+                {
+                    for (int i = 0; i < mfs.Length; i++)
+                    {
+                        var mf = mfs[i];
+                        if (mf == null || mf.sharedMesh == null)
+                        {
+                            continue;
+                        }
+
+                        Bounds b = mf.sharedMesh.bounds;
+                        Vector3 c = b.center;
+                        Vector3 e = b.extents;
+                        var t = mf.transform;
+
+                        for (int xi = -1; xi <= 1; xi += 2)
+                        for (int yi = -1; yi <= 1; yi += 2)
+                        for (int zi = -1; zi <= 1; zi += 2)
+                        {
+                            Vector3 lp = c + new Vector3(e.x * xi, e.y * yi, e.z * zi);
+                            Vector3 wp = t.TransformPoint(lp);
+                            Vector3 cp = car.transform.InverseTransformPoint(wp);
+                            AddPoint(cp);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            if (!any)
+            {
+                try
+                {
+                    var rs = model.GetComponentsInChildren<Renderer>(true);
+                    if (rs != null)
+                    {
+                        for (int i = 0; i < rs.Length; i++)
+                        {
+                            var r = rs[i];
+                            if (r == null)
+                            {
+                                continue;
+                            }
+                            Bounds b = r.bounds;
+                            Vector3 c = b.center;
+                            Vector3 e = b.extents;
+                            for (int xi = -1; xi <= 1; xi += 2)
+                            for (int yi = -1; yi <= 1; yi += 2)
+                            for (int zi = -1; zi <= 1; zi += 2)
+                            {
+                                Vector3 wp = c + new Vector3(e.x * xi, e.y * yi, e.z * zi);
+                                Vector3 cp = car.transform.InverseTransformPoint(wp);
+                                AddPoint(cp);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            if (!any)
+            {
+                return false;
+            }
+
+            min = vMin;
+            max = vMax;
+            return true;
+        }
+
+        private static void EnsureTurnSignalLightRig(sCarController car)
+        {
+            if (car == null)
+            {
+                return;
+            }
+
+            int id = car.GetInstanceID();
+            if (_turnSignalLightRigs.TryGetValue(id, out var rig) && rig != null && rig.Root != null)
+            {
+                if (rig.Root.transform.parent != car.transform)
+                {
+                    rig.Root.transform.SetParent(car.transform, false);
+                }
+                return;
+            }
+
+            rig = new TurnSignalLightRig();
+            _turnSignalLightRigs[id] = rig;
+
+            var root = new GameObject("SebTruck_TurnSignalLights");
+            root.hideFlags = HideFlags.HideAndDontSave;
+            root.transform.SetParent(car.transform, false);
+            root.transform.localPosition = Vector3.zero;
+            rig.Root = root;
+
+            Light NewLight(string name)
+            {
+                var go = new GameObject(name);
+                go.hideFlags = HideFlags.HideAndDontSave;
+                go.transform.SetParent(root.transform, false);
+                go.transform.localPosition = Vector3.zero;
+
+                var l = go.AddComponent<Light>();
+                l.type = LightType.Spot;
+                l.shadows = LightShadows.None;
+                l.color = new Color(1.0f, 0.55f, 0.12f);
+                l.spotAngle = 95f;
+                l.innerSpotAngle = 45f;
+                l.enabled = false;
+                return l;
+            }
+
+            rig.FL = NewLight("FL");
+            rig.FR = NewLight("FR");
+            rig.RL = NewLight("RL");
+            rig.RR = NewLight("RR");
+            rig.BaseComputed = false;
+        }
+
+        private static void ApplyTurnSignalLightParams(TurnSignalLightRig rig)
+        {
+            if (rig == null)
+            {
+                return;
+            }
+
+            const float fyaw = 20f;
+            const float fpitch = 45f;
+            const float fspot = 110f;
+            const float finner = 15f;
+
+            const float ryaw = 5f;
+            const float rpitch = 30f;
+            const float rspot = 145f;
+            const float rinner = 30f;
+
+            void ApplyFront(Light l, float y)
+            {
+                if (l == null)
+                {
+                    return;
+                }
+                l.spotAngle = fspot;
+                l.innerSpotAngle = finner;
+                l.transform.localRotation = Quaternion.Euler(fpitch, y, 0f);
+            }
+
+            void ApplyRear(Light l, float y)
+            {
+                if (l == null)
+                {
+                    return;
+                }
+                l.spotAngle = rspot;
+                l.innerSpotAngle = rinner;
+                l.transform.localRotation = Quaternion.Euler(rpitch, y, 0f);
+            }
+
+            ApplyFront(rig.FL, -fyaw);
+            ApplyFront(rig.FR, fyaw);
+            ApplyRear(rig.RL, 180f - ryaw);
+            ApplyRear(rig.RR, 180f + ryaw);
+        }
+
+        private static void EnsureTurnSignalLightBasePositions(sCarController car)
+        {
+            if (car == null)
+            {
+                return;
+            }
+            int id = car.GetInstanceID();
+            if (!_turnSignalLightRigs.TryGetValue(id, out var rig) || rig == null)
+            {
+                return;
+            }
+            if (rig.BaseComputed)
+            {
+                return;
+            }
+
+            // Try to anchor to the truck body model bounds in car-local space.
+            if (TryComputeModelBoundsInCarLocal(car, out Vector3 min, out Vector3 max))
+            {
+                float xPad = 0.08f;
+                float zPad = 0.12f;
+                float xL = min.x - xPad;
+                float xR = max.x + xPad;
+                float zF = max.z + zPad;
+                float zB = min.z - zPad;
+                float y = Mathf.Lerp(min.y, max.y, 0.42f);
+
+                rig.BaseFL = new Vector3(xL, y, zF);
+                rig.BaseFR = new Vector3(xR, y, zF);
+                rig.BaseRL = new Vector3(xL, y, zB);
+                rig.BaseRR = new Vector3(xR, y, zB);
+                rig.BaseComputed = true;
+                return;
+            }
+
+            // Fallback: rough truck-like dimensions.
+            rig.BaseFL = new Vector3(-0.75f, 0.55f, 1.45f);
+            rig.BaseFR = new Vector3(0.75f, 0.55f, 1.45f);
+            rig.BaseRL = new Vector3(-0.80f, 0.55f, -1.55f);
+            rig.BaseRR = new Vector3(0.80f, 0.55f, -1.55f);
+            rig.BaseComputed = true;
+        }
+
+        private static void SetLightOn(Light l, bool on, float intensity, float range)
+        {
+            if (l == null)
+            {
+                return;
+            }
+            l.range = range;
+            l.intensity = intensity;
+            l.enabled = on && intensity > 0.0001f && range > 0.0001f;
+        }
+
+        private static void UpdateTurnSignalWorldLights(sCarController car, bool leftOn, bool rightOn, bool forceOff)
+        {
+            if (car == null)
+            {
+                return;
+            }
+            if (!IsTruckCar(car))
+            {
+                return;
+            }
+
+            // Keep signals forced off while ignition is effectively off.
+            if (forceOff || !GetIgnitionEnabledEffective())
+            {
+                int id = car.GetInstanceID();
+                if (_turnSignalLightRigs.TryGetValue(id, out var rig0) && rig0 != null)
+                {
+                    SetLightOn(rig0.FL, false, 0f, 0f);
+                    SetLightOn(rig0.FR, false, 0f, 0f);
+                    SetLightOn(rig0.RL, false, 0f, 0f);
+                    SetLightOn(rig0.RR, false, 0f, 0f);
+                }
+                return;
+            }
+
+            EnsureTurnSignalLightRig(car);
+            EnsureTurnSignalLightBasePositions(car);
+
+            int carId = car.GetInstanceID();
+            if (!_turnSignalLightRigs.TryGetValue(carId, out var rig) || rig == null)
+            {
+                return;
+            }
+
+            const float range = 6.0f;
+            float intensity = GetTurnSignalLightIntensity();
+            float side = 0f;
+            Vector3 fOff = TurnSignalLightFrontOffset;
+            Vector3 rOff = TurnSignalLightRearOffset;
+
+            ApplyTurnSignalLightParams(rig);
+
+            Vector3 fl = rig.BaseFL + fOff + new Vector3(-side, 0f, 0f);
+            Vector3 fr = rig.BaseFR + fOff + new Vector3(+side, 0f, 0f);
+            Vector3 rl = rig.BaseRL + rOff + new Vector3(-side, 0f, 0f);
+            Vector3 rr = rig.BaseRR + rOff + new Vector3(+side, 0f, 0f);
+
+            if (rig.FL != null) rig.FL.transform.localPosition = fl;
+            if (rig.FR != null) rig.FR.transform.localPosition = fr;
+            if (rig.RL != null) rig.RL.transform.localPosition = rl;
+            if (rig.RR != null) rig.RR.transform.localPosition = rr;
+
+            SetLightOn(rig.FL, leftOn, intensity, range);
+            SetLightOn(rig.RL, leftOn, intensity, range);
+            SetLightOn(rig.FR, rightOn, intensity, range);
+            SetLightOn(rig.RR, rightOn, intensity, range);
         }
 
         private static void UpdateIndicatorAutoCancel(float steerX)
@@ -935,6 +1277,7 @@ namespace SebTruck
                 _indicatorPauseStart = -1f;
                 SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: false);
                 ApplyTruckEmissionMap(car);
+                UpdateTurnSignalWorldLights(car, leftOn: false, rightOn: false, forceOff: true);
                 return;
             }
 
@@ -946,6 +1289,7 @@ namespace SebTruck
                 _indicatorNextBlinkTime = 0f;
                 _indicatorPauseStart = -1f;
                 SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: true);
+                UpdateTurnSignalWorldLights(car, leftOn: false, rightOn: false, forceOff: true);
                 return;
             }
 
@@ -955,6 +1299,7 @@ namespace SebTruck
                 _indicatorPauseStart = -1f;
                 SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: false);
                 ApplyTruckEmissionMap(car);
+                UpdateTurnSignalWorldLights(car, leftOn: false, rightOn: false, forceOff: false);
                 return;
             }
 
@@ -965,6 +1310,10 @@ namespace SebTruck
                 {
                     _indicatorPauseStart = Time.unscaledTime;
                 }
+
+                bool pLeftOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Left || _indicatorMode == IndicatorMode.Hazards);
+                bool pRightOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Right || _indicatorMode == IndicatorMode.Hazards);
+                UpdateTurnSignalWorldLights(car, pLeftOn, pRightOn, forceOff: false);
                 return;
             }
             if (_indicatorPauseStart >= 0f)
@@ -1000,6 +1349,10 @@ namespace SebTruck
 
             SetIndicators(car, _indicatorMode, _indicatorBlinkOn, forceOff: false);
             ApplyTruckEmissionMap(car);
+
+            bool leftOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Left || _indicatorMode == IndicatorMode.Hazards);
+            bool rightOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Right || _indicatorMode == IndicatorMode.Hazards);
+            UpdateTurnSignalWorldLights(car, leftOn, rightOn, forceOff: false);
         }
 
         private static void RestoreVehicleLightState(sCarController car, bool wantOn)
@@ -1492,6 +1845,11 @@ namespace SebTruck
             if (!__instance.GuyActive)
             {
                 UpdateIndicators(__instance);
+            }
+            else
+            {
+                // Ensure any world-space signal lights are muted when the player leaves the vehicle.
+                UpdateTurnSignalWorldLights(__instance, leftOn: false, rightOn: false, forceOff: true);
             }
         }
 

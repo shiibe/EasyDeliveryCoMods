@@ -22,6 +22,11 @@ namespace SebTruck
         internal const string PrefKeyIndicatorSfxVolume = "SebTruck_IndicatorSfxVolume";
         internal const string PrefKeyIndicatorBlinkSeconds = "SebTruck_IndicatorBlinkSeconds";
 
+        internal const string PrefKeyTurnSignalLightIntensity = "SebTruck_TurnSignalLightIntensity";
+
+        internal static readonly Vector3 TurnSignalLightFrontOffset = new Vector3(0f, 0f, 0.05f);
+        internal static readonly Vector3 TurnSignalLightRearOffset = new Vector3(0f, -0.3f, 0.05f);
+
         internal const string PrefKeyHudShowSpeed = "SebTruck_HudShowSpeed";
         internal const string PrefKeyHudShowTach = "SebTruck_HudShowTach";
         internal const string PrefKeyHudShowGear = "SebTruck_HudShowGear";
@@ -659,6 +664,15 @@ namespace SebTruck
             PlayerPrefs.SetFloat(PrefKeyIndicatorBlinkSeconds, Mathf.Clamp(seconds, 0.15f, 1.50f));
         }
 
+        internal static float GetTurnSignalLightIntensity()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyTurnSignalLightIntensity, 0.25f), 0f, 1.0f);
+        }
+
+        internal static void SetTurnSignalLightIntensity(float intensity)
+        {
+            PlayerPrefs.SetFloat(PrefKeyTurnSignalLightIntensity, Mathf.Clamp(intensity, 0f, 1.0f));
+        }
 
         internal static bool GetHudShowSpeed()
         {
