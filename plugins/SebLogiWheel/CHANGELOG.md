@@ -1,3 +1,6 @@
+## 1.0.2
+- Change default steering range to 360deg for a better 1:1 feel with the 1st person view.
+
 ## 1.0.1
 - Wheel menu: move Logitech SDK status + Retry up for cleaner spacing.
 
