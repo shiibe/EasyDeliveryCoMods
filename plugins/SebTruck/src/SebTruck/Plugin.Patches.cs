@@ -36,6 +36,7 @@ namespace SebTruck
         private static IndicatorMode _indicatorMode;
         private static bool _indicatorBlinkOn;
         private static float _indicatorNextBlinkTime;
+        private static float _indicatorPauseStart = -1f;
 
         private const float IndicatorCancelArmThreshold = 0.35f;
         private const float IndicatorCancelCenterThreshold = 0.12f;
@@ -55,6 +56,8 @@ namespace SebTruck
         }
 
         private static readonly Dictionary<int, IndicatorCache> _indicatorCaches = new Dictionary<int, IndicatorCache>();
+
+        private static readonly Dictionary<int, bool> _truckBraking = new Dictionary<int, bool>();
 
         private sealed class TailLightCache
         {
@@ -162,6 +165,95 @@ namespace SebTruck
             catch
             {
                 // ignore
+            }
+        }
+
+        private static bool IsTruckCar(sCarController car)
+        {
+            if (car == null)
+            {
+                return false;
+            }
+            try
+            {
+                return car.GetComponentInChildren<sTruckSFX>(true) != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool GetTruckBraking(sCarController car)
+        {
+            if (car == null)
+            {
+                return false;
+            }
+            int id = car.GetInstanceID();
+            if (_truckBraking.TryGetValue(id, out bool v))
+            {
+                return v;
+            }
+            return false;
+        }
+
+        private static void SetTruckBraking(sCarController car, bool braking)
+        {
+            if (car == null)
+            {
+                return;
+            }
+            _truckBraking[car.GetInstanceID()] = braking;
+        }
+
+        private static void ApplyTruckEmissionMap(sCarController car)
+        {
+            if (car == null || car.GuyActive)
+            {
+                return;
+            }
+
+            if (!GetIgnitionEnabledEffective())
+            {
+                return;
+            }
+
+            if (!IsTruckCar(car))
+            {
+                return;
+            }
+
+            var hl = car.headlights;
+            if (hl == null)
+            {
+                return;
+            }
+
+            EnsureHeadlightsRefs(hl);
+            var mat = _headlightsCarMatField != null ? _headlightsCarMatField.GetValue(hl) as Material : null;
+            if (mat == null)
+            {
+                return;
+            }
+
+            bool braking = GetTruckBraking(car);
+            bool blinkOn = _indicatorMode != IndicatorMode.Off && _indicatorBlinkOn;
+            var tex = GetTurnSignalEmissive(braking, (int)_indicatorMode, blinkOn);
+            if (tex != null)
+            {
+                mat.SetTexture("_EmissionMap", tex);
+                try
+                {
+                    if (mat.HasProperty("_EmissionColor"))
+                    {
+                        mat.SetColor("_EmissionColor", Color.white);
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
             }
         }
 
@@ -840,7 +932,9 @@ namespace SebTruck
                 _indicatorMode = IndicatorMode.Off;
                 _indicatorBlinkOn = false;
                 _indicatorNextBlinkTime = 0f;
+                _indicatorPauseStart = -1f;
                 SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: false);
+                ApplyTruckEmissionMap(car);
                 return;
             }
 
@@ -850,6 +944,7 @@ namespace SebTruck
                 _indicatorMode = IndicatorMode.Off;
                 _indicatorBlinkOn = false;
                 _indicatorNextBlinkTime = 0f;
+                _indicatorPauseStart = -1f;
                 SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: true);
                 return;
             }
@@ -857,22 +952,44 @@ namespace SebTruck
             if (_indicatorMode == IndicatorMode.Off)
             {
                 _indicatorBlinkOn = false;
+                _indicatorPauseStart = -1f;
                 SetIndicators(car, IndicatorMode.Off, blinkOn: false, forceOff: false);
+                ApplyTruckEmissionMap(car);
                 return;
+            }
+
+            // Pause menu: freeze indicator blink timing/state.
+            if (PauseSystem.paused)
+            {
+                if (_indicatorPauseStart < 0f)
+                {
+                    _indicatorPauseStart = Time.unscaledTime;
+                }
+                return;
+            }
+            if (_indicatorPauseStart >= 0f)
+            {
+                float pausedFor = Time.unscaledTime - _indicatorPauseStart;
+                if (_indicatorNextBlinkTime > 0f)
+                {
+                    _indicatorNextBlinkTime += pausedFor;
+                }
+                _indicatorPauseStart = -1f;
             }
 
             bool blinkWasOn = _indicatorBlinkOn;
 
             float now = Time.unscaledTime;
+            float step = GetIndicatorBlinkSeconds();
             if (_indicatorNextBlinkTime <= 0f)
             {
                 _indicatorBlinkOn = true;
-                _indicatorNextBlinkTime = now + 0.45f;
+                _indicatorNextBlinkTime = now + step;
             }
             else if (now >= _indicatorNextBlinkTime)
             {
                 _indicatorBlinkOn = !_indicatorBlinkOn;
-                _indicatorNextBlinkTime = now + 0.45f;
+                _indicatorNextBlinkTime = now + step;
             }
 
             // Click sound on each blink edge.
@@ -882,6 +999,7 @@ namespace SebTruck
             }
 
             SetIndicators(car, _indicatorMode, _indicatorBlinkOn, forceOff: false);
+            ApplyTruckEmissionMap(car);
         }
 
         private static void RestoreVehicleLightState(sCarController car, bool wantOn)
@@ -920,7 +1038,18 @@ namespace SebTruck
             var regular = _headlightsEmissiveRegularField != null ? _headlightsEmissiveRegularField.GetValue(hl) as Texture : null;
             if (mat != null && regular != null)
             {
-                mat.SetTexture("_EmissionMap", regular);
+                Texture want = regular;
+                if (IsTruckCar(car))
+                {
+                    bool braking = GetTruckBraking(car);
+                    var custom = GetTurnSignalEmissive(braking, indicatorMode: 0, blinkOn: false);
+                    if (custom != null)
+                    {
+                        want = custom;
+                    }
+                }
+
+                mat.SetTexture("_EmissionMap", want);
                 if (mat.HasProperty("_EmissionColor"))
                 {
                     mat.SetColor("_EmissionColor", Color.white);
@@ -1685,6 +1814,34 @@ namespace SebTruck
         private static void SRadioSystem_Update_Postfix(sRadioSystem __instance)
         {
             MuteRadioProximityIfIgnitionOff(__instance);
+        }
+
+
+        [HarmonyPatch(typeof(Headlights), "Break")]
+        [HarmonyPostfix]
+        private static void Headlights_Break_Postfix(Headlights __instance, bool breaking)
+        {
+            if (__instance == null)
+            {
+                return;
+            }
+
+            sCarController car = null;
+            try
+            {
+                car = __instance.GetComponentInParent<sCarController>();
+            }
+            catch
+            {
+                // ignore
+            }
+            if (car == null)
+            {
+                return;
+            }
+
+            SetTruckBraking(car, breaking);
+            ApplyTruckEmissionMap(car);
         }
 
 

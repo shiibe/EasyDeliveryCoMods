@@ -22,7 +22,7 @@ namespace SebTruck
         {
             Transmission = 0,
             Ignition = 1,
-            Indicators = 2,
+            TurnSignals = 2,
             Hud = 3,
             Tweaks = 4
         }
@@ -98,6 +98,10 @@ namespace SebTruck
 
             y += sectionGap;
             string pageLabel = _page == Page.Hud ? "HUD" : _page.ToString();
+            if (_page == Page.TurnSignals)
+            {
+                pageLabel = "Turn Signals";
+            }
             _util.Label(pageLabel, cx, y);
             y += line;
 
@@ -111,11 +115,11 @@ namespace SebTruck
                 _util.Label(_toastMsg, cx, toastY);
             }
 
-            if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
+                if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
                 if (_page == Page.Transmission) Plugin.ResetTransmissionDefaults();
                 else if (_page == Page.Ignition) Plugin.ResetIgnitionDefaults();
-                else if (_page == Page.Indicators) Plugin.ResetIndicatorDefaults();
+                else if (_page == Page.TurnSignals) Plugin.ResetIndicatorDefaults();
                 else if (_page == Page.Hud) Plugin.ResetHudDefaults();
                 else Plugin.ResetTweaksDefaults();
             }
@@ -192,19 +196,29 @@ namespace SebTruck
                 return;
             }
 
-            if (_page == Page.Indicators)
+            if (_page == Page.TurnSignals)
             {
                 bool indFeature = Plugin.GetIndicatorFeatureEnabled();
                 string indLabel = indFeature ? "Enabled" : "Disabled";
-                if (_util.CycleButtonRaw("Indicators", indLabel, center, y))
+                if (_util.CycleButtonRaw("Turn Signals", indLabel, center, y))
                 {
                     Plugin.SetIndicatorFeatureEnabled(!indFeature);
                 }
                 y += line;
 
+                float step = Plugin.GetIndicatorBlinkSeconds();
+                _util.ValueLabel($"{step:0.00}s", p.x + p.width - 12f, y);
+                float stepNorm = Mathf.InverseLerp(0.20f, 1.20f, step);
+                float? newStepNorm = _util.Slider("Blink Rate", stepNorm, center, y, ref _mouseYLock);
+                if (newStepNorm.HasValue)
+                {
+                    Plugin.SetIndicatorBlinkSeconds(Mathf.Lerp(0.20f, 1.20f, newStepNorm.Value));
+                }
+                y += line;
+
                 bool indSfx = Plugin.GetIndicatorSfxEnabled();
                 string indSfxLabel = indSfx ? "On" : "Off";
-                if (_util.CycleButtonRaw("Indicator SFX", indSfxLabel, center, y))
+                if (_util.CycleButtonRaw("Signal SFX", indSfxLabel, center, y))
                 {
                     Plugin.SetIndicatorSfxEnabled(!indSfx);
                 }
@@ -212,7 +226,7 @@ namespace SebTruck
 
                 float vol = Plugin.GetIndicatorSfxVolume();
                 _util.ValueLabel($"{Mathf.RoundToInt(vol * 100f)}%", p.x + p.width - 12f, y);
-                float? newVol = _util.Slider("Indicator Vol.", vol, center, y, ref _mouseYLock);
+                float? newVol = _util.Slider("Signal Vol.", vol, center, y, ref _mouseYLock);
                 if (newVol.HasValue)
                 {
                     Plugin.SetIndicatorSfxVolume(newVol.Value);

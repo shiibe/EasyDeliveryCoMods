@@ -1,8 +1,14 @@
 ## 1.0.5
-- Turn indicators now automatically cancel after a full turn cycle to mimic real-world behavior.
-- Fix proximity radio and engine sounds being audible when out of the truck with the ignition off.
-- Add volume options for ignition and turn signal SFX.
-- Play click sound when ignition is turned off.
+**Turn Signals**:
+- Add turn signal emitter materials so the turn signals actually glow when active/blinking.
+- Add volume slider for turn signal click SFX.
+- Fix: Turn signals now automatically cancel after a full turn cycle to mimic real-world behavior.
+- Fix: Turn signals now pause while the pause menu is open.
+
+**Ignition**:
+- Mute the engine and radio proximity sounds while the ignition is off and the player is out of the truck.
+- Turning the ignition off now plays the headlight click sound.
+- Ignition SFX now defaults to 15% volume.
 
 ## 1.0.4
 - Manual transmission braking: treat negative `driveInput.y` as brake/reverse input (better controller/wheel support), while still honoring handbrake.

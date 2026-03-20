@@ -20,6 +20,7 @@ namespace SebTruck
         internal const string PrefKeyIndicatorFeatureEnabled = "SebTruck_IndicatorFeatureEnabled";
         internal const string PrefKeyIndicatorSfxEnabled = "SebTruck_IndicatorSfxEnabled";
         internal const string PrefKeyIndicatorSfxVolume = "SebTruck_IndicatorSfxVolume";
+        internal const string PrefKeyIndicatorBlinkSeconds = "SebTruck_IndicatorBlinkSeconds";
 
         internal const string PrefKeyHudShowSpeed = "SebTruck_HudShowSpeed";
         internal const string PrefKeyHudShowTach = "SebTruck_HudShowTach";
@@ -647,6 +648,17 @@ namespace SebTruck
             PlayerPrefs.SetFloat(PrefKeyIndicatorSfxVolume, Mathf.Clamp01(volume01));
         }
 
+        internal static float GetIndicatorBlinkSeconds()
+        {
+            // Time per blink state (ON then OFF). Vanilla-ish default.
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIndicatorBlinkSeconds, 0.45f), 0.15f, 1.50f);
+        }
+
+        internal static void SetIndicatorBlinkSeconds(float seconds)
+        {
+            PlayerPrefs.SetFloat(PrefKeyIndicatorBlinkSeconds, Mathf.Clamp(seconds, 0.15f, 1.50f));
+        }
+
 
         internal static bool GetHudShowSpeed()
         {
@@ -821,6 +833,7 @@ namespace SebTruck
             SetIndicatorFeatureEnabled(true);
             SetIndicatorSfxEnabled(true);
             SetIndicatorSfxVolume(1.0f);
+            SetIndicatorBlinkSeconds(0.45f);
             SetManualSpeedMultForward(1.0f);
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
@@ -850,6 +863,7 @@ namespace SebTruck
             SetIndicatorFeatureEnabled(true);
             SetIndicatorSfxEnabled(true);
             SetIndicatorSfxVolume(1.0f);
+            SetIndicatorBlinkSeconds(0.45f);
             PlayerPrefs.Save();
         }
 

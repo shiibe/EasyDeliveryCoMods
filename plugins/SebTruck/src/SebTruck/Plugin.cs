@@ -33,6 +33,16 @@ namespace SebTruck
         private static GameObject _indicatorClickSfxGo;
         private static Component _indicatorClickSfxSource;
 
+        private static bool _turnSignalEmissivesTriedLoad;
+        private static Texture2D _turnSignalEmissiveOff;
+        private static Texture2D _turnSignalEmissiveLeft;
+        private static Texture2D _turnSignalEmissiveRight;
+        private static Texture2D _turnSignalEmissiveBoth;
+        private static Texture2D _turnSignalEmissiveBrakeOff;
+        private static Texture2D _turnSignalEmissiveBrakeLeft;
+        private static Texture2D _turnSignalEmissiveBrakeRight;
+        private static Texture2D _turnSignalEmissiveBrakeBoth;
+
         private void Awake()
         {
             Log = Logger;
@@ -42,6 +52,8 @@ namespace SebTruck
             _ignitionSfxOnPath = Config.Bind("Ignition", "sfx_on_path", "", "Optional ignition ON sound. File name inside the plugin's sfx folder (e.g. ignition_on.wav). Leave blank to use sfx/ignition_on.wav.");
             TryMigrateLegacyIgnitionSfxVolumeFromConfig();
             TryLoadIgnitionSfx();
+
+            TryLoadTurnSignalEmissives();
 
             var harmony = new Harmony(PluginGuid);
             harmony.PatchAll(typeof(Plugin));
@@ -67,6 +79,198 @@ namespace SebTruck
             }
 
             Log.LogInfo("Loaded");
+        }
+
+        private static Type FindTypeInLoadedAssemblies(string fullName)
+        {
+            try
+            {
+                // Common Unity pattern: type-forwarded into a dedicated module.
+                // Using Type.GetType here can pull it without us knowing the concrete assembly instance.
+                var direct = Type.GetType(fullName + ", UnityEngine.ImageConversionModule", throwOnError: false);
+                if (direct != null)
+                {
+                    return direct;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                var asms = AppDomain.CurrentDomain.GetAssemblies();
+                for (int i = 0; i < asms.Length; i++)
+                {
+                    var a = asms[i];
+                    if (a == null) continue;
+                    try
+                    {
+                        var t = a.GetType(fullName, throwOnError: false);
+                        if (t != null) return t;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            return null;
+        }
+
+        private static bool TryLoadImageIntoTexture(Texture2D tex, byte[] bytes)
+        {
+            if (tex == null || bytes == null || bytes.Length == 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                // Use reflection to avoid a UnityEngine.ImageConversionModule reference.
+                var t = FindTypeInLoadedAssemblies("UnityEngine.ImageConversion");
+                if (t == null)
+                {
+                    return false;
+                }
+
+                MethodInfo m = null;
+                try
+                {
+                    m = t.GetMethod("LoadImage", BindingFlags.Public | BindingFlags.Static, null,
+                        new[] { typeof(Texture2D), typeof(byte[]), typeof(bool) }, null);
+                }
+                catch
+                {
+                    // ignore
+                }
+                if (m != null)
+                {
+                    object r = m.Invoke(null, new object[] { tex, bytes, true });
+                    return r is bool b ? b : true;
+                }
+
+                try
+                {
+                    m = t.GetMethod("LoadImage", BindingFlags.Public | BindingFlags.Static, null,
+                        new[] { typeof(Texture2D), typeof(byte[]) }, null);
+                }
+                catch
+                {
+                    // ignore
+                }
+                if (m != null)
+                {
+                    object r = m.Invoke(null, new object[] { tex, bytes });
+                    return r is bool b ? b : true;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            return false;
+        }
+
+        private static Texture2D LoadPngOrNull(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return null;
+            }
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(path);
+                if (bytes == null || bytes.Length < 16)
+                {
+                    return null;
+                }
+
+                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                tex.wrapMode = TextureWrapMode.Clamp;
+                tex.filterMode = FilterMode.Point;
+                tex.hideFlags = HideFlags.HideAndDontSave;
+                tex.name = Path.GetFileName(path);
+
+                if (!TryLoadImageIntoTexture(tex, bytes))
+                {
+                    return null;
+                }
+                return tex;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void TryLoadTurnSignalEmissives()
+        {
+            if (_turnSignalEmissivesTriedLoad)
+            {
+                return;
+            }
+            _turnSignalEmissivesTriedLoad = true;
+
+            try
+            {
+                string dir = Path.GetDirectoryName(typeof(Plugin).Assembly.Location) ?? string.Empty;
+                string eDir = Path.Combine(dir, "emissives");
+
+                _turnSignalEmissiveOff = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive.png"));
+                _turnSignalEmissiveLeft = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive_left_signal.png"));
+                _turnSignalEmissiveRight = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive_right_signal.png"));
+                _turnSignalEmissiveBoth = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive_both_signal.png"));
+
+                _turnSignalEmissiveBrakeOff = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive-Breaking.png"));
+                _turnSignalEmissiveBrakeLeft = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive-Breaking_left_signal.png"));
+                _turnSignalEmissiveBrakeRight = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive-Breaking_right_signal.png"));
+                _turnSignalEmissiveBrakeBoth = LoadPngOrNull(Path.Combine(eDir, "truck_texture Emissive-Breaking_both_signal.png"));
+
+                int ok = 0;
+                if (_turnSignalEmissiveOff != null) ok++;
+                if (_turnSignalEmissiveLeft != null) ok++;
+                if (_turnSignalEmissiveRight != null) ok++;
+                if (_turnSignalEmissiveBoth != null) ok++;
+                if (_turnSignalEmissiveBrakeOff != null) ok++;
+                if (_turnSignalEmissiveBrakeLeft != null) ok++;
+                if (_turnSignalEmissiveBrakeRight != null) ok++;
+                if (_turnSignalEmissiveBrakeBoth != null) ok++;
+
+                Log?.LogInfo("Turn signal emissives: loaded " + ok + "/8");
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        internal static Texture2D GetTurnSignalEmissive(bool braking, int indicatorMode, bool blinkOn)
+        {
+            TryLoadTurnSignalEmissives();
+
+            Texture2D off = braking ? _turnSignalEmissiveBrakeOff : _turnSignalEmissiveOff;
+            if (!blinkOn || indicatorMode == 0)
+            {
+                return off;
+            }
+
+            Texture2D left = braking ? _turnSignalEmissiveBrakeLeft : _turnSignalEmissiveLeft;
+            Texture2D right = braking ? _turnSignalEmissiveBrakeRight : _turnSignalEmissiveRight;
+            Texture2D both = braking ? _turnSignalEmissiveBrakeBoth : _turnSignalEmissiveBoth;
+
+            switch (indicatorMode)
+            {
+                case 1: return left != null ? left : off;
+                case 2: return right != null ? right : off;
+                case 3: return both != null ? both : off;
+                default: return off;
+            }
         }
 
         private static void TryMigrateLegacyIgnitionSfxVolumeFromConfig()
