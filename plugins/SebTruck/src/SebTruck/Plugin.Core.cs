@@ -19,6 +19,7 @@ namespace SebTruck
 
         internal const string PrefKeyIndicatorFeatureEnabled = "SebTruck_IndicatorFeatureEnabled";
         internal const string PrefKeyIndicatorSfxEnabled = "SebTruck_IndicatorSfxEnabled";
+        internal const string PrefKeyIndicatorSfxVolume = "SebTruck_IndicatorSfxVolume";
 
         internal const string PrefKeyHudShowSpeed = "SebTruck_HudShowSpeed";
         internal const string PrefKeyHudShowTach = "SebTruck_HudShowTach";
@@ -571,7 +572,7 @@ namespace SebTruck
 
         internal static float GetIgnitionSfxVolume()
         {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIgnitionSfxVolume, 0.6f), 0f, 1f);
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIgnitionSfxVolume, 0.15f), 0f, 1f);
         }
 
         internal static void SetIgnitionSfxVolume(float volume01)
@@ -633,6 +634,17 @@ namespace SebTruck
         internal static void SetIndicatorSfxEnabled(bool enabled)
         {
             PlayerPrefs.SetInt(PrefKeyIndicatorSfxEnabled, enabled ? 1 : 0);
+        }
+
+        internal static float GetIndicatorSfxVolume()
+        {
+            // Scale factor for the indicator click (keeps legacy default loudness).
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIndicatorSfxVolume, 1f), 0f, 1f);
+        }
+
+        internal static void SetIndicatorSfxVolume(float volume01)
+        {
+            PlayerPrefs.SetFloat(PrefKeyIndicatorSfxVolume, Mathf.Clamp01(volume01));
         }
 
 
@@ -805,9 +817,10 @@ namespace SebTruck
             SetIgnitionEnabled(true);
             SetIgnitionHoldSeconds(1.35f);
             SetIgnitionSfxEnabled(true);
-            SetIgnitionSfxVolume(0.6f);
+            SetIgnitionSfxVolume(0.15f);
             SetIndicatorFeatureEnabled(true);
             SetIndicatorSfxEnabled(true);
+            SetIndicatorSfxVolume(1.0f);
             SetManualSpeedMultForward(1.0f);
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
@@ -828,7 +841,7 @@ namespace SebTruck
             SetIgnitionEnabled(true);
             SetIgnitionHoldSeconds(1.35f);
             SetIgnitionSfxEnabled(true);
-            SetIgnitionSfxVolume(0.6f);
+            SetIgnitionSfxVolume(0.15f);
             PlayerPrefs.Save();
         }
 
@@ -836,6 +849,7 @@ namespace SebTruck
         {
             SetIndicatorFeatureEnabled(true);
             SetIndicatorSfxEnabled(true);
+            SetIndicatorSfxVolume(1.0f);
             PlayerPrefs.Save();
         }
 

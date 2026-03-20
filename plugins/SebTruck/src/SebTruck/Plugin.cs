@@ -17,7 +17,7 @@ namespace SebTruck
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtruck";
         public const string PluginName = "SebTruck";
-        public const string PluginVersion = "1.0.4";
+        public const string PluginVersion = "1.0.5";
 
         internal static ManualLogSource Log;
 
@@ -445,7 +445,11 @@ namespace SebTruck
                     return;
                 }
 
-                float vol = 0.22f;
+                float vol = 0.22f * GetIndicatorSfxVolume();
+                if (vol <= 0.001f)
+                {
+                    return;
+                }
                 float pitch = highPitch ? 1.08f : 0.92f;
 
                 if (_indicatorClickSfxGo == null)

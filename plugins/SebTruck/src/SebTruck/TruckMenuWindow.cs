@@ -210,6 +210,15 @@ namespace SebTruck
                 }
                 y += line;
 
+                float vol = Plugin.GetIndicatorSfxVolume();
+                _util.ValueLabel($"{Mathf.RoundToInt(vol * 100f)}%", p.x + p.width - 12f, y);
+                float? newVol = _util.Slider("Indicator Vol.", vol, center, y, ref _mouseYLock);
+                if (newVol.HasValue)
+                {
+                    Plugin.SetIndicatorSfxVolume(newVol.Value);
+                }
+                y += line;
+
                 return;
             }
 

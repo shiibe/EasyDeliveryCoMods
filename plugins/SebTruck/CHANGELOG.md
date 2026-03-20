@@ -1,3 +1,9 @@
+## 1.0.5
+- Turn indicators now automatically cancel after a full turn cycle to mimic real-world behavior.
+- Fix proximity radio and engine sounds being audible when out of the truck with the ignition off.
+- Add volume options for ignition and turn signal SFX.
+- Play click sound when ignition is turned off.
+
 ## 1.0.4
 - Manual transmission braking: treat negative `driveInput.y` as brake/reverse input (better controller/wheel support), while still honoring handbrake.
 - Add `SebTruckApi` (stable interop surface) for setting manual gear without hard mod dependencies.

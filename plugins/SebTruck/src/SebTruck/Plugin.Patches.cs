@@ -954,7 +954,7 @@ namespace SebTruck
                 ForceVehicleLightsOff(car);
 
                 // Play the headlight toggle click when shutting the engine off.
-                if (_ignitionPrevHeadlightsOn && hl != null)
+                if (hl != null)
                 {
                     try
                     {
@@ -1799,7 +1799,7 @@ namespace SebTruck
             EnsureEngineSfxRefs(__instance);
 
             var car = _engineCarField != null ? _engineCarField.GetValue(__instance) as sCarController : null;
-            if (car == null || car.GuyActive)
+            if (car == null)
             {
                 return;
             }
@@ -1829,6 +1829,12 @@ namespace SebTruck
                 {
                     // ignore
                 }
+                return;
+            }
+
+            // Don't touch engine proximity audio while walking (ignition-on case).
+            if (car.GuyActive)
+            {
                 return;
             }
 
