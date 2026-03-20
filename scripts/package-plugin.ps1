@@ -149,6 +149,12 @@ if (Test-Path $sfxDir)
     Copy-Item $sfxDir -Destination (Join-Path $stagePlugins "sfx") -Recurse -Force
 }
 
+$emissivesDir = Join-Path $outputDir "emissives"
+if (Test-Path $emissivesDir)
+{
+    Copy-Item $emissivesDir -Destination (Join-Path $stagePlugins "emissives") -Recurse -Force
+}
+
 Write-ManifestWithVersion $manifestPath (Join-Path $stage "manifest.json") $Version
 Copy-Item $readmePath -Destination (Join-Path $stage "README.md") -Force
 Write-ChangelogWithHeader $changelogPath (Join-Path $stage "CHANGELOG.md") $Version
