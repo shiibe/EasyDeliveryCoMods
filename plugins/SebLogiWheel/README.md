@@ -47,6 +47,10 @@ Wheel bindings live in `SebBinds` (Binds -> Wheel). Driving feature extensions (
 - Tested on: G920
 - Likely compatible: G29/G923 and similar Logitech wheels (not guaranteed).
 
+## Future Planned Features
+- Support for H-shifters to tie into SebTruck's manual transmission features.
+- Support for other wheels maybe?
+
 ## Screenshots
 <table>
   <tr>
