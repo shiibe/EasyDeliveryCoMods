@@ -4,7 +4,7 @@
   <br>SebCore
 </h1>
   <p align="center">
-    The required launcher/core for my Easy Delivery Co. mods.
+    A shared core mod and in-game launcher for Easy Delivery Co. mods.
     <br />
     <a href="#about">About</a>
     ·

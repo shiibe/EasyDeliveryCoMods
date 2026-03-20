@@ -4,7 +4,7 @@
   <br>SebLogiWheel
 </h1>
   <p align="center">
-    Logitech wheel support for Easy Delivery Co.
+    Logitech wheel support and Force Feedback (FFB) for Easy Delivery Co.
     <br />
     <a href="#about">About</a>
     ·

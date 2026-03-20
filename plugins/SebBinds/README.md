@@ -4,7 +4,7 @@
   <br>SebBinds
 </h1>
   <p align="center">
-    Binds UI + keybind/controller rebinding for Easy Delivery Co, with an API for other mods.
+    An extensive input rebinding mod for Easy Delivery Co.
     <br />
     <a href="#about">About</a>
     ·
@@ -27,9 +27,7 @@ SebBinds provides the binding UI + runtime input mapping used by the rest of the
 ## Features
 - Scheme picker: `Controller` / `Keyboard` / `Wheel` (Wheel appears when SebLogiWheel is installed)
 - Dedicated `Axes` page for movement/camera/vehicle axes
-- Modifier layer (`Modif.`): bind extra inputs by holding the modifier
-- Vehicle page includes `1P/3P Camera`
-- Supports vanilla-style shared binds (e.g. `MapItems` hold for on-foot items / in-vehicle map)
+- Modifier layer (`Modif.`): bind extra inputs by holding the modifier key (e.g. hold a bumper to use face buttons as extra inputs)
 - Other mods can add pages via `SebBindsApi.RegisterActionsPage(...)`
 
 ### API

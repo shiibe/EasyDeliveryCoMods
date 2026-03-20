@@ -4,7 +4,7 @@
   <br>SebTruck
 </h1>
   <p align="center">
-    Driving upgrades for Easy Delivery Co.
+    Vehicle and driving upgrades for Easy Delivery Co.
     <br />
     <a href="#about">About</a>
     ·
@@ -29,7 +29,7 @@ SebTruck adds driving upgrades like manual transmission, ignition controls, and 
 ## Features
 - Manual transmission mode (gears, neutral, reverse)
 - Ignition toggle with hold-to-start behavior
-- Turn indicators (L / R / 4-way hazards) (WIP: currently only triggers indicator sound)
+- Turn indicators (L / R / 4-way hazards) `(WIP: currently only triggers indicator sound)`
 - HUD readouts (speed/tach/gear)
 - Optional ignition sound (`ignition_on.wav`)
 - Works with any input bindings from SebBinds
