@@ -1362,7 +1362,7 @@ namespace SebLogiWheel
 
         internal static int GetWheelRange()
         {
-            return Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyWheelRange, 270), 180, 900);
+            return Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyWheelRange, 360), 180, 900);
         }
 
         internal static void SetWheelRange(int degrees)
@@ -1396,7 +1396,7 @@ namespace SebLogiWheel
 
         internal static void ResetSteeringDefaults()
         {
-            PlayerPrefs.SetInt(PrefKeyWheelRange, 270);
+            PlayerPrefs.SetInt(PrefKeyWheelRange, 360);
             PlayerPrefs.SetFloat(PrefKeySteeringGain, 1.0f);
             PlayerPrefs.SetFloat(PrefKeySteeringDeadzone, 0.01f);
 
