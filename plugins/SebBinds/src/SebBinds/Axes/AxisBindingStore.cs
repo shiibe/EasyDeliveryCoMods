@@ -4,6 +4,20 @@ namespace SebBinds
 {
     public static class AxisBindingStore
     {
+        // Cache decoded axis bindings to keep PlayerPrefs out of per-frame input code.
+        private static readonly System.Collections.Generic.Dictionary<int, BindingInput> AxisCache =
+            new System.Collections.Generic.Dictionary<int, BindingInput>(64);
+
+        private static int CacheKey(BindingScheme scheme, AxisAction action)
+        {
+            return ((int)scheme << 16) | (int)action;
+        }
+
+        internal static void ClearRuntimeCache()
+        {
+            AxisCache.Clear();
+        }
+
         private static string Key(BindingScheme scheme, AxisAction action)
         {
             // Stable numeric key.
@@ -20,6 +34,12 @@ namespace SebBinds
 
         public static BindingInput GetAxisBinding(BindingScheme scheme, AxisAction action)
         {
+            int ck = CacheKey(scheme, action);
+            if (AxisCache.TryGetValue(ck, out var cached))
+            {
+                return cached;
+            }
+
             string key = Key(scheme, action);
             int raw = PlayerPrefs.GetInt(key, -1);
             var decoded = Decode(raw);
@@ -41,13 +61,14 @@ namespace SebBinds
             // Keep schemes isolated.
             if (scheme == BindingScheme.Controller && (decoded.Kind == BindingKind.WheelAxis || decoded.Kind == BindingKind.WheelDpadAxis))
             {
-                return new BindingInput { Kind = BindingKind.None, Code = 0 };
+                decoded = new BindingInput { Kind = BindingKind.None, Code = 0 };
             }
             if (scheme == BindingScheme.Wheel && (decoded.Kind == BindingKind.GamepadAxis || decoded.Kind == BindingKind.GamepadDpadAxis || decoded.Kind == BindingKind.GamepadDpad))
             {
-                return new BindingInput { Kind = BindingKind.None, Code = 0 };
+                decoded = new BindingInput { Kind = BindingKind.None, Code = 0 };
             }
 
+            AxisCache[ck] = decoded;
             return decoded;
         }
 
@@ -64,11 +85,14 @@ namespace SebBinds
             }
 
             PlayerPrefs.SetInt(Key(scheme, action), Encode(input));
+
+            AxisCache[CacheKey(scheme, action)] = input;
         }
 
         public static void ClearAxisBinding(BindingScheme scheme, AxisAction action)
         {
             PlayerPrefs.DeleteKey(Key(scheme, action));
+            AxisCache.Remove(CacheKey(scheme, action));
         }
 
         // Back-compat: controller scheme.
@@ -84,6 +108,8 @@ namespace SebBinds
                 PlayerPrefs.DeleteKey(Key(BindingScheme.Keyboard, a));
                 PlayerPrefs.DeleteKey(Key(BindingScheme.Wheel, a));
             }
+
+            ClearRuntimeCache();
         }
 
         public static void ClearScheme(BindingScheme scheme)
@@ -92,6 +118,8 @@ namespace SebBinds
             {
                 PlayerPrefs.DeleteKey(Key(scheme, a));
             }
+
+            ClearRuntimeCache();
         }
 
         // Encoding matches BindingStore's scheme but is local to avoid exposing internals.

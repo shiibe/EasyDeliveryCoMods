@@ -1,5 +1,6 @@
 using HarmonyLib;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -469,6 +470,8 @@ namespace SebTweaks
         [HarmonyPriority(Priority.Last)]
         private static class FogVolume_LateUpdate_Patch
         {
+            private static FieldInfo _fogVolumePField;
+
             private static void Postfix(FogVolume __instance)
             {
                 if (!IsInGameNow())
@@ -490,10 +493,10 @@ namespace SebTweaks
                 // on frames where FogVolume doesn't override the weather fog.
                 try
                 {
-                    var pField = AccessTools.Field(typeof(FogVolume), "p");
-                    if (pField != null)
+                    _fogVolumePField ??= AccessTools.Field(typeof(FogVolume), "p");
+                    if (_fogVolumePField != null)
                     {
-                        float p = (float)pField.GetValue(__instance);
+                        float p = (float)_fogVolumePField.GetValue(__instance);
                         if (Mathf.Abs(p - 1f) < 0.0001f)
                         {
                             return;

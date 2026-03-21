@@ -10,6 +10,11 @@ namespace SebBinds
     {
         private static ConfigEntry<bool> _debugLogging;
 
+        private static readonly BindingScheme[] SchemesControllerKeyboard = { BindingScheme.Controller, BindingScheme.Keyboard };
+        private static readonly BindingScheme[] SchemesControllerKeyboardWheel = { BindingScheme.Controller, BindingScheme.Keyboard, BindingScheme.Wheel };
+
+        private static int _defaultsEnsuredForInputInstanceId;
+
         private static float _resetHoldStart = -1f;
         private static bool _resetHoldFired;
         private static bool _resetHoldWasDown;
@@ -52,24 +57,28 @@ namespace SebBinds
 
             LastInputManager = __instance;
 
-            // Seed defaults once (non-destructive; only fills unset actions).
-            bool installed = DefaultPreset.TryInstallFromInputManager(__instance);
-            if (installed)
+            // Seed defaults / do one-time migrations once per input manager instance.
+            int iid;
+            try { iid = __instance.GetInstanceID(); }
+            catch { iid = 0; }
+            if (_defaultsEnsuredForInputInstanceId != iid)
             {
-                LogDebug("Installed default preset from game's InputActions");
-            }
+                _defaultsEnsuredForInputInstanceId = iid;
 
-            // Non-destructive controller axis defaults.
-            AxisDefaults.EnsureControllerDefaults();
+                bool installed = DefaultPreset.TryInstallFromInputManager(__instance);
+                if (installed)
+                {
+                    LogDebug("Installed default preset from game's InputActions");
+                }
 
-            // Non-destructive keyboard defaults.
-            KeyboardDefaults.EnsureDefaults();
+                AxisDefaults.EnsureControllerDefaults();
+                KeyboardDefaults.EnsureDefaults();
 
-            // One-time migration from earlier action IDs.
-            if (!_didMigrateLegacyBinds)
-            {
-                _didMigrateLegacyBinds = true;
-                MigrateLegacyBinds();
+                if (!_didMigrateLegacyBinds)
+                {
+                    _didMigrateLegacyBinds = true;
+                    MigrateLegacyBinds();
+                }
             }
 
             InjectBindings(__instance);
@@ -113,9 +122,10 @@ namespace SebBinds
                 return;
             }
 
-            bool wheelMenuActive = WheelInterop.IsWheelMenuActive();
-            bool wheelBindingCaptureActive = WheelInterop.IsWheelBindingCaptureActive();
-            bool wheelCalibrationWizardActive = WheelInterop.IsWheelCalibrationWizardActive();
+            bool wheelPluginPresent = WheelInterop.IsWheelPluginPresent();
+            bool wheelMenuActive = wheelPluginPresent && WheelInterop.IsWheelMenuActive();
+            bool wheelBindingCaptureActive = wheelPluginPresent && WheelInterop.IsWheelBindingCaptureActive();
+            bool wheelCalibrationWizardActive = wheelPluginPresent && WheelInterop.IsWheelCalibrationWizardActive();
 
             // Don't interfere with the wheel plugin's own UI (it expects vanilla input to work).
             if (wheelMenuActive)
@@ -172,14 +182,29 @@ namespace SebBinds
 
             BindingEvaluator.BeginFrame();
 
-            var schemes = WheelInterop.IsWheelPluginPresent()
-                ? new[] { BindingScheme.Controller, BindingScheme.Keyboard, BindingScheme.Wheel }
-                : new[] { BindingScheme.Controller, BindingScheme.Keyboard };
+            var schemes = wheelPluginPresent ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
+
+            // Cache modifier state per scheme for this frame.
+            BindingLayer ctrlLayer = BindingLayer.Normal;
+            BindingLayer kbLayer = BindingLayer.Normal;
+            BindingLayer wheelLayer = BindingLayer.Normal;
+            {
+                var mod = BindingStore.GetModifierBinding(BindingScheme.Controller);
+                if (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) ctrlLayer = BindingLayer.Modified;
+            }
+            {
+                var mod = BindingStore.GetModifierBinding(BindingScheme.Keyboard);
+                if (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) kbLayer = BindingLayer.Modified;
+            }
+            if (wheelPluginPresent)
+            {
+                var mod = BindingStore.GetModifierBinding(BindingScheme.Wheel);
+                if (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) wheelLayer = BindingLayer.Modified;
+            }
 
             BindingLayer LayerFor(BindingScheme s)
             {
-                var mod = BindingStore.GetModifierBinding(s);
-                return (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) ? BindingLayer.Modified : BindingLayer.Normal;
+                return s == BindingScheme.Keyboard ? kbLayer : (s == BindingScheme.Wheel ? wheelLayer : ctrlLayer);
             }
 
             BindingInput GetBind(BindingScheme s, BindAction action)
@@ -245,7 +270,10 @@ namespace SebBinds
             // FreeCam is a dev tool; not exposed to players.
 
             bool inWalkingMode = false;
-            WheelInterop.TryGetIsInWalkingMode(out inWalkingMode);
+            if (wheelPluginPresent)
+            {
+                WheelInterop.TryGetIsInWalkingMode(out inWalkingMode);
+            }
 
             // Note: bindings are evaluated across Controller + Keyboard (+ Wheel if present).
 

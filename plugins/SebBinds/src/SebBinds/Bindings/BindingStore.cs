@@ -18,6 +18,28 @@ namespace SebBinds
         private const string PrefKeyBindModifierKeyboard = "SebBinds_KB_Bind_Modifier";
         private const string PrefKeyBindModifierWheel = "SebBinds_Wheel_Bind_Modifier";
 
+        // Cache decoded bindings to keep PlayerPrefs out of per-frame input code.
+        private static readonly System.Collections.Generic.Dictionary<int, BindingInput> BindingCache =
+            new System.Collections.Generic.Dictionary<int, BindingInput>(256);
+        private static readonly System.Collections.Generic.Dictionary<int, BindingInput> ModifierCache =
+            new System.Collections.Generic.Dictionary<int, BindingInput>(4);
+
+        private static int Key(BindingScheme scheme, BindingLayer layer, BindAction action)
+        {
+            return ((int)scheme << 16) | ((int)layer << 8) | (int)action;
+        }
+
+        private static int ModKey(BindingScheme scheme)
+        {
+            return (int)scheme;
+        }
+
+        internal static void ClearRuntimeCache()
+        {
+            BindingCache.Clear();
+            ModifierCache.Clear();
+        }
+
         private static string GetModifierPrefKey(BindingScheme scheme)
         {
             return scheme == BindingScheme.Keyboard
@@ -72,6 +94,8 @@ namespace SebBinds
             PlayerPrefs.DeleteKey(GetModifierPrefKey(BindingScheme.Controller));
             PlayerPrefs.DeleteKey(GetModifierPrefKey(BindingScheme.Keyboard));
             PlayerPrefs.DeleteKey(GetModifierPrefKey(BindingScheme.Wheel));
+
+            ClearRuntimeCache();
         }
 
         public static void ClearScheme(BindingScheme scheme)
@@ -85,6 +109,8 @@ namespace SebBinds
                 }
             }
             PlayerPrefs.DeleteKey(GetModifierPrefKey(scheme));
+
+            ClearRuntimeCache();
         }
 
         public static BindingInput GetBinding(BindingLayer layer, BindAction action)
@@ -94,13 +120,29 @@ namespace SebBinds
 
         public static BindingInput GetBinding(BindingScheme scheme, BindingLayer layer, BindAction action)
         {
+            int ck = Key(scheme, layer, action);
+            if (BindingCache.TryGetValue(ck, out var cached))
+            {
+                return cached;
+            }
+
             string key = GetBindPrefKey(scheme, layer, action);
             int raw = PlayerPrefs.GetInt(key, -1);
             if (raw < 0)
             {
-                raw = PlayerPrefs.GetInt(GetLegacyBindPrefKey(scheme, layer, action), -1);
+                string legacyKey = GetLegacyBindPrefKey(scheme, layer, action);
+                raw = PlayerPrefs.GetInt(legacyKey, -1);
+
+                // One-way migrate to stable key to avoid legacy lookups in future.
+                if (raw >= 0)
+                {
+                    PlayerPrefs.SetInt(key, raw);
+                }
             }
-            return Decode(raw);
+
+            var decoded = Decode(raw);
+            BindingCache[ck] = decoded;
+            return decoded;
         }
 
         public static void SetBinding(BindingLayer layer, BindAction action, BindingInput input)
@@ -110,7 +152,11 @@ namespace SebBinds
 
         public static void SetBinding(BindingScheme scheme, BindingLayer layer, BindAction action, BindingInput input)
         {
-            PlayerPrefs.SetInt(GetBindPrefKey(scheme, layer, action), Encode(input));
+            string key = GetBindPrefKey(scheme, layer, action);
+            PlayerPrefs.SetInt(key, Encode(input));
+
+            // Keep cache coherent.
+            BindingCache[Key(scheme, layer, action)] = input;
         }
 
         public static BindingInput GetModifierBinding()
@@ -125,13 +171,21 @@ namespace SebBinds
 
         public static BindingInput GetModifierBinding(BindingScheme scheme)
         {
+            int mk = ModKey(scheme);
+            if (ModifierCache.TryGetValue(mk, out var cached))
+            {
+                return cached;
+            }
             int raw = PlayerPrefs.GetInt(GetModifierPrefKey(scheme), -1);
-            return Decode(raw);
+            var decoded = Decode(raw);
+            ModifierCache[mk] = decoded;
+            return decoded;
         }
 
         public static void SetModifierBinding(BindingScheme scheme, BindingInput input)
         {
             PlayerPrefs.SetInt(GetModifierPrefKey(scheme), Encode(input));
+            ModifierCache[ModKey(scheme)] = input;
         }
 
         public static string GetBindingLabel(BindingInput input)

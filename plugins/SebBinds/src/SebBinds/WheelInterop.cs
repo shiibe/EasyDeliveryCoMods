@@ -27,6 +27,25 @@ namespace SebBinds
         private static MethodInfo _requestOpenAxisMapping;
         private static FieldInfo _isInWalkingModeField;
 
+        // Cached wheel state accessors (avoid reflection lookups/allocations in hot paths).
+        private static MethodInfo _tryGetCachedWheelState;
+        private static MethodInfo _getAxisValue;
+        private static MethodInfo _getSteeringAxis;
+        private static MethodInfo _getThrottleAxis;
+        private static MethodInfo _getBrakeAxis;
+        private static MethodInfo _getClutchAxis;
+        private static MethodInfo _normalizeSteering;
+        private static MethodInfo _normalizePedal;
+        private static Type _axisIdType;
+        private static readonly object[] _stateArgs = new object[1];
+        private static readonly object[] _axisArgs = new object[2];
+        private static readonly object[] _normSteerArgs = new object[1];
+        private static readonly object[] _normPedalArgs = new object[2];
+        private static readonly object[] _axisIdCache = new object[8];
+
+        private static object _tmpWheelBindingBoxed;
+        private static readonly object[] _tmpWheelBindingArgs = new object[1];
+
         private static void SetWheelBindingFields(object boxedWheelBindingInput, BindingInput input)
         {
             if (boxedWheelBindingInput == null || _wheelBindKindField == null || _wheelBindCodeField == null)
@@ -68,6 +87,76 @@ namespace SebBinds
         internal static bool IsWheelPluginPresent()
         {
             return Chainloader.PluginInfos.ContainsKey(WheelPluginGuid);
+        }
+
+        private static bool EnsureWheelStateAccessors()
+        {
+            if (_tryGetCachedWheelState != null && _getAxisValue != null)
+            {
+                return true;
+            }
+
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
+
+            if (!EnsureWheelReflection())
+            {
+                return false;
+            }
+
+            Type t = GetWheelPluginType();
+            if (t == null)
+            {
+                return false;
+            }
+
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
+            _tryGetCachedWheelState = t.GetMethod("TryGetCachedWheelState", flags);
+            _getAxisValue = t.GetMethod("GetAxisValue", flags);
+            _getSteeringAxis = t.GetMethod("GetSteeringAxis", flags);
+            _getThrottleAxis = t.GetMethod("GetThrottleAxis", flags);
+            _getBrakeAxis = t.GetMethod("GetBrakeAxis", flags);
+            _getClutchAxis = t.GetMethod("GetClutchAxis", flags);
+            _normalizeSteering = t.GetMethod("NormalizeSteering", flags);
+            _normalizePedal = t.GetMethod("NormalizePedal", flags);
+
+            if (_getAxisValue != null)
+            {
+                try
+                {
+                    _axisIdType = _getAxisValue.GetParameters()[1].ParameterType;
+                }
+                catch
+                {
+                    _axisIdType = null;
+                }
+            }
+
+            return _tryGetCachedWheelState != null && _getAxisValue != null;
+        }
+
+        private static object GetAxisIdObject(int axisIdCode)
+        {
+            axisIdCode = Mathf.Clamp(axisIdCode, 0, 7);
+            var cached = _axisIdCache[axisIdCode];
+            if (cached != null)
+            {
+                return cached;
+            }
+
+            object v;
+            if (_axisIdType != null && _axisIdType.IsEnum)
+            {
+                v = Enum.ToObject(_axisIdType, axisIdCode);
+            }
+            else
+            {
+                v = axisIdCode;
+            }
+            _axisIdCache[axisIdCode] = v;
+            return v;
         }
 
         private static bool EnsureWheelReflection()
@@ -178,78 +267,72 @@ namespace SebBinds
             // 0=steer, 1=throttle, 2=brake, 3=clutch
             try
             {
-                Type t = GetWheelPluginType();
-                if (t == null)
+                if (!EnsureWheelStateAccessors() || _normalizeSteering == null || _normalizePedal == null)
                 {
                     return 0f;
                 }
 
-                // Call into the wheel plugin's normalization helpers.
-                var tryGetState = t.GetMethod("TryGetCachedWheelState", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var getAxis = t.GetMethod("GetAxisValue", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var getSteerAxis = t.GetMethod("GetSteeringAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var getThrottleAxis = t.GetMethod("GetThrottleAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var getBrakeAxis = t.GetMethod("GetBrakeAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var getClutchAxis = t.GetMethod("GetClutchAxis", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var normSteer = t.GetMethod("NormalizeSteering", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var normPedal = t.GetMethod("NormalizePedal", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-
-                if (tryGetState == null || getAxis == null || normSteer == null || normPedal == null)
-                {
-                    return 0f;
-                }
-
-                var args = new object[] { null };
+                _stateArgs[0] = null;
                 bool ok;
                 try
                 {
-                    ok = (bool)tryGetState.Invoke(null, args);
+                    ok = (bool)_tryGetCachedWheelState.Invoke(null, _stateArgs);
                 }
                 catch
                 {
                     ok = false;
                 }
-                if (!ok || args[0] == null)
+                if (!ok || _stateArgs[0] == null)
                 {
                     return 0f;
                 }
 
-                var state = args[0];
+                var state = _stateArgs[0];
 
                 if (code == 0)
                 {
-                    if (getSteerAxis == null)
+                    if (_getSteeringAxis == null)
                     {
                         return 0f;
                     }
-                    var axisId = getSteerAxis.Invoke(null, null);
-                    int raw = (int)getAxis.Invoke(null, new[] { state, axisId });
-                    return (float)normSteer.Invoke(null, new object[] { raw });
+                    var axisId = _getSteeringAxis.Invoke(null, null);
+                    _axisArgs[0] = state;
+                    _axisArgs[1] = axisId;
+                    int raw = (int)_getAxisValue.Invoke(null, _axisArgs);
+                    _normSteerArgs[0] = raw;
+                    return (float)_normalizeSteering.Invoke(null, _normSteerArgs);
                 }
 
-                MethodInfo which = code == 1 ? getThrottleAxis : (code == 2 ? getBrakeAxis : getClutchAxis);
+                MethodInfo which = code == 1 ? _getThrottleAxis : (code == 2 ? _getBrakeAxis : _getClutchAxis);
                 if (which == null)
                 {
                     return 0f;
                 }
                 var pedAxisId = which.Invoke(null, null);
-                int rawPedal = (int)getAxis.Invoke(null, new[] { state, pedAxisId });
+
+                _axisArgs[0] = state;
+                _axisArgs[1] = pedAxisId;
+                int rawPedal = (int)_getAxisValue.Invoke(null, _axisArgs);
 
                 // PedalKind enum lives in wheel plugin; pass int then coerce if needed.
                 int pkInt = code == 1 ? 0 : (code == 2 ? 1 : 2);
                 object pk = pkInt;
                 try
                 {
-                    return (float)normPedal.Invoke(null, new object[] { rawPedal, pk });
+                    _normPedalArgs[0] = rawPedal;
+                    _normPedalArgs[1] = pk;
+                    return (float)_normalizePedal.Invoke(null, _normPedalArgs);
                 }
                 catch
                 {
-                    var pkType = normPedal.GetParameters()[1].ParameterType;
+                    var pkType = _normalizePedal.GetParameters()[1].ParameterType;
                     if (pkType.IsEnum)
                     {
                         pk = Enum.ToObject(pkType, pkInt);
                     }
-                    return (float)normPedal.Invoke(null, new object[] { rawPedal, pk });
+                    _normPedalArgs[0] = rawPedal;
+                    _normPedalArgs[1] = pk;
+                    return (float)_normalizePedal.Invoke(null, _normPedalArgs);
                 }
             }
             catch
@@ -263,43 +346,34 @@ namespace SebBinds
             // AxisId codes match the wheel calibration tool (lX, lY, lZ, lRx, lRy, lRz, slider0, slider1).
             try
             {
-                Type t = GetWheelPluginType();
-                if (t == null)
+                if (!EnsureWheelStateAccessors())
                 {
                     return 0f;
                 }
 
-                var tryGetState = t.GetMethod("TryGetCachedWheelState", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                var getAxis = t.GetMethod("GetAxisValue", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                if (tryGetState == null || getAxis == null)
-                {
-                    return 0f;
-                }
-
-                var args = new object[] { null };
+                _stateArgs[0] = null;
                 bool ok;
                 try
                 {
-                    ok = (bool)tryGetState.Invoke(null, args);
+                    ok = (bool)_tryGetCachedWheelState.Invoke(null, _stateArgs);
                 }
                 catch
                 {
                     ok = false;
                 }
-                if (!ok || args[0] == null)
+                if (!ok || _stateArgs[0] == null)
                 {
                     return 0f;
                 }
 
-                object state = args[0];
+                object state = _stateArgs[0];
 
-                // AxisId enum type is the second param of GetAxisValue.
-                var axisParamType = getAxis.GetParameters()[1].ParameterType;
-                object axisId = axisParamType.IsEnum
-                    ? Enum.ToObject(axisParamType, Mathf.Clamp(axisIdCode, 0, 7))
-                    : (object)Mathf.Clamp(axisIdCode, 0, 7);
 
-                int raw = (int)getAxis.Invoke(null, new[] { state, axisId });
+                object axisId = GetAxisIdObject(axisIdCode);
+
+                _axisArgs[0] = state;
+                _axisArgs[1] = axisId;
+                int raw = (int)_getAxisValue.Invoke(null, _axisArgs);
 
                 // Typical joystick raw range is 0..65535.
                 const float mid = 32767.5f;
@@ -314,6 +388,10 @@ namespace SebBinds
 
         internal static bool IsWheelMenuActive()
         {
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection() || _isWheelMenuActive == null)
             {
                 return false;
@@ -330,6 +408,10 @@ namespace SebBinds
 
         internal static bool IsWheelBindingCaptureActive()
         {
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection() || _isWheelBindingCaptureActive == null)
             {
                 return false;
@@ -346,6 +428,10 @@ namespace SebBinds
 
         internal static bool IsWheelCalibrationWizardActive()
         {
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection() || _isWheelCalibrationWizardActive == null)
             {
                 return false;
@@ -400,16 +486,24 @@ namespace SebBinds
 
         internal static bool IsBindingDownForCurrentFrame(BindingInput input)
         {
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection())
             {
                 return false;
             }
 
-            object boxed = Activator.CreateInstance(_wheelBindingInputType);
-            SetWheelBindingFields(boxed, input);
+            if (_tmpWheelBindingBoxed == null || _wheelBindingInputType == null || _tmpWheelBindingBoxed.GetType() != _wheelBindingInputType)
+            {
+                _tmpWheelBindingBoxed = Activator.CreateInstance(_wheelBindingInputType);
+            }
+            SetWheelBindingFields(_tmpWheelBindingBoxed, input);
             try
             {
-                return (bool)_isBindingDownForCurrentFrame.Invoke(null, new object[] { boxed });
+                _tmpWheelBindingArgs[0] = _tmpWheelBindingBoxed;
+                return (bool)_isBindingDownForCurrentFrame.Invoke(null, _tmpWheelBindingArgs);
             }
             catch
             {
@@ -419,16 +513,24 @@ namespace SebBinds
 
         internal static bool IsBindingPressedThisFrameForCurrentFrame(BindingInput input)
         {
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection())
             {
                 return false;
             }
 
-            object boxed = Activator.CreateInstance(_wheelBindingInputType);
-            SetWheelBindingFields(boxed, input);
+            if (_tmpWheelBindingBoxed == null || _wheelBindingInputType == null || _tmpWheelBindingBoxed.GetType() != _wheelBindingInputType)
+            {
+                _tmpWheelBindingBoxed = Activator.CreateInstance(_wheelBindingInputType);
+            }
+            SetWheelBindingFields(_tmpWheelBindingBoxed, input);
             try
             {
-                return (bool)_isBindingPressedThisFrame.Invoke(null, new object[] { boxed });
+                _tmpWheelBindingArgs[0] = _tmpWheelBindingBoxed;
+                return (bool)_isBindingPressedThisFrame.Invoke(null, _tmpWheelBindingArgs);
             }
             catch
             {
@@ -438,16 +540,24 @@ namespace SebBinds
 
         internal static bool IsBindingReleasedThisFrameForCurrentFrame(BindingInput input)
         {
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection())
             {
                 return false;
             }
 
-            object boxed = Activator.CreateInstance(_wheelBindingInputType);
-            SetWheelBindingFields(boxed, input);
+            if (_tmpWheelBindingBoxed == null || _wheelBindingInputType == null || _tmpWheelBindingBoxed.GetType() != _wheelBindingInputType)
+            {
+                _tmpWheelBindingBoxed = Activator.CreateInstance(_wheelBindingInputType);
+            }
+            SetWheelBindingFields(_tmpWheelBindingBoxed, input);
             try
             {
-                return (bool)_isBindingReleasedThisFrame.Invoke(null, new object[] { boxed });
+                _tmpWheelBindingArgs[0] = _tmpWheelBindingBoxed;
+                return (bool)_isBindingReleasedThisFrame.Invoke(null, _tmpWheelBindingArgs);
             }
             catch
             {
@@ -458,6 +568,10 @@ namespace SebBinds
         internal static bool TryGetPov8Vector(out Vector2 v)
         {
             v = Vector2.zero;
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection())
             {
                 return false;
@@ -489,6 +603,10 @@ namespace SebBinds
         internal static bool TryGetIsInWalkingMode(out bool isWalking)
         {
             isWalking = false;
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
             if (!EnsureWheelReflection() || _isInWalkingModeField == null)
             {
                 return false;

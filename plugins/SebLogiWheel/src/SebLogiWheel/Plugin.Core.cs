@@ -10,6 +10,12 @@ namespace SebLogiWheel
 {
     public partial class Plugin
     {
+        private static float _ffbNextUpdateTime;
+        private static int _ffbLastDamper = int.MinValue;
+        private static int _ffbLastSpring = int.MinValue;
+        private static int _ffbLastDirt = int.MinValue;
+        private static int _ffbLastBumpy = int.MinValue;
+
         private static ManualLogSource _log;
 
         private static ConfigEntry<bool> _debugLogging;
@@ -2460,6 +2466,15 @@ namespace SebLogiWheel
                 return;
             }
 
+            // FFB doesn't need to run at full render FPS.
+            // Throttle to reduce native SDK calls and GC pressure.
+            float now = Time.unscaledTime;
+            if (now < _ffbNextUpdateTime)
+            {
+                return;
+            }
+            _ffbNextUpdateTime = now + (1f / 120f);
+
             // Disable FFB while paused / input locked (menus, cutscenes, building UIs).
             if ((PauseSystem.paused || IsInputLocked()) && !(wheelMenuActive && GetFfbEnabled()) && !ffbPageActive)
             {
@@ -2498,12 +2513,20 @@ namespace SebLogiWheel
 
             int damperCoeff = Mathf.RoundToInt(Mathf.Lerp(5f, 35f, Mathf.Clamp01(speed / 120f)) * GetFfbDamperGain());
             damperCoeff = Mathf.Clamp(damperCoeff, 0, 100);
-            LogitechGSDK.LogiPlayDamperForce(_logiIndex, damperCoeff);
+            if (damperCoeff != _ffbLastDamper)
+            {
+                _ffbLastDamper = damperCoeff;
+                LogitechGSDK.LogiPlayDamperForce(_logiIndex, damperCoeff);
+            }
 
             // Spring is the main "centering" force; allow a stronger top-end.
             int springCoeff = Mathf.RoundToInt(Mathf.Lerp(20f, 95f, Mathf.Clamp01(speed / 100f)) * GetFfbSpringGain());
             springCoeff = Mathf.Clamp(springCoeff, 0, 100);
-            LogitechGSDK.LogiPlaySpringForce(_logiIndex, 0, springCoeff, springCoeff);
+            if (springCoeff != _ffbLastSpring)
+            {
+                _ffbLastSpring = springCoeff;
+                LogitechGSDK.LogiPlaySpringForce(_logiIndex, 0, springCoeff, springCoeff);
+            }
 
             if (IsFfbTestActive())
             {
@@ -2532,16 +2555,37 @@ namespace SebLogiWheel
             {
                 int dirt = Mathf.RoundToInt(Mathf.Lerp(10f, 35f, Mathf.Clamp01(speed / 70f)));
                 dirt = Mathf.Clamp(dirt, 0, 100);
-                LogitechGSDK.LogiPlayDirtRoadEffect(_logiIndex, dirt);
+                if (dirt != _ffbLastDirt)
+                {
+                    _ffbLastDirt = dirt;
+                    _ffbLastBumpy = 0;
+                    LogitechGSDK.LogiPlayDirtRoadEffect(_logiIndex, dirt);
+                    LogitechGSDK.LogiStopBumpyRoadEffect(_logiIndex);
+                }
             }
             else if (!menuMode && _isSliding)
             {
-                LogitechGSDK.LogiPlayBumpyRoadEffect(_logiIndex, 8);
+                const int bumpy = 8;
+                if (bumpy != _ffbLastBumpy)
+                {
+                    _ffbLastBumpy = bumpy;
+                    _ffbLastDirt = 0;
+                    LogitechGSDK.LogiPlayBumpyRoadEffect(_logiIndex, bumpy);
+                    LogitechGSDK.LogiStopDirtRoadEffect(_logiIndex);
+                }
             }
             else
             {
-                LogitechGSDK.LogiStopDirtRoadEffect(_logiIndex);
-                LogitechGSDK.LogiStopBumpyRoadEffect(_logiIndex);
+                if (_ffbLastDirt != 0)
+                {
+                    _ffbLastDirt = 0;
+                    LogitechGSDK.LogiStopDirtRoadEffect(_logiIndex);
+                }
+                if (_ffbLastBumpy != 0)
+                {
+                    _ffbLastBumpy = 0;
+                    LogitechGSDK.LogiStopBumpyRoadEffect(_logiIndex);
+                }
             }
         }
 
@@ -2584,6 +2628,11 @@ namespace SebLogiWheel
 
             try
             {
+                _ffbLastDamper = int.MinValue;
+                _ffbLastSpring = int.MinValue;
+                _ffbLastDirt = int.MinValue;
+                _ffbLastBumpy = int.MinValue;
+
                 LogitechGSDK.LogiStopSpringForce(_logiIndex);
                 LogitechGSDK.LogiStopDamperForce(_logiIndex);
                 LogitechGSDK.LogiStopDirtRoadEffect(_logiIndex);

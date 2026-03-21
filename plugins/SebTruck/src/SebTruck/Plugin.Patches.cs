@@ -11,6 +11,7 @@ namespace SebTruck
     public partial class Plugin
     {
         private static sCarController _currentCar;
+        private static int _currentCarFrame = -1;
         private static bool _isInWalkingMode;
         private static float _currentSpeedKmh;
         private static float _currentSpeedMult = 1f;
@@ -43,6 +44,8 @@ namespace SebTruck
         private static bool _indicatorCancelArmed;
         private static IndicatorMode _indicatorCancelArmedForMode;
 
+        private static readonly BindingScheme[] _bindingSchemes = { BindingScheme.Controller, BindingScheme.Keyboard, BindingScheme.Wheel };
+
         private sealed class IndicatorCache
         {
             public readonly List<Light> Left = new List<Light>();
@@ -58,6 +61,8 @@ namespace SebTruck
         private static readonly Dictionary<int, IndicatorCache> _indicatorCaches = new Dictionary<int, IndicatorCache>();
 
         private static readonly Dictionary<int, bool> _truckBraking = new Dictionary<int, bool>();
+
+        private static readonly Dictionary<int, bool> _isTruckCarById = new Dictionary<int, bool>();
 
         private sealed class TurnSignalLightRig
         {
@@ -123,10 +128,19 @@ namespace SebTruck
         }
 
         private static readonly Dictionary<int, PaintDefaults> _paintDefaultsByCarId = new Dictionary<int, PaintDefaults>();
-        private static readonly Dictionary<int, int> _paintTailgateSigByCarId = new Dictionary<int, int>();
+        private static readonly Dictionary<int, float> _paintNextTailgateRescanTimeByCarId = new Dictionary<int, float>();
         private static FieldInfo _carDamageCarMatField;
         private static int _paintLastCarId;
         private static int _paintLastIndex = int.MinValue;
+
+        private sealed class HeadlightTuningCache
+        {
+            public readonly List<Light> Lights = new List<Light>(16);
+            public float NextRescanTime;
+        }
+
+        private static readonly Dictionary<int, HeadlightTuningCache> _headlightTuningCaches = new Dictionary<int, HeadlightTuningCache>();
+        private static readonly HashSet<int> _tmpHeadlightLightIds = new HashSet<int>();
 
         private static void EnsureHeadlightsRefs(object instance)
         {
@@ -389,17 +403,25 @@ namespace SebTruck
             int carId = car.GetInstanceID();
             int index = GetSelectedPaintIndex();
 
-            int tailgateSig = ComputeTailgateSignature(car);
-            bool tailgateChanged = !_paintTailgateSigByCarId.TryGetValue(carId, out int prevSig) || prevSig != tailgateSig;
+            bool paintChanged = carId != _paintLastCarId || index != _paintLastIndex;
+            float now = Time.unscaledTime;
+            bool tailgateRescanDue = paintChanged;
+            if (!tailgateRescanDue)
+            {
+                if (!_paintNextTailgateRescanTimeByCarId.TryGetValue(carId, out float next) || now >= next)
+                {
+                    tailgateRescanDue = true;
+                }
+            }
 
-            if (!tailgateChanged && carId == _paintLastCarId && index == _paintLastIndex)
+            if (!paintChanged && !tailgateRescanDue)
             {
                 return;
             }
 
             _paintLastCarId = carId;
             _paintLastIndex = index;
-            _paintTailgateSigByCarId[carId] = tailgateSig;
+            _paintNextTailgateRescanTimeByCarId[carId] = now + 1.0f;
 
             try
             {
@@ -502,7 +524,10 @@ namespace SebTruck
                 try { _headlightsCarMatField?.SetValue(hl, mat); } catch { }
 
                 // Tailgate is a separate animated object; keep it using the same paint material instance.
-                ApplyTailgatePaintMaterialIfPresent(car, mat);
+                if (tailgateRescanDue)
+                {
+                    ApplyTailgatePaintMaterialIfPresent(car, mat);
+                }
 
                 EnsureCarDamageRefs();
                 if (_carDamageCarMatField != null)
@@ -562,12 +587,25 @@ namespace SebTruck
             {
                 return false;
             }
+
+            int id;
+            try { id = car.GetInstanceID(); }
+            catch { return false; }
+
+            if (_isTruckCarById.TryGetValue(id, out bool cached))
+            {
+                return cached;
+            }
+
             try
             {
-                return car.GetComponentInChildren<sTruckSFX>(true) != null;
+                bool isTruck = car.GetComponentInChildren<sTruckSFX>(true) != null;
+                _isTruckCarById[id] = isTruck;
+                return isTruck;
             }
             catch
             {
+                _isTruckCarById[id] = false;
                 return false;
             }
         }
@@ -1920,30 +1958,91 @@ namespace SebTruck
                 return;
             }
 
-            EnsureHeadlightsRefs(hl);
-            var go = _headlightsHeadLightsField != null ? _headlightsHeadLightsField.GetValue(hl) as GameObject : null;
-
-            var list = new List<Light>();
-
-            void AddLightsFrom(GameObject root)
+            int carId = car.GetInstanceID();
+            if (!_headlightTuningCaches.TryGetValue(carId, out var cache) || cache == null)
             {
-                if (root == null)
+                cache = new HeadlightTuningCache();
+                _headlightTuningCaches[carId] = cache;
+            }
+
+            // Rescan at low cadence; applying tuning each frame is cheap, scanning isn't.
+            float now = Time.unscaledTime;
+            if (cache.Lights.Count == 0 || now >= cache.NextRescanTime)
+            {
+                cache.Lights.Clear();
+                cache.NextRescanTime = now + 2.0f;
+
+                EnsureHeadlightsRefs(hl);
+                var go = _headlightsHeadLightsField != null ? _headlightsHeadLightsField.GetValue(hl) as GameObject : null;
+
+                _tmpHeadlightLightIds.Clear();
+                var seen = _tmpHeadlightLightIds;
+
+                void AddLightsFrom(GameObject root)
                 {
-                    return;
-                }
-                try
-                {
-                    var ls = root.GetComponentsInChildren<Light>(true);
-                    if (ls == null)
+                    if (root == null)
                     {
                         return;
                     }
-                    for (int i = 0; i < ls.Length; i++)
+                    try
                     {
-                        var l = ls[i];
-                        if (l != null && !list.Contains(l))
+                        var ls = root.GetComponentsInChildren<Light>(true);
+                        if (ls == null)
                         {
-                            list.Add(l);
+                            return;
+                        }
+                        for (int i = 0; i < ls.Length; i++)
+                        {
+                            var l = ls[i];
+                            if (l == null)
+                            {
+                                continue;
+                            }
+                            int id = l.GetInstanceID();
+                            if (seen.Add(id))
+                            {
+                                cache.Lights.Add(l);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+
+                // Primary: Headlights.headLights object.
+                AddLightsFrom(go);
+
+                // TrueNight-style: some prefabs put the main light objects under child(0) instead.
+                try
+                {
+                    var t0 = hl.transform != null && hl.transform.childCount > 0 ? hl.transform.GetChild(0) : null;
+                    AddLightsFrom(t0 != null ? t0.gameObject : null);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                // Fallback: grab anything under the headlights component.
+                try
+                {
+                    var ls = hl.GetComponentsInChildren<Light>(true);
+                    if (ls != null)
+                    {
+                        for (int i = 0; i < ls.Length; i++)
+                        {
+                            var l = ls[i];
+                            if (l == null)
+                            {
+                                continue;
+                            }
+                            int id = l.GetInstanceID();
+                            if (seen.Add(id))
+                            {
+                                cache.Lights.Add(l);
+                            }
                         }
                     }
                 }
@@ -1953,41 +2052,7 @@ namespace SebTruck
                 }
             }
 
-            // Primary: Headlights.headLights object.
-            AddLightsFrom(go);
-
-            // TrueNight-style: some prefabs put the main light objects under child(0) instead.
-            try
-            {
-                var t0 = hl.transform != null && hl.transform.childCount > 0 ? hl.transform.GetChild(0) : null;
-                AddLightsFrom(t0 != null ? t0.gameObject : null);
-            }
-            catch
-            {
-                // ignore
-            }
-
-            // Fallback: grab anything under the headlights component.
-            try
-            {
-                var ls = hl.GetComponentsInChildren<Light>(true);
-                if (ls != null)
-                {
-                    for (int i = 0; i < ls.Length; i++)
-                    {
-                        var l = ls[i];
-                        if (l != null && !list.Contains(l))
-                        {
-                            list.Add(l);
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // ignore
-            }
-
+            var list = cache.Lights;
             if (list.Count == 0)
             {
                 return;
@@ -2197,6 +2262,7 @@ namespace SebTruck
 
             _currentCar = __instance;
             _isInWalkingMode = __instance.GuyActive;
+            _currentCarFrame = Time.frameCount;
 
             if (__instance.rb != null)
             {
@@ -2230,7 +2296,12 @@ namespace SebTruck
             }
 
             // Only apply while driving.
-            var car = UnityEngine.Object.FindFirstObjectByType<sCarController>();
+            var car = _currentCar;
+            if (car == null)
+            {
+                // Fallback for early frames / unexpected call order.
+                car = UnityEngine.Object.FindFirstObjectByType<sCarController>();
+            }
             if (car == null || car.GuyActive)
             {
                 _ignitionHoldStart = -1f;
@@ -2247,7 +2318,7 @@ namespace SebTruck
 
             BindingEvaluator.BeginFrame();
 
-            var schemes = new[] { BindingScheme.Controller, BindingScheme.Keyboard, BindingScheme.Wheel };
+            var schemes = _bindingSchemes;
 
             bool Pressed(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(b);
             bool Released(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasReleasedThisFrame(b);
@@ -2862,7 +2933,11 @@ namespace SebTruck
                 return;
             }
 
-            var car = UnityEngine.Object.FindFirstObjectByType<sCarController>();
+            var car = _currentCar;
+            if (car == null)
+            {
+                car = UnityEngine.Object.FindFirstObjectByType<sCarController>();
+            }
             if (car == null || car.GuyActive)
             {
                 return;
