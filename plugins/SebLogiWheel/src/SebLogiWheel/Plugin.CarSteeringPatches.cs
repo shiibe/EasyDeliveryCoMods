@@ -7,7 +7,6 @@ namespace SebLogiWheel
     {
         // The base game applies a gamepad-tuned steeringCurve + smoothing in sCarController.
         // For wheels, we want direct, linear steering.
-
         [HarmonyPatch(typeof(sCarController), nameof(sCarController.SetInput), typeof(UnityEngine.Vector2))]
         private static class CarController_SetInput_Vector2_Patch
         {

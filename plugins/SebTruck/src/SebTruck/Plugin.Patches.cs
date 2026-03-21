@@ -2014,7 +2014,7 @@ namespace SebTruck
                 // Primary: Headlights.headLights object.
                 AddLightsFrom(go);
 
-                // TrueNight-style: some prefabs put the main light objects under child(0) instead.
+                // Secondary: anything under the headlights component, which may include non-child objects (e.g. via weird hierarchy or modded setups).
                 try
                 {
                     var t0 = hl.transform != null && hl.transform.childCount > 0 ? hl.transform.GetChild(0) : null;

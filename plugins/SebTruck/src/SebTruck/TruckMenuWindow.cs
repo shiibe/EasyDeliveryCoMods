@@ -384,8 +384,6 @@ namespace SebTruck
                         Plugin.CyclePaintSelection();
                     }
                 }
-
-                // (HUD controls moved to their own page)
             }
         }
     }

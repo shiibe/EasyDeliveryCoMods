@@ -777,7 +777,7 @@ namespace SebTruck
 
         internal static float GetTurnSignalLightIntensity()
         {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyTurnSignalLightIntensity, 0.25f), 0f, 1.0f);
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyTurnSignalLightIntensity, 0.15f), 0f, 1.0f);
         }
 
         internal static void SetTurnSignalLightIntensity(float intensity)
@@ -959,6 +959,7 @@ namespace SebTruck
             SetIndicatorSfxEnabled(true);
             SetIndicatorSfxVolume(1.0f);
             SetIndicatorBlinkSeconds(0.45f);
+            SetTurnSignalLightIntensity(0.15f);
             SetManualSpeedMultForward(1.0f);
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
@@ -989,6 +990,7 @@ namespace SebTruck
             SetIndicatorSfxEnabled(true);
             SetIndicatorSfxVolume(1.0f);
             SetIndicatorBlinkSeconds(0.45f);
+            SetTurnSignalLightIntensity(0.15f);
             PlayerPrefs.Save();
         }
 

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace SebLogiWheel
@@ -17,47 +16,6 @@ namespace SebLogiWheel
 
         private Page _page;
         private CalStep _calStep;
-
-        private enum BindingsPage
-        {
-            Axes = 0
-        }
-
-        private BindingsPage _bindingsPage;
-
-        private bool _bindingCaptureModifier;
-        private Plugin.ButtonBindAction _bindingCaptureAction;
-
-        private bool _bindingDupConfirmActive;
-        private Plugin.BindingInput _bindingDupPendingCaptured;
-        private Plugin.BindingLayer _bindingDupPendingLayer;
-        private List<BindingConflict> _bindingDupConflicts;
-
-        private struct BindingConflict
-        {
-            public Plugin.BindingLayer Layer;
-            public Plugin.ButtonBindAction Action;
-        }
-
-        private static readonly Plugin.ButtonBindAction[] AllBindableActions =
-        {
-            Plugin.ButtonBindAction.InteractOk,
-            Plugin.ButtonBindAction.Back,
-            Plugin.ButtonBindAction.MapItems,
-            Plugin.ButtonBindAction.Pause,
-            Plugin.ButtonBindAction.Camera,
-            Plugin.ButtonBindAction.ResetVehicle,
-            Plugin.ButtonBindAction.Headlights,
-            Plugin.ButtonBindAction.Horn,
-            Plugin.ButtonBindAction.RadioPower,
-            Plugin.ButtonBindAction.RadioScanRight,
-            Plugin.ButtonBindAction.RadioScanLeft,
-            Plugin.ButtonBindAction.RadioScanToggle,
-            Plugin.ButtonBindAction.IgnitionToggle,
-            Plugin.ButtonBindAction.ToggleGearbox,
-            Plugin.ButtonBindAction.ShiftUp,
-            Plugin.ButtonBindAction.ShiftDown
-        };
 
         private enum CalStep
         {
@@ -78,20 +36,10 @@ namespace SebLogiWheel
             Main = 0,
             Ffb = 1,
             Steering = 2,
-            VehicleHud = 3,
             Calibration = 4,
             CalibrationWizard = 5,
-            Bindings = 6,
-            BindingCapture = 7
+            Bindings = 6
         }
-
-        private enum VehicleHudPage
-        {
-            Vehicle = 0,
-            Hud = 1
-        }
-
-        private VehicleHudPage _vehicleHudPage;
 
         public void FrameUpdate(DesktopDotExe.WindowView view)
         {
@@ -102,19 +50,16 @@ namespace SebLogiWheel
 
             _view = view;
 
-            // Allow external UIs (SebBinds) to deep-link into calibration.
+            // Allow SebBinds to deep-link into the calibration wizard for pedals.
             if (Plugin.ConsumeOpenCalibrationWizardRequest())
             {
                 _page = Page.CalibrationWizard;
             }
 
-            // Allow external UIs (SebBinds) to deep-link into axis mapping.
+            // Allow SebBinds to deep-link into the axis binding page.
             if (Plugin.ConsumeOpenAxisMappingRequest())
             {
                 _page = Page.Bindings;
-                _bindingsPage = BindingsPage.Axes;
-                _bindingCaptureModifier = false;
-                _bindingDupConfirmActive = false;
             }
 
             _util ??= new UIUtil();
@@ -148,15 +93,6 @@ namespace SebLogiWheel
                 return;
             }
 
-            if (_page == Page.BindingCapture)
-            {
-                Plugin.LogDebug("Bindings: capture cancelled via back button");
-                _bindingCaptureModifier = false;
-                _bindingDupConfirmActive = false;
-                _page = Page.Bindings;
-                return;
-            }
-
             if (_page != Page.Main)
             {
                 _calStep = CalStep.None;
@@ -176,10 +112,8 @@ namespace SebLogiWheel
             float line = 12f;
             float sectionGap = 4f;
 
-            // Let the plugin know the wheel menu is open (used to keep FFB on while paused).
             Plugin.SetWheelMenuActive(true);
             Plugin.SetFfbPageActive(_page == Page.Ffb);
-            Plugin.SetBindingCaptureActive(_page == Page.BindingCapture);
             Plugin.SetCalibrationWizardActive(_page == Page.CalibrationWizard);
 
             if (_page == Page.Main)
@@ -200,10 +134,6 @@ namespace SebLogiWheel
             {
                 DrawSteering(p, center, ref y, line, sectionGap);
             }
-            else if (_page == Page.VehicleHud)
-            {
-                DrawVehicleHud(p, center, ref y, line, sectionGap);
-            }
             else if (_page == Page.Calibration)
             {
                 DrawCalibration(p, center, ref y, line, sectionGap);
@@ -211,10 +141,6 @@ namespace SebLogiWheel
             else if (_page == Page.CalibrationWizard)
             {
                 DrawCalibrationWizard(p, center, ref y, line, sectionGap);
-            }
-            else if (_page == Page.BindingCapture)
-            {
-                DrawBindingCapture(p, center, ref y, line, sectionGap);
             }
             else
             {
@@ -226,7 +152,7 @@ namespace SebLogiWheel
         {
             float cx = p.x + p.width / 2f;
 
-            // Main navigation buttons (requested order).
+            // Main navigation buttons
             float btnGap = 22f;
             if (_util.FancyButton("Button Binds", cx, y))
             {
@@ -239,7 +165,6 @@ namespace SebLogiWheel
             y += btnGap;
             if (_util.FancyButton("Axis Mapping", cx, y))
             {
-                _bindingsPage = BindingsPage.Axes;
                 _page = Page.Bindings;
             }
 
@@ -261,8 +186,7 @@ namespace SebLogiWheel
                 _page = Page.Calibration;
             }
 
-            // Bottom buttons.
-            // Move SDK status + retry up (keep Back on bottom row).
+            // Bottom buttons
             float statusY = p.y + p.height - 66f;
             float retryY = p.y + p.height - 54f;
             float backY = p.y + p.height - 18f;
@@ -332,8 +256,6 @@ namespace SebLogiWheel
             {
                 Plugin.SetFfbDamperGain(newDamper.Value);
             }
-
-            // FFB test buttons intentionally hidden for initial release.
         }
 
         private void DrawSteering(Rect p, float center, ref float y, float line, float sectionGap)
@@ -406,233 +328,6 @@ namespace SebLogiWheel
 
             DrawBindingsAxes(p, center, ref y, line, sectionGap);
         }
-
-        private static VehicleHudPage PrevVehicleHudPage(VehicleHudPage p)
-        {
-            return p == VehicleHudPage.Vehicle ? VehicleHudPage.Hud : VehicleHudPage.Vehicle;
-        }
-
-        private static VehicleHudPage NextVehicleHudPage(VehicleHudPage p)
-        {
-            return p == VehicleHudPage.Vehicle ? VehicleHudPage.Hud : VehicleHudPage.Vehicle;
-        }
-
-        private static string GetVehicleHudPageTitle(VehicleHudPage p)
-        {
-            switch (p)
-            {
-                case VehicleHudPage.Vehicle:
-                    return "Vehicle";
-                case VehicleHudPage.Hud:
-                    return "HUD";
-                default:
-                    return "Vehicle";
-            }
-        }
-
-        private void DrawVehicleHud(Rect p, float center, ref float y, float line, float sectionGap)
-        {
-            _util.Label("Vehicle/HUD", p.x + p.width / 2f, y);
-            y += line;
-
-            float cx = p.x + p.width / 2f;
-
-            float navY = p.y + p.height - 18f;
-            float prevX = p.x + 40f;
-            float nextX = p.x + p.width - 40f;
-
-            if (_util.SimpleButtonRaw("Prev", prevX, navY))
-            {
-                _vehicleHudPage = PrevVehicleHudPage(_vehicleHudPage);
-            }
-            if (_util.SimpleButton("Back", cx, navY))
-            {
-                _page = Page.Main;
-                return;
-            }
-            if (_util.SimpleButtonRaw("Next", nextX, navY))
-            {
-                _vehicleHudPage = NextVehicleHudPage(_vehicleHudPage);
-            }
-
-            // Page indicator.
-            int pageNum = (int)_vehicleHudPage + 1;
-            int pageTotal = (int)VehicleHudPage.Hud + 1;
-            _util.Label(pageNum + "/" + pageTotal, p.x + p.width - 18f, p.y + 10f);
-
-            y += sectionGap;
-
-            _util.Label(GetVehicleHudPageTitle(_vehicleHudPage), p.x + p.width / 2f, y);
-            y += line;
-
-            float resetY = navY - 12f;
-            if (_util.SimpleButtonRaw("Reset Defaults", p.x + p.width / 2f, resetY))
-            {
-                if (_vehicleHudPage == VehicleHudPage.Vehicle)
-                {
-                    Plugin.ResetVehicleDefaults();
-                }
-                else
-                {
-                    Plugin.ResetHudDefaults();
-                }
-            }
-
-            y += sectionGap;
-
-            bool manual = Plugin.GetManualTransmissionEnabled();
-            if (_vehicleHudPage == VehicleHudPage.Vehicle)
-            {
-                // Order requested:
-                // Transmission, Max Gears, Ignition, Speed Mult., Revrs Mult., Headlgt Bright, Headlght Dist
-
-                string modeLabel = manual ? "Manual" : "Auto";
-                if (_util.CycleButtonRaw("Transmission", modeLabel, center, y))
-                {
-                    Plugin.ToggleManualTransmission();
-                }
-                y += line;
-
-                if (manual)
-                {
-                    int gears = Plugin.GetManualGearCount();
-                    if (_util.CycleButtonRaw("Max Gears", gears.ToString(), center, y))
-                    {
-                        Plugin.SetManualGearCount(Plugin.NextManualGearCount(gears));
-                    }
-                    y += line;
-                }
-
-                bool ignFeature = Plugin.GetIgnitionFeatureEnabled();
-                string ignLabel = ignFeature ? "Enabled" : "Disabled";
-                if (_util.CycleButtonRaw("Ignition", ignLabel, center, y))
-                {
-                    Plugin.SetIgnitionFeatureEnabled(!ignFeature);
-                }
-                y += line;
-
-                float holdS = Plugin.GetIgnitionHoldSeconds();
-                _util.ValueLabel($"{holdS:0.00}s", p.x + p.width - 12f, y);
-                float holdNorm = Mathf.InverseLerp(0.25f, 3.0f, holdS);
-                float? newHoldNorm = _util.Slider("Ignition Time", holdNorm, center, y, ref _mouseYLock);
-                if (newHoldNorm.HasValue)
-                {
-                    Plugin.SetIgnitionHoldSeconds(Mathf.Lerp(0.25f, 3.0f, newHoldNorm.Value));
-                }
-                y += line;
-
-                bool ignSfx = Plugin.GetIgnitionSfxEnabled();
-                string ignSfxLabel = ignSfx ? "On" : "Off";
-                if (_util.CycleButtonRaw("Ignition SFX", ignSfxLabel, center, y))
-                {
-                    Plugin.SetIgnitionSfxEnabled(!ignSfx);
-                }
-                y += line;
-
-                float fwd = Plugin.GetManualSpeedMultForward();
-                _util.ValueLabel($"{Mathf.RoundToInt(fwd * 100f)}%", p.x + p.width - 12f, y);
-                float fwdNorm = Mathf.InverseLerp(0.5f, 1.5f, fwd);
-                float? newFwdNorm = _util.Slider("Speed Mult.", fwdNorm, center, y, ref _mouseYLock);
-                if (newFwdNorm.HasValue)
-                {
-                    Plugin.SetManualSpeedMultForward(Mathf.Lerp(0.5f, 1.5f, newFwdNorm.Value));
-                }
-                y += line;
-
-                float rev = Plugin.GetManualSpeedMultReverse();
-                _util.ValueLabel($"{Mathf.RoundToInt(rev * 100f)}%", p.x + p.width - 12f, y);
-                float revNorm = Mathf.InverseLerp(0.5f, 1.5f, rev);
-                float? newRevNorm = _util.Slider("Revrs Mult.", revNorm, center, y, ref _mouseYLock);
-                if (newRevNorm.HasValue)
-                {
-                    Plugin.SetManualSpeedMultReverse(Mathf.Lerp(0.5f, 1.5f, newRevNorm.Value));
-                }
-                y += line;
-
-                float inten = Plugin.GetHeadlightIntensityMult();
-                _util.ValueLabel($"{inten:0.00}x", p.x + p.width - 12f, y);
-                float intenNorm = Mathf.InverseLerp(0.25f, 2.0f, inten);
-                float? newIntenNorm = _util.Slider("Headlgt Bright", intenNorm, center, y, ref _mouseYLock);
-                if (newIntenNorm.HasValue)
-                {
-                    Plugin.SetHeadlightIntensityMult(Mathf.Lerp(0.25f, 2.0f, newIntenNorm.Value));
-                }
-                y += line;
-
-                float dist = Plugin.GetHeadlightRangeMult();
-                _util.ValueLabel($"{dist:0.00}x", p.x + p.width - 12f, y);
-                float distNorm = Mathf.InverseLerp(0.25f, 2.0f, dist);
-                float? newDistNorm = _util.Slider("Headlght Dist", distNorm, center, y, ref _mouseYLock);
-                if (newDistNorm.HasValue)
-                {
-                    Plugin.SetHeadlightRangeMult(Mathf.Lerp(0.25f, 2.0f, newDistNorm.Value));
-                }
-                return;
-            }
-
-            if (_vehicleHudPage == VehicleHudPage.Hud)
-            {
-                var units = Plugin.GetHudSpeedUnit();
-                if (_util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(units), center, y))
-                {
-                    Plugin.SetHudSpeedUnit(Plugin.NextHudSpeedUnit(units));
-                }
-                y += line;
-
-                bool hudSpeed = Plugin.GetHudShowSpeed();
-                bool? newHudSpeed = _util.Toggle("Speedomtr", hudSpeed, center, y);
-                if (newHudSpeed.HasValue)
-                {
-                    Plugin.SetHudShowSpeed(newHudSpeed.Value);
-                }
-                y += line;
-
-                if (manual)
-                {
-                    bool hudTach = Plugin.GetHudShowTach();
-                    bool? newHudTach = _util.Toggle("Tachomtr", hudTach, center, y);
-                    if (newHudTach.HasValue)
-                    {
-                        Plugin.SetHudShowTach(newHudTach.Value);
-                    }
-                    y += line;
-
-                    bool hudGear = Plugin.GetHudShowGear();
-                    bool? newHudGear = _util.Toggle("Gear Ind", hudGear, center, y);
-                    if (newHudGear.HasValue)
-                    {
-                        Plugin.SetHudShowGear(newHudGear.Value);
-                    }
-                    y += line;
-                }
-
-                var spPos = Plugin.GetHudSpeedAnchor();
-                if (_util.CycleButtonRaw("Speedomtr Pos", Plugin.GetHudReadoutAnchorLabel(spPos), center, y))
-                {
-                    Plugin.SetHudSpeedAnchor(Plugin.NextHudReadoutAnchor(spPos));
-                }
-                y += line;
-
-                if (manual)
-                {
-                    var tPos = Plugin.GetHudTachAnchor();
-                    if (_util.CycleButtonRaw("Tachomtr Pos", Plugin.GetHudReadoutAnchorLabel(tPos), center, y))
-                    {
-                        Plugin.SetHudTachAnchor(Plugin.NextHudReadoutAnchor(tPos));
-                    }
-                    y += line;
-
-                    var gPos = Plugin.GetHudGearAnchor();
-                    if (_util.CycleButtonRaw("Gear Ind. Pos", Plugin.GetHudReadoutAnchorLabel(gPos), center, y))
-                    {
-                        Plugin.SetHudGearAnchor(Plugin.NextHudReadoutAnchor(gPos));
-                    }
-                }
-                return;
-            }
-        }
-
-        // Note: button-binding pages removed; wheel binds live in SebBinds.
 
         private void DrawBindingsAxes(Rect p, float center, ref float y, float line, float sectionGap)
         {
@@ -718,265 +413,6 @@ namespace SebLogiWheel
             _util.Label($"brk={brkNorm0:0.00} clu={cluNorm0:0.00}", p.x + p.width / 2f, y);
         }
 
-        private void DrawBindingsButtonsPage(Rect p, float center, ref float y, float line, Plugin.ButtonBindAction[] actions)
-        {
-            float cx = p.x + p.width / 2f;
-
-            if (_util.CycleButtonRaw("Modifier", Plugin.GetBindingLabel(Plugin.GetModifierBinding()), center, y))
-            {
-                _bindingCaptureModifier = true;
-                _page = Page.BindingCapture;
-                Plugin.LogDebug("Bindings: start capture for modifier");
-                return;
-            }
-            y += line + 3f;
-
-            int maxVisible = 8;
-            for (int i = 0; i < actions.Length && i < maxVisible; i++)
-            {
-                var action = actions[i];
-                string value = GetSingleBindingDisplay(action);
-                string label = Plugin.GetActionLabel(action);
-                if (_util.CycleButtonRaw(label, value, center, y))
-                {
-                    _bindingCaptureModifier = false;
-                    _bindingCaptureAction = action;
-                    _bindingDupConfirmActive = false;
-                    _page = Page.BindingCapture;
-                    Plugin.LogDebug("Bindings: start capture for " + action);
-                    return;
-                }
-                y += line;
-            }
-        }
-
-        private static string GetSingleBindingDisplay(Plugin.ButtonBindAction action)
-        {
-            var mod = Plugin.GetBinding(Plugin.BindingLayer.Modified, action);
-            if (mod.Kind != Plugin.BindingKind.None)
-            {
-                return Plugin.GetChordLabel(mod, modified: true);
-            }
-
-            var normal = Plugin.GetBinding(Plugin.BindingLayer.Normal, action);
-            return Plugin.GetChordLabel(normal, modified: false);
-        }
-
-        private void ApplyPendingBinding(bool replaceDuplicates)
-        {
-            if (!_bindingDupConfirmActive)
-            {
-                return;
-            }
-
-            if (replaceDuplicates && _bindingDupConflicts != null)
-            {
-                foreach (var c in _bindingDupConflicts)
-                {
-                    Plugin.SetBinding(c.Layer, c.Action, new Plugin.BindingInput { Kind = Plugin.BindingKind.None, Code = 0 });
-                }
-                Plugin.LogDebug("Bindings: removed duplicate bindings");
-            }
-
-            ApplyBindingNow(_bindingDupPendingCaptured, _bindingDupPendingLayer);
-
-            _bindingDupConfirmActive = false;
-            _bindingCaptureModifier = false;
-            _page = Page.Bindings;
-        }
-
-        private void ApplyBindingNow(Plugin.BindingInput captured, Plugin.BindingLayer targetLayer)
-        {
-            // One binding per action: set target layer and clear the other.
-            Plugin.SetBinding(targetLayer, _bindingCaptureAction, captured);
-            Plugin.SetBinding(targetLayer == Plugin.BindingLayer.Normal ? Plugin.BindingLayer.Modified : Plugin.BindingLayer.Normal, _bindingCaptureAction,
-                new Plugin.BindingInput { Kind = Plugin.BindingKind.None, Code = 0 });
-
-            Plugin.LogDebug("Bindings: set " + _bindingCaptureAction + " -> " + Plugin.GetChordLabel(captured, targetLayer == Plugin.BindingLayer.Modified));
-        }
-
-        private static bool SameBinding(Plugin.BindingInput a, Plugin.BindingInput b)
-        {
-            return a.Kind == b.Kind && a.Code == b.Code;
-        }
-
-        private static bool TryFindDuplicateBindings(Plugin.BindingInput captured, Plugin.ButtonBindAction targetAction, Plugin.BindingLayer targetLayer,
-            out List<BindingConflict> conflicts)
-        {
-            conflicts = null;
-
-            // If a Modifier is configured, allow reusing the same physical binding in Normal vs Modified layers.
-            // This is the whole point of M+ chords (e.g. DPadUp and M+DPadUp).
-            bool allowCrossLayerReuse = Plugin.GetModifierBinding().Kind != Plugin.BindingKind.None;
-
-            foreach (var action in AllBindableActions)
-            {
-                foreach (Plugin.BindingLayer layer in new[] { Plugin.BindingLayer.Normal, Plugin.BindingLayer.Modified })
-                {
-                    if (action == targetAction && layer == targetLayer)
-                    {
-                        continue;
-                    }
-
-                    if (allowCrossLayerReuse && layer != targetLayer)
-                    {
-                        continue;
-                    }
-
-                    var existing = Plugin.GetBinding(layer, action);
-                    if (existing.Kind == Plugin.BindingKind.None)
-                    {
-                        continue;
-                    }
-
-                    if (SameBinding(existing, captured))
-                    {
-                        conflicts ??= new List<BindingConflict>();
-                        conflicts.Add(new BindingConflict { Layer = layer, Action = action });
-                    }
-                }
-            }
-
-            return conflicts != null && conflicts.Count > 0;
-        }
-
-        private static string GetDupConflictsText(List<BindingConflict> conflicts)
-        {
-            if (conflicts == null || conflicts.Count == 0)
-            {
-                return string.Empty;
-            }
-
-            // Keep it short; only show the first conflict.
-            var c = conflicts[0];
-            string prefix = c.Layer == Plugin.BindingLayer.Modified ? "M+" : string.Empty;
-            return prefix + Plugin.GetActionLabel(c.Action);
-        }
-
-        private void DrawBindingCapture(Rect p, float center, ref float y, float line, float sectionGap)
-        {
-            _util.Label("Bindings", p.x + p.width / 2f, y);
-            y += line;
-
-            string secondLine;
-            if (_bindingCaptureModifier)
-            {
-                secondLine = "Modifier (hold)";
-            }
-            else
-            {
-                secondLine = Plugin.GetActionLabel(_bindingCaptureAction);
-            }
-
-            float promptY = p.y + p.height / 2f - 18f;
-            _util.Label("Press a wheel button for:", p.x + p.width / 2f, promptY);
-            _util.Label(secondLine, p.x + p.width / 2f, promptY + line);
-
-            bool modDown = false;
-            var modifier = Plugin.GetModifierBinding();
-            if (!_bindingCaptureModifier && modifier.Kind != Plugin.BindingKind.None)
-            {
-                modDown = Plugin.IsBindingDownForCurrentFrame(modifier);
-                _util.Label("Hold Modifier to bind M+", p.x + p.width / 2f, promptY + line * 2f);
-                _util.Label(modDown ? "Mode: M+" : "Mode: Normal", p.x + p.width / 2f, promptY + line * 3f);
-            }
-
-            float cx = p.x + p.width / 2f;
-            float clearY = p.y + p.height - 30f;
-            float cancelY = p.y + p.height - 18f;
-
-            if (_bindingDupConfirmActive)
-            {
-                _util.Label("Already used by:", p.x + p.width / 2f, promptY + line * 4f);
-                _util.Label(GetDupConflictsText(_bindingDupConflicts), p.x + p.width / 2f, promptY + line * 5f);
-
-                if (_util.SimpleButton("Replace", cx, clearY))
-                {
-                    ApplyPendingBinding(replaceDuplicates: true);
-                    return;
-                }
-
-                if (_util.SimpleButton("Cancel", cx, cancelY))
-                {
-                    Plugin.LogDebug("Bindings: duplicate warning cancelled");
-                    _bindingDupConfirmActive = false;
-                    return;
-                }
-
-                return;
-            }
-
-            if (_util.SimpleButton("Clear", cx, clearY))
-            {
-                if (_bindingCaptureModifier)
-                {
-                    Plugin.SetModifierBinding(new Plugin.BindingInput { Kind = Plugin.BindingKind.None, Code = 0 });
-                    Plugin.LogDebug("Bindings: cleared modifier");
-                }
-                else
-                {
-                    // This mod only supports one binding per action; clear both layers.
-                    Plugin.SetBinding(Plugin.BindingLayer.Normal, _bindingCaptureAction, new Plugin.BindingInput { Kind = Plugin.BindingKind.None, Code = 0 });
-                    Plugin.SetBinding(Plugin.BindingLayer.Modified, _bindingCaptureAction, new Plugin.BindingInput { Kind = Plugin.BindingKind.None, Code = 0 });
-                    Plugin.LogDebug("Bindings: cleared " + _bindingCaptureAction);
-                }
-
-                _bindingCaptureModifier = false;
-                _bindingDupConfirmActive = false;
-                _page = Page.Bindings;
-                return;
-            }
-
-            if (_util.SimpleButton("Cancel", cx, cancelY))
-            {
-                Plugin.LogDebug("Bindings: capture cancelled");
-                _bindingCaptureModifier = false;
-                _bindingDupConfirmActive = false;
-                _page = Page.Bindings;
-                return;
-            }
-
-            if (!Plugin.TryCaptureNextBinding(out var captured))
-            {
-                return;
-            }
-
-            if (_bindingCaptureModifier)
-            {
-                Plugin.SetModifierBinding(captured);
-                Plugin.LogDebug("Bindings: set modifier -> " + Plugin.GetBindingLabel(captured));
-
-                _bindingCaptureModifier = false;
-                _bindingDupConfirmActive = false;
-                _page = Page.Bindings;
-                return;
-            }
-
-            var targetLayer = modDown ? Plugin.BindingLayer.Modified : Plugin.BindingLayer.Normal;
-
-            // Avoid binding M+<modifier> to an action.
-            if (targetLayer == Plugin.BindingLayer.Modified && modifier.Kind != Plugin.BindingKind.None && modifier.Kind == captured.Kind && modifier.Code == captured.Code)
-            {
-                return;
-            }
-
-            if (TryFindDuplicateBindings(captured, _bindingCaptureAction, targetLayer, out var conflicts))
-            {
-                _bindingDupConfirmActive = true;
-                _bindingDupPendingCaptured = captured;
-                _bindingDupPendingLayer = targetLayer;
-                _bindingDupConflicts = conflicts;
-                Plugin.LogDebug("Bindings: duplicate binding warning for " + Plugin.GetBindingLabel(captured));
-                return;
-            }
-
-            ApplyBindingNow(captured, targetLayer);
-
-            _bindingCaptureModifier = false;
-            _bindingDupConfirmActive = false;
-            _page = Page.Bindings;
-        }
-
         private void DrawCalibration(Rect p, float center, ref float y, float line, float sectionGap)
         {
             _util.Label("Calibration", p.x + p.width / 2f, y);
@@ -1036,7 +472,6 @@ namespace SebLogiWheel
             y += line + sectionGap;
 
             // axis selection
-            // Axis mapping moved to the Bindings page to keep this screen focused.
 
             // quick status helpers for pedals
             int rawThr = Plugin.GetAxisValue(state, Plugin.GetThrottleAxis());

@@ -77,8 +77,6 @@
                 Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
     </Target>
 
-    <!-- Ignition SFX moved to SebTruck. -->
-
     <Target Name="CopyLogitechSdkWrapper" AfterTargets="Build">
         <PropertyGroup>
             <LogiWrapperDll>LogitechSteeringWheelEnginesWrapper.dll</LogiWrapperDll>

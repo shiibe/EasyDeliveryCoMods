@@ -70,31 +70,6 @@ namespace SebLogiWheel
         internal const string PrefKeyBrakeAxis = "ELWS_Axis_Brake";
         internal const string PrefKeyClutchAxis = "ELWS_Axis_Clutch";
 
-        internal const string PrefKeyManualTransmissionEnabled = "ELWS_ManualTransmission";
-        internal const string PrefKeyHudShowSpeed = "ELWS_HudShowSpeed";
-        internal const string PrefKeyHudShowTach = "ELWS_HudShowTach";
-        internal const string PrefKeyHudShowGear = "ELWS_HudShowGear";
-        internal const string PrefKeyHudSpeedUnits = "ELWS_HudSpeedUnits";
-        internal const string PrefKeyHudReadoutAnchor = "ELWS_HudReadoutAnchor";
-
-        internal const string PrefKeyHudSpeedAnchor = "ELWS_HudSpeedAnchor";
-        internal const string PrefKeyHudTachAnchor = "ELWS_HudTachAnchor";
-        internal const string PrefKeyHudGearAnchor = "ELWS_HudGearAnchor";
-
-        internal const string PrefKeyIgnitionEnabled = "ELWS_IgnitionEnabled";
-        internal const string PrefKeyIgnitionFeatureEnabled = "ELWS_IgnitionFeatureEnabled";
-        internal const string PrefKeyIgnitionHoldSeconds = "ELWS_IgnitionHoldSeconds";
-
-        internal const string PrefKeyIgnitionSfxEnabled = "ELWS_IgnitionSfxEnabled";
-
-        internal const string PrefKeyHeadlightIntensityMult = "ELWS_HeadlightIntensityMult";
-        internal const string PrefKeyHeadlightRangeMult = "ELWS_HeadlightRangeMult";
-
-        internal const string PrefKeyManualSpeedMultForward = "ELWS_ManualSpeedMultFwd";
-        internal const string PrefKeyManualSpeedMultReverse = "ELWS_ManualSpeedMultRev";
-
-        internal const string PrefKeyManualGearCount = "ELWS_ManualGearCount";
-
         internal static void ClearAllUserPrefs()
         {
             // Fixed keys.
@@ -122,25 +97,6 @@ namespace SebLogiWheel
                 PrefKeyCalBrakePressed,
                 PrefKeyCalClutchReleased,
                 PrefKeyCalClutchPressed,
-
-                PrefKeyManualTransmissionEnabled,
-                PrefKeyHudShowSpeed,
-                PrefKeyHudShowTach,
-                PrefKeyHudShowGear,
-                PrefKeyHudSpeedUnits,
-                PrefKeyHudReadoutAnchor,
-                PrefKeyHudSpeedAnchor,
-                PrefKeyHudTachAnchor,
-                PrefKeyHudGearAnchor,
-                PrefKeyIgnitionEnabled,
-                PrefKeyIgnitionFeatureEnabled,
-                PrefKeyIgnitionHoldSeconds,
-                PrefKeyIgnitionSfxEnabled,
-                PrefKeyHeadlightIntensityMult,
-                PrefKeyHeadlightRangeMult,
-                PrefKeyManualSpeedMultForward,
-                PrefKeyManualSpeedMultReverse,
-                PrefKeyManualGearCount,
 
                 PrefKeyBindModifier
             };
@@ -183,18 +139,6 @@ namespace SebLogiWheel
             PlayerPrefs.Save();
         }
 
-        internal enum SpeedUnit
-        {
-            Kmh = 0,
-            Mph = 1
-        }
-
-        internal enum HudReadoutAnchor
-        {
-            BottomLeft = 0,
-            BottomRight = 1
-        }
-
         internal enum ButtonBindAction
         {
             InteractOk = 0,
@@ -203,20 +147,12 @@ namespace SebLogiWheel
             Pause = 3,
             Camera = 5,
             ResetVehicle = 6,
-            Headlights = 7,
-
             Horn = 8,
 
             RadioPower = 9,
             RadioScanToggle = 10,
             RadioScanLeft = 11,
-            RadioScanRight = 12,
-
-            ToggleGearbox = 13,
-            ShiftUp = 14,
-            ShiftDown = 15,
-
-            IgnitionToggle = 16
+            RadioScanRight = 12
         }
 
         internal enum BindingLayer
@@ -286,20 +222,6 @@ namespace SebLogiWheel
                     PrefKeyCalClutchReleased,
                     PrefKeyCalClutchPressed,
 
-                    PrefKeyManualTransmissionEnabled,
-                    PrefKeyHudShowSpeed,
-                    PrefKeyHudShowTach,
-                    PrefKeyHudShowGear,
-                    PrefKeyHudSpeedUnits,
-                    PrefKeyHudReadoutAnchor,
-                    PrefKeyHudSpeedAnchor,
-                    PrefKeyHudTachAnchor,
-                    PrefKeyHudGearAnchor,
-                    PrefKeyIgnitionEnabled,
-                    PrefKeyIgnitionFeatureEnabled,
-                    PrefKeyIgnitionSfxEnabled,
-                    PrefKeyManualGearCount,
-
                     PrefKeyBindModifier
                 };
 
@@ -310,10 +232,6 @@ namespace SebLogiWheel
                     PrefKeyFfbDamper,
                     PrefKeySteeringGain,
                     PrefKeySteeringDeadzone,
-                    PrefKeyHeadlightIntensityMult,
-                    PrefKeyHeadlightRangeMult,
-                    PrefKeyManualSpeedMultForward,
-                    PrefKeyManualSpeedMultReverse
                 };
 
                 int migrated = 0;
@@ -598,8 +516,6 @@ namespace SebLogiWheel
                     return "Camera";
                 case ButtonBindAction.ResetVehicle:
                     return "Reset";
-                case ButtonBindAction.Headlights:
-                    return "Lights";
                 case ButtonBindAction.Horn:
                     return "Horn";
                 case ButtonBindAction.RadioPower:
@@ -610,14 +526,6 @@ namespace SebLogiWheel
                     return "Prev Ch";
                 case ButtonBindAction.RadioScanRight:
                     return "Next Ch";
-                case ButtonBindAction.ToggleGearbox:
-                    return "Gearbox";
-                case ButtonBindAction.ShiftUp:
-                    return "Shift Up";
-                case ButtonBindAction.ShiftDown:
-                    return "Shift Down";
-                case ButtonBindAction.IgnitionToggle:
-                    return "Ignition(Hold)";
                 default:
                     return action.ToString();
             }
@@ -859,442 +767,6 @@ namespace SebLogiWheel
         private static float _currentSpeedKmh;
         private static bool _isOffRoad;
         private static bool _isSliding;
-
-        private static sCarController _currentCar;
-
-        private static float _lastThrottle01;
-        private static float _neutralRev01;
-
-        private static bool _manualTransmissionEnabled;
-        private static int _manualGear = 1; // -1=R, 0=N, 1..GetManualGearCount()
-
-        internal static int GetManualGearCount()
-        {
-            return Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyManualGearCount, 5), 3, 6);
-        }
-
-        internal static void SetManualGearCount(int count)
-        {
-            count = Mathf.Clamp(count, 3, 6);
-            PlayerPrefs.SetInt(PrefKeyManualGearCount, count);
-            if (_manualGear > count)
-            {
-                _manualGear = count;
-            }
-        }
-
-        internal static int NextManualGearCount(int count)
-        {
-            count++;
-            if (count > 6) count = 3;
-            return count;
-        }
-
-        internal static bool GetManualTransmissionEnabled()
-        {
-            return PlayerPrefs.GetInt(PrefKeyManualTransmissionEnabled, 0) != 0;
-        }
-
-        internal static void SetManualTransmissionEnabled(bool enabled)
-        {
-            _manualTransmissionEnabled = enabled;
-            PlayerPrefs.SetInt(PrefKeyManualTransmissionEnabled, enabled ? 1 : 0);
-            if (!enabled)
-            {
-                // Keep gear state sane when leaving manual mode.
-                _manualGear = Mathf.Clamp(_manualGear, 1, GetManualGearCount());
-            }
-            else
-            {
-                if (_manualGear == 0)
-                {
-                    _manualGear = 1;
-                }
-            }
-        }
-
-        internal static int GetManualGear()
-        {
-            return _manualGear;
-        }
-
-        internal static string GetManualGearLabel()
-        {
-            if (_manualGear < 0) return "R";
-            if (_manualGear == 0) return "N";
-            return _manualGear.ToString();
-        }
-
-        internal static bool GetHudShowSpeed()
-        {
-            return PlayerPrefs.GetInt(PrefKeyHudShowSpeed, 1) != 0;
-        }
-
-        internal static void SetHudShowSpeed(bool enabled)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudShowSpeed, enabled ? 1 : 0);
-        }
-
-        internal static bool GetIgnitionEnabled()
-        {
-            return PlayerPrefs.GetInt(PrefKeyIgnitionEnabled, 1) != 0;
-        }
-
-        internal static void SetIgnitionEnabled(bool enabled)
-        {
-            PlayerPrefs.SetInt(PrefKeyIgnitionEnabled, enabled ? 1 : 0);
-        }
-
-        internal static bool GetIgnitionFeatureEnabled()
-        {
-            return PlayerPrefs.GetInt(PrefKeyIgnitionFeatureEnabled, 1) != 0;
-        }
-
-        internal static void SetIgnitionFeatureEnabled(bool enabled)
-        {
-            PlayerPrefs.SetInt(PrefKeyIgnitionFeatureEnabled, enabled ? 1 : 0);
-        }
-
-        internal static float GetIgnitionHoldSeconds()
-        {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyIgnitionHoldSeconds, 1.5f), 0.25f, 5.0f);
-        }
-
-        internal static void SetIgnitionHoldSeconds(float seconds)
-        {
-            PlayerPrefs.SetFloat(PrefKeyIgnitionHoldSeconds, Mathf.Clamp(seconds, 0.25f, 5.0f));
-        }
-
-        internal static void ResetVehicleDefaults()
-        {
-            SetManualTransmissionEnabled(false);
-            SetManualGearCount(5);
-
-            SetIgnitionFeatureEnabled(true);
-            SetIgnitionEnabled(true);
-            SetIgnitionHoldSeconds(1.5f);
-            SetIgnitionSfxEnabled(true);
-
-            SetManualSpeedMultForward(1.0f);
-            SetManualSpeedMultReverse(1.0f);
-
-            SetHeadlightIntensityMult(1.0f);
-            SetHeadlightRangeMult(1.0f);
-
-            PlayerPrefs.Save();
-        }
-
-        internal static void ResetHudDefaults()
-        {
-            SetHudSpeedUnit(SpeedUnit.Kmh);
-
-            SetHudShowSpeed(true);
-            SetHudShowTach(true);
-            SetHudShowGear(true);
-
-            SetHudReadoutAnchor(HudReadoutAnchor.BottomLeft);
-            PlayerPrefs.DeleteKey(PrefKeyHudSpeedAnchor);
-            PlayerPrefs.DeleteKey(PrefKeyHudTachAnchor);
-            PlayerPrefs.DeleteKey(PrefKeyHudGearAnchor);
-
-            PlayerPrefs.Save();
-        }
-
-        internal static bool GetIgnitionSfxEnabled()
-        {
-            return PlayerPrefs.GetInt(PrefKeyIgnitionSfxEnabled, 1) != 0;
-        }
-
-        internal static void SetIgnitionSfxEnabled(bool enabled)
-        {
-            PlayerPrefs.SetInt(PrefKeyIgnitionSfxEnabled, enabled ? 1 : 0);
-        }
-
-        internal static void ToggleIgnition()
-        {
-            SetIgnitionEnabled(!GetIgnitionEnabled());
-        }
-
-        internal static bool GetIgnitionEnabledEffective()
-        {
-            if (!GetIgnitionFeatureEnabled())
-            {
-                return true;
-            }
-
-            // If the user has not bound ignition at all, treat ignition as always on.
-            // This makes the feature opt-in via binding.
-            var n = GetBinding(BindingLayer.Normal, ButtonBindAction.IgnitionToggle);
-            var m = GetBinding(BindingLayer.Modified, ButtonBindAction.IgnitionToggle);
-            bool bound = n.Kind != BindingKind.None || m.Kind != BindingKind.None;
-            if (!bound)
-            {
-                return true;
-            }
-            return GetIgnitionEnabled();
-        }
-
-        internal static float GetHeadlightIntensityMult()
-        {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHeadlightIntensityMult, 1f), 0.1f, 3.0f);
-        }
-
-        internal static void SetHeadlightIntensityMult(float mult)
-        {
-            PlayerPrefs.SetFloat(PrefKeyHeadlightIntensityMult, Mathf.Clamp(mult, 0.1f, 3.0f));
-        }
-
-        internal static float GetHeadlightRangeMult()
-        {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHeadlightRangeMult, 1f), 0.1f, 3.0f);
-        }
-
-        internal static void SetHeadlightRangeMult(float mult)
-        {
-            PlayerPrefs.SetFloat(PrefKeyHeadlightRangeMult, Mathf.Clamp(mult, 0.1f, 3.0f));
-        }
-
-        internal static HudReadoutAnchor GetHudReadoutAnchor()
-        {
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudReadoutAnchor, 0), 0, 1);
-        }
-
-        internal static HudReadoutAnchor GetHudSpeedAnchor()
-        {
-            if (!PlayerPrefs.HasKey(PrefKeyHudSpeedAnchor))
-            {
-                return GetHudReadoutAnchor();
-            }
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudSpeedAnchor, (int)GetHudReadoutAnchor()), 0, 1);
-        }
-
-        internal static void SetHudSpeedAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudSpeedAnchor, (int)anchor);
-        }
-
-        internal static HudReadoutAnchor GetHudTachAnchor()
-        {
-            if (!PlayerPrefs.HasKey(PrefKeyHudTachAnchor))
-            {
-                return GetHudReadoutAnchor();
-            }
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudTachAnchor, (int)GetHudReadoutAnchor()), 0, 1);
-        }
-
-        internal static void SetHudTachAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudTachAnchor, (int)anchor);
-        }
-
-        internal static HudReadoutAnchor GetHudGearAnchor()
-        {
-            if (!PlayerPrefs.HasKey(PrefKeyHudGearAnchor))
-            {
-                return GetHudReadoutAnchor();
-            }
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudGearAnchor, (int)GetHudReadoutAnchor()), 0, 1);
-        }
-
-        internal static void SetHudGearAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudGearAnchor, (int)anchor);
-        }
-
-        internal static void SetHudReadoutAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudReadoutAnchor, (int)anchor);
-        }
-
-        internal static HudReadoutAnchor NextHudReadoutAnchor(HudReadoutAnchor anchor)
-        {
-            return anchor == HudReadoutAnchor.BottomLeft ? HudReadoutAnchor.BottomRight : HudReadoutAnchor.BottomLeft;
-        }
-
-        internal static string GetHudReadoutAnchorLabel(HudReadoutAnchor anchor)
-        {
-            return anchor == HudReadoutAnchor.BottomRight ? "Bottom R" : "Bottom L";
-        }
-
-        internal static SpeedUnit GetHudSpeedUnit()
-        {
-            return (SpeedUnit)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudSpeedUnits, 0), 0, 1);
-        }
-
-        internal static void SetHudSpeedUnit(SpeedUnit unit)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudSpeedUnits, (int)unit);
-        }
-
-        internal static SpeedUnit NextHudSpeedUnit(SpeedUnit unit)
-        {
-            return unit == SpeedUnit.Kmh ? SpeedUnit.Mph : SpeedUnit.Kmh;
-        }
-
-        internal static string GetHudSpeedUnitLabel(SpeedUnit unit)
-        {
-            return unit == SpeedUnit.Mph ? "mph" : "km/h";
-        }
-
-        internal static float ConvertSpeedForHud(float kmh)
-        {
-            SpeedUnit unit = GetHudSpeedUnit();
-            if (unit == SpeedUnit.Mph)
-            {
-                return kmh * 0.6213712f;
-            }
-            return kmh;
-        }
-
-        internal static bool GetHudShowTach()
-        {
-            return PlayerPrefs.GetInt(PrefKeyHudShowTach, 1) != 0;
-        }
-
-        internal static void SetHudShowTach(bool enabled)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudShowTach, enabled ? 1 : 0);
-        }
-
-        internal static bool GetHudShowGear()
-        {
-            return PlayerPrefs.GetInt(PrefKeyHudShowGear, 1) != 0;
-        }
-
-        internal static void SetHudShowGear(bool enabled)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudShowGear, enabled ? 1 : 0);
-        }
-
-
-        internal static void ToggleManualTransmission()
-        {
-            bool next = !GetManualTransmissionEnabled();
-            SetManualTransmissionEnabled(next);
-            if (next)
-            {
-                // When explicitly toggling into manual mode, always start at 1st.
-                _manualGear = 1;
-            }
-        }
-
-        internal static float GetManualSpeedMultForward()
-        {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyManualSpeedMultForward, 1f), 0.5f, 1.5f);
-        }
-
-        internal static void SetManualSpeedMultForward(float value)
-        {
-            PlayerPrefs.SetFloat(PrefKeyManualSpeedMultForward, Mathf.Clamp(value, 0.5f, 1.5f));
-        }
-
-        internal static float GetManualSpeedMultReverse()
-        {
-            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyManualSpeedMultReverse, 1f), 0.5f, 1.5f);
-        }
-
-        internal static void SetManualSpeedMultReverse(float value)
-        {
-            PlayerPrefs.SetFloat(PrefKeyManualSpeedMultReverse, Mathf.Clamp(value, 0.5f, 1.5f));
-        }
-
-        internal static void ShiftManualGear(int delta)
-        {
-            _manualGear = Mathf.Clamp(_manualGear + delta, -1, GetManualGearCount());
-        }
-
-        private static float GetMaxSpeedForGearKmh(int gear)
-        {
-            // Virtual gearbox curve: lower gears top out earlier.
-            // "Max Gears" changes the spacing between gears, but the top gear still targets vanilla-ish max speed.
-            int count = GetManualGearCount();
-            gear = Mathf.Clamp(gear, 1, count);
-
-            const float baseKmh = 25f;
-            const float topKmh = 125f;
-            float growth = Mathf.Pow(topKmh / baseKmh, 1f / Mathf.Max(1, count - 1));
-            return baseKmh * Mathf.Pow(growth, gear - 1);
-        }
-
-        private static float GetMaxSpeedForCurrentGearKmh()
-        {
-            int g = _manualGear;
-            if (g == 0)
-            {
-                return 1f;
-            }
-            float baseKmh = GetMaxSpeedForGearKmh(Mathf.Clamp(Mathf.Abs(g), 1, GetManualGearCount()));
-            return Mathf.Max(1f, baseKmh);
-        }
-
-        internal static float GetEstimatedRpm()
-        {
-            const float idle = 900f;
-            const float redline = 6500f;
-
-            float t;
-            if (!GetManualTransmissionEnabled())
-            {
-                // Automatic: just map speed into a typical RPM band.
-                t = Mathf.Clamp01(_currentSpeedKmh / 140f);
-                return Mathf.Lerp(idle, redline, t);
-            }
-
-            if (_manualGear == 0)
-            {
-                // Neutral: allow revving.
-                return Mathf.Lerp(idle, redline, _neutralRev01);
-            }
-
-            float max = GetMaxSpeedForGearKmh(Mathf.Abs(_manualGear));
-            t = Mathf.Clamp01(_currentSpeedKmh / GetMaxSpeedForCurrentGearKmh());
-            return Mathf.Lerp(idle, redline, t);
-        }
-
-        internal static float GetEstimatedRpmNormForSound()
-        {
-            // Return 0..1.2-ish (allow a little over-rev for sound).
-            if (!GetManualTransmissionEnabled())
-            {
-                return Mathf.Clamp01(_currentSpeedKmh / 140f);
-            }
-
-            if (_manualGear == 0)
-            {
-                _neutralRev01 = Mathf.Lerp(_neutralRev01, Mathf.Clamp01(_lastThrottle01), Time.deltaTime * 8f);
-                return Mathf.Clamp(_neutralRev01, 0f, 1.2f);
-            }
-
-            float max = GetMaxSpeedForGearKmh(Mathf.Abs(_manualGear));
-            float t = _currentSpeedKmh / GetMaxSpeedForCurrentGearKmh();
-            return Mathf.Clamp(t, 0f, 1.2f);
-        }
-
-        internal static float ComputeManualAccel(float gas)
-        {
-            if (!GetManualTransmissionEnabled())
-            {
-                return gas;
-            }
-
-            if (_manualGear == 0)
-            {
-                return 0f;
-            }
-
-            float speed = Mathf.Max(0f, _currentSpeedKmh);
-            float max = GetMaxSpeedForCurrentGearKmh();
-
-            // Torque falls off near top of each gear, but should still pull in top gear.
-            float t = Mathf.Clamp01(speed / Mathf.Max(1f, max));
-            float band = 1f - t;
-            float shaped = Mathf.Pow(band, 0.55f);
-            float torque = Mathf.Lerp(0.55f, 1.20f, shaped);
-
-            float a = Mathf.Clamp01(gas) * torque;
-            return _manualGear < 0 ? -a : a;
-        }
-
 
         private static int _wheelLastUpdateFrame;
         private static float _wheelLastUpdateTime;
