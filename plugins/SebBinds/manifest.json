@@ -1,6 +1,6 @@
 {
   "name": "SebBinds",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
   "description": "In-game keybind and controller rebinding for Easy Delivery Co, plus an API for mod-added actions.",
   "dependencies": [

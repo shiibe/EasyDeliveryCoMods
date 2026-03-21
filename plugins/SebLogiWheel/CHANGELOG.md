@@ -1,3 +1,6 @@
+## 1.0.3
+- Perf: Throttle FFB updates and avoid redundant Logitech SDK force calls.
+
 ## 1.0.2
 - Change default steering range to 360deg for a better 1:1 feel with the 1st person view.
 

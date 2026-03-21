@@ -1,3 +1,9 @@
+## 1.0.3
+**Performance**
+- Perf: Cache bindings/axes in memory to avoid per-frame `PlayerPrefs` reads.
+- Perf: Run default seeding/migrations once per `sInputManager` instance.
+- Perf: Reduce wheel interop reflection/allocations in hot paths.
+
 ## 1.0.2
 - Align Map/Items/Jobs semantics with vanilla: `MapItems` drives inventory (hold); `Jobs` toggles jobs/map menu (press).
 - Expose proper handbrake vs brake/reverse behavior: `Back/Handbrake` (hold) is the handbrake while driving; `Brake/Reverse` affects vehicle brake/reverse input.

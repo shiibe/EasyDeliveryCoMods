@@ -5,6 +5,7 @@
 **General**:
 - Decrease time it takes for truck tempurature to drop after the ignition is turned off (`30s -> 15s`).
 - Fix: Truck paint selection works properly.
+- Perf: Reduce per-frame hierarchy scans (headlight tuning + paint/tailgate).
 
 ## 1.0.5
 **Turn Signals**:
