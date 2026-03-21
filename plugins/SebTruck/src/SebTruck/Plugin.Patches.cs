@@ -115,6 +115,19 @@ namespace SebTruck
         private static FieldInfo _headlightsModelField;
         private static Texture2D _ignitionBlackEmissiveTex;
 
+        private static readonly Dictionary<string, Material> _paintMaterialCache = new Dictionary<string, Material>(StringComparer.OrdinalIgnoreCase);
+        private struct PaintDefaults
+        {
+            public Texture baseMap;
+            public Texture mainTex;
+        }
+
+        private static readonly Dictionary<int, PaintDefaults> _paintDefaultsByCarId = new Dictionary<int, PaintDefaults>();
+        private static readonly Dictionary<int, int> _paintTailgateSigByCarId = new Dictionary<int, int>();
+        private static FieldInfo _carDamageCarMatField;
+        private static int _paintLastCarId;
+        private static int _paintLastIndex = int.MinValue;
+
         private static void EnsureHeadlightsRefs(object instance)
         {
             if (instance == null)
@@ -147,6 +160,364 @@ namespace SebTruck
             _radioRadioVolumeField = AccessTools.Field(typeof(sRadioSystem), "radioVolume");
             _radioSourceField = AccessTools.Field(typeof(sRadioSystem), "source");
             _radioNoiseField = AccessTools.Field(typeof(sRadioSystem), "noise");
+        }
+
+        private static void EnsureCarDamageRefs()
+        {
+            if (_carDamageCarMatField != null)
+            {
+                return;
+            }
+            try
+            {
+                _carDamageCarMatField = AccessTools.Field(typeof(CarDamage), "carMat");
+            }
+            catch
+            {
+                _carDamageCarMatField = null;
+            }
+        }
+
+        private static Material FindMaterialByName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            string key = name.Trim();
+            if (_paintMaterialCache.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
+            try
+            {
+                var all = Resources.FindObjectsOfTypeAll<Material>();
+                if (all != null)
+                {
+                    for (int i = 0; i < all.Length; i++)
+                    {
+                        var m = all[i];
+                        if (m != null && string.Equals(m.name, key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _paintMaterialCache[key] = m;
+                            return m;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            _paintMaterialCache[key] = null;
+            return null;
+        }
+
+        private static string DeriveTruckPaintMaterialName(string cosmeticName)
+        {
+            if (string.IsNullOrWhiteSpace(cosmeticName))
+            {
+                return string.Empty;
+            }
+
+            string n = cosmeticName.Trim();
+            if (n.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // If the cosmetic name already matches a material name, keep it.
+            if (n.StartsWith("truck_texture", StringComparison.OrdinalIgnoreCase))
+            {
+                return n;
+            }
+
+            // Cosmetics are named like "Blue Paint" but materials are like "truck_texture_blue".
+            if (n.EndsWith(" paint", StringComparison.OrdinalIgnoreCase))
+            {
+                n = n.Substring(0, n.Length - 5).Trim();
+            }
+
+            string token = n.ToLowerInvariant().Replace(' ', '_');
+
+            // Default/white paint uses the base material.
+            if (token == "default" || token == "white")
+            {
+                return "truck_texture";
+            }
+
+            return "truck_texture_" + token;
+        }
+
+        private static bool IsTailgateRenderer(MeshRenderer mr)
+        {
+            if (mr == null)
+            {
+                return false;
+            }
+            try
+            {
+                string n = mr.name;
+                if (!string.IsNullOrWhiteSpace(n) && n.IndexOf("tailgate", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            return false;
+        }
+
+        private static int ComputeTailgateSignature(sCarController car)
+        {
+            if (car == null)
+            {
+                return 0;
+            }
+
+            int hash = 17;
+            try
+            {
+                var mrs = car.GetComponentsInChildren<MeshRenderer>(true);
+                if (mrs != null)
+                {
+                    for (int i = 0; i < mrs.Length; i++)
+                    {
+                        var mr = mrs[i];
+                        if (!IsTailgateRenderer(mr))
+                        {
+                            continue;
+                        }
+                        hash = unchecked(hash * 31 + mr.GetInstanceID());
+                        hash = unchecked(hash * 31 + (mr.gameObject != null && mr.gameObject.activeInHierarchy ? 1 : 0));
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            return hash;
+        }
+
+        private static bool IsTruckPaintMaterial(Material m)
+        {
+            if (m == null)
+            {
+                return false;
+            }
+            try
+            {
+                return m.name != null && m.name.IndexOf("truck_texture", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void ApplyTailgatePaintMaterialIfPresent(sCarController car, Material paintMat)
+        {
+            if (car == null || paintMat == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var mrs = car.GetComponentsInChildren<MeshRenderer>(true);
+                if (mrs == null)
+                {
+                    return;
+                }
+
+                for (int i = 0; i < mrs.Length; i++)
+                {
+                    var mr = mrs[i];
+                    if (!IsTailgateRenderer(mr))
+                    {
+                        continue;
+                    }
+
+                    var sms = mr.sharedMaterials;
+                    if (sms == null || sms.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    bool changed = false;
+                    for (int j = 0; j < sms.Length; j++)
+                    {
+                        if (IsTruckPaintMaterial(sms[j]))
+                        {
+                            if (!ReferenceEquals(sms[j], paintMat))
+                            {
+                                sms[j] = paintMat;
+                                changed = true;
+                            }
+                        }
+                    }
+
+                    if (changed)
+                    {
+                        mr.sharedMaterials = sms;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private static void ApplyTruckPaintIfNeeded(sCarController car)
+        {
+            if (car == null)
+            {
+                return;
+            }
+            if (!IsTruckCar(car))
+            {
+                return;
+            }
+
+            int carId = car.GetInstanceID();
+            int index = GetSelectedPaintIndex();
+
+            int tailgateSig = ComputeTailgateSignature(car);
+            bool tailgateChanged = !_paintTailgateSigByCarId.TryGetValue(carId, out int prevSig) || prevSig != tailgateSig;
+
+            if (!tailgateChanged && carId == _paintLastCarId && index == _paintLastIndex)
+            {
+                return;
+            }
+
+            _paintLastCarId = carId;
+            _paintLastIndex = index;
+            _paintTailgateSigByCarId[carId] = tailgateSig;
+
+            try
+            {
+                var hl = car.headlights;
+                if (hl == null)
+                {
+                    return;
+                }
+
+                EnsureHeadlightsRefs(hl);
+                var modelGo = _headlightsModelField != null ? _headlightsModelField.GetValue(hl) as GameObject : null;
+                if (modelGo == null)
+                {
+                    return;
+                }
+
+                var mr = modelGo.GetComponent<MeshRenderer>();
+                if (mr == null)
+                {
+                    return;
+                }
+
+                // Use .material so we get an instance local to this truck.
+                var mat = mr.material;
+                if (mat == null)
+                {
+                    return;
+                }
+
+                // Capture defaults once for restore.
+                if (!_paintDefaultsByCarId.ContainsKey(carId))
+                {
+                    var defs = new PaintDefaults();
+                    try
+                    {
+                        if (mat.HasProperty("_BaseMap")) defs.baseMap = mat.GetTexture("_BaseMap");
+                    }
+                    catch { }
+                    try
+                    {
+                        if (mat.HasProperty("_MainTex")) defs.mainTex = mat.GetTexture("_MainTex");
+                    }
+                    catch { }
+                    _paintDefaultsByCarId[carId] = defs;
+                }
+
+                bool applied = false;
+
+                if (index < 0)
+                {
+                    // Restore default.
+                    if (_paintDefaultsByCarId.TryGetValue(carId, out var defs))
+                    {
+                        try { if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", defs.baseMap); } catch { }
+                        try { if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", defs.mainTex); } catch { }
+                        applied = true;
+                    }
+                }
+                else
+                {
+                    // Apply by texture first (works even if color-specific materials aren't loaded).
+                    if (TryGetPaintCosmeticTexture(index, out var tex) && tex != null)
+                    {
+                        try { if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex); } catch { }
+                        try { if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex); } catch { }
+                        applied = true;
+                    }
+                }
+
+                if (!applied)
+                {
+                    // Fallback: try swapping to a named material if present.
+                    string matName = index < 0 ? "truck_texture" : null;
+                    if (index >= 0 && !TryGetPaintCosmeticName(index, out matName))
+                    {
+                        return;
+                    }
+
+                    var src = FindMaterialByName(matName);
+                    if (src == null)
+                    {
+                        string alt = DeriveTruckPaintMaterialName(matName);
+                        src = FindMaterialByName(alt);
+                        if (src == null && string.Equals(alt, "truck_texture", StringComparison.OrdinalIgnoreCase))
+                        {
+                            src = FindMaterialByName("truck_texture_white");
+                        }
+                        if (src == null)
+                        {
+                            LogDebug("Paint material not found: " + matName + " (derived=" + alt + ")");
+                            return;
+                        }
+                    }
+
+                    mr.material = src;
+                    mat = mr.material;
+                }
+
+                // Keep emission/damage systems pointing at the active truck material.
+                try { _headlightsCarMatField?.SetValue(hl, mat); } catch { }
+
+                // Tailgate is a separate animated object; keep it using the same paint material instance.
+                ApplyTailgatePaintMaterialIfPresent(car, mat);
+
+                EnsureCarDamageRefs();
+                if (_carDamageCarMatField != null)
+                {
+                    var dmg = car.GetComponentInChildren<CarDamage>(true);
+                    if (dmg != null)
+                    {
+                        try { _carDamageCarMatField.SetValue(dmg, mat); } catch { }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         private static void MuteRadioProximityIfIgnitionOff(sRadioSystem radio)
@@ -226,7 +597,7 @@ namespace SebTruck
 
         private static void ApplyTruckEmissionMap(sCarController car)
         {
-            if (car == null || car.GuyActive)
+            if (car == null)
             {
                 return;
             }
@@ -1835,6 +2206,8 @@ namespace SebTruck
             ApplyHeadlightTuning(__instance);
             ApplySpeedScaleTuning(__instance);
 
+            ApplyTruckPaintIfNeeded(__instance);
+
             if (!GetIgnitionEnabledEffective())
             {
                 EnforceIgnitionOffForCurrentCar();
@@ -1842,15 +2215,7 @@ namespace SebTruck
 
             // Indicator blink/update should run continuously while driving,
             // not only when input is queried.
-            if (!__instance.GuyActive)
-            {
-                UpdateIndicators(__instance);
-            }
-            else
-            {
-                // Ensure any world-space signal lights are muted when the player leaves the vehicle.
-                UpdateTurnSignalWorldLights(__instance, leftOn: false, rightOn: false, forceOff: true);
-            }
+            UpdateIndicators(__instance);
         }
 
 
@@ -2237,7 +2602,7 @@ namespace SebTruck
             {
                 _ignitionOffSince = Time.unscaledTime;
             }
-            if (Time.unscaledTime - _ignitionOffSince < 30.0f)
+            if (Time.unscaledTime - _ignitionOffSince < 15.0f)
             {
                 return;
             }

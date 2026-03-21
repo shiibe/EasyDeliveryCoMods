@@ -1,3 +1,11 @@
+## 1.0.6
+**Turn Signals**:
+- Fix: Turn signals now remain active while the player is outside the truck (as long as the ignition is on).
+
+**General**:
+- Decrease time it takes for truck tempurature to drop after the ignition is turned off (`30s -> 15s`).
+- Fix: Truck paint selection works properly.
+
 ## 1.0.5
 **Turn Signals**:
 - Add turn signal emitter materials so the turn signals actually glow when active/blinking.

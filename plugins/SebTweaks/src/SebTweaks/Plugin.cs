@@ -11,7 +11,7 @@ namespace SebTweaks
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtweaks";
         public const string PluginName = "SebTweaks";
-        public const string PluginVersion = "1.0.1";
+        public const string PluginVersion = "1.0.2";
 
         private void Awake()
         {
@@ -125,6 +125,21 @@ namespace SebTweaks
         internal const string PrefKeyGodNoGasLoss = "SebTweaks_God_NoGasLoss";
         internal const string PrefKeyGodNoTempLoss = "SebTweaks_God_NoTempLoss";
         internal const string PrefKeyGodInvincibleTruck = "SebTweaks_God_InvTruck";
+
+        // Shared graphics prefs (match SebUltrawide keys so settings are unified).
+        internal const string PrefKeyFovLegacy = "UltrawideFovOverride";
+        internal const string PrefKeyFovThirdPerson = "UltrawideFovOverride_ThirdPerson";
+        internal const string PrefKeyFovFirstPerson = "UltrawideFovOverride_FirstPerson";
+        internal const string PrefKeyPixelationMode = "UltrawidePixelationMode";
+        internal const string PrefKeyPixelationModeVersion = "UltrawidePixelationModeVersion";
+        internal const string PrefKeyViewDistanceMode = "UltrawideViewDistanceMode";
+        internal const string PrefKeyViewDistanceModeVersion = "UltrawideViewDistanceModeVersion";
+
+        // SebTweaks-only graphics prefs.
+        internal const string PrefKeyGfxVsyncMode = "SebTweaks_Gfx_VSyncMode"; // 0=Default,1=On,2=Off
+        // PrefKeyGfxFpsCap: 0=Default, -1=Uncapped, >0=cap
+        internal const string PrefKeyGfxFpsMode = "SebTweaks_Gfx_FpsMode"; // Legacy
+        internal const string PrefKeyGfxFpsCap = "SebTweaks_Gfx_FpsCap";
 
         internal static float GetFloat(string key, float def)
         {

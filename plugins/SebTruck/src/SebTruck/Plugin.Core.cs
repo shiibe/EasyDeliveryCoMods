@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
@@ -222,12 +223,47 @@ namespace SebTruck
         private static bool TryGetCosmeticInfo(out sCosmeticInfo info)
         {
             info = null;
+
+            // Prefer the active scene instance.
+            try
+            {
+                info = UnityEngine.Object.FindFirstObjectByType<sCosmeticInfo>();
+                if (info != null)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
             try
             {
                 // FindObjectsOfTypeAll works even when disabled/unreferenced.
                 var all = Resources.FindObjectsOfTypeAll<sCosmeticInfo>();
                 if (all != null)
                 {
+                    // Prefer scene-loaded instances.
+                    for (int i = 0; i < all.Length; i++)
+                    {
+                        if (all[i] != null)
+                        {
+                            try
+                            {
+                                if (all[i].gameObject != null && all[i].gameObject.scene.IsValid() && all[i].gameObject.scene.isLoaded)
+                                {
+                                    info = all[i];
+                                    return true;
+                                }
+                            }
+                            catch
+                            {
+                                // ignore
+                            }
+                        }
+                    }
+
                     for (int i = 0; i < all.Length; i++)
                     {
                         if (all[i] != null)
@@ -284,6 +320,30 @@ namespace SebTruck
             return string.IsNullOrWhiteSpace(info.cosmetics[index].name) ? ("#" + index) : info.cosmetics[index].name;
         }
 
+        internal static bool TryGetPaintCosmeticName(int index, out string name)
+        {
+            name = string.Empty;
+            if (index < 0)
+            {
+                return false;
+            }
+            if (!TryGetCosmeticInfo(out var info) || info == null || info.cosmetics == null)
+            {
+                return false;
+            }
+            if (index >= info.cosmetics.Length)
+            {
+                return false;
+            }
+            string n = info.cosmetics[index].name;
+            if (string.IsNullOrWhiteSpace(n))
+            {
+                return false;
+            }
+            name = n.Trim();
+            return true;
+        }
+
         internal static bool IsPaintUnlocked(int index)
         {
             if (index < 0)
@@ -298,7 +358,58 @@ namespace SebTruck
             {
                 return false;
             }
-            return info.cosmetics[index].type == sCosmeticInfo.Type.paint && info.cosmetics[index].unlocked;
+
+            // Don't rely on the runtime instance having run SetupCosmetics() yet.
+            // Read the authoritative unlock state from the save system.
+            try
+            {
+                string name = info.cosmetics[index].name != null ? info.cosmetics[index].name.Trim() : string.Empty;
+                bool isPaint = info.cosmetics[index].type == sCosmeticInfo.Type.paint ||
+                               (!string.IsNullOrWhiteSpace(name) && name.EndsWith(" Paint", StringComparison.OrdinalIgnoreCase));
+                if (!isPaint)
+                {
+                    return false;
+                }
+
+                bool def = info.cosmetics[index].unlocked;
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return def;
+                }
+
+                return sSaveSystem.GetBool("costmeticUnlocked_" + name, def);
+            }
+            catch
+            {
+                return info.cosmetics[index].type == sCosmeticInfo.Type.paint && info.cosmetics[index].unlocked;
+            }
+        }
+
+        internal static bool TryGetPaintCosmeticTexture(int index, out Texture texture)
+        {
+            texture = null;
+            if (index < 0)
+            {
+                return false;
+            }
+            try
+            {
+                if (!TryGetCosmeticInfo(out var info) || info == null || info.cosmetics == null)
+                {
+                    return false;
+                }
+                if (index >= info.cosmetics.Length)
+                {
+                    return false;
+                }
+                texture = info.cosmetics[index].texture;
+                return texture != null;
+            }
+            catch
+            {
+                texture = null;
+                return false;
+            }
         }
 
         internal static int GetSelectedPaintIndexUnlockedOrDefault()
@@ -346,7 +457,7 @@ namespace SebTruck
             {
                 for (int i = 0; i < info.cosmetics.Length; i++)
                 {
-                    if (info.cosmetics[i].type == sCosmeticInfo.Type.paint && info.cosmetics[i].unlocked)
+                    if (IsPaintUnlocked(i))
                     {
                         _tmpIntList.Add(i);
                     }
@@ -389,7 +500,7 @@ namespace SebTruck
 
             for (int i = 0; i < info.cosmetics.Length; i++)
             {
-                if (info.cosmetics[i].type == sCosmeticInfo.Type.paint && info.cosmetics[i].unlocked)
+                if (IsPaintUnlocked(i))
                 {
                     return true;
                 }
