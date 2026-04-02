@@ -53,16 +53,6 @@ Cartridges are small, optional sub-mods you can install and enable as needed - l
 - `Maintenance.clear_mod_prefs` (bool): Clears known mod PlayerPrefs at runtime, then flips back to false.
 - `Logging.debug_logging` (bool): Extra debug logging.
 
-## Cartridges (Mods)
-These are the currently available cartridges you can install alongside SebCore.
-
-| Mod | Links |
-| --- | --- |
-| SebBinds | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebBinds/) \| [Source](../SebBinds/README.md) |
-| SebLogiWheel | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebLogiWheel/) \| [Source](../SebLogiWheel/README.md) |
-| SebTruck | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/) \| [Source](../SebTruck/README.md) |
-| SebUltrawide | [Thunderstore](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebUltrawide/) \| [Source](../SebUltrawide/README.md) |
-
 ## Screenshots
 <table>
   <tr>
