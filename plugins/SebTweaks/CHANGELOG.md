@@ -1,3 +1,7 @@
+## 1.0.4
+- Cheats: rework Refill layout with freeze column + percent labels.
+- Graphics: simplify VSync to On/Off (default On).
+
 ## 1.0.3
 - Remove God Mode page, add freeze toggles to Energy/Fuel sliders.
 - Add Temperature slider with freeze option.
@@ -15,4 +19,3 @@
 
 ## 1.0.0
 - Initial release.
-

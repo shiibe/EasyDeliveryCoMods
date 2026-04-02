@@ -56,7 +56,7 @@ SebTweaks currently includes the following options:
 | 1st Per. FOV | `50` - `110` | Overrides first-person camera FOV |
 | Pixelation | `None/Finer/Fine/Default/Large` | Adjusts the in-game screen pixelation |
 | View Distance | `Near/Default/Far/Max` | Adjusts shadow distance + LOD quality |
-| VSync | `Default/On/Off` | Forces vSync on/off (or keep vanilla default) |
+| VSync | `On/Off` | Forces vSync on/off |
 
 **Time & Weather**
 
@@ -92,7 +92,8 @@ SebTweaks currently includes the following options:
     <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTweaks/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
   </tr>
   <tr>
-    <td colspan="2"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTweaks/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTweaks/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
+    <td width="50%"></td>
   </tr>
 </table>
 

@@ -9,9 +9,8 @@ namespace SebTweaks
     {
         private enum VsyncMode
         {
-            Default = 0,
-            On = 1,
-            Off = 2
+            Off = 0,
+            On = 1
         }
 
         private static bool _gfxInit;
@@ -167,19 +166,68 @@ namespace SebTweaks
             SaveViewDistanceMode(1); // Default
 
             // SebTweaks-only.
-            SetInt(PrefKeyGfxVsyncMode, (int)VsyncMode.Default);
+            // Seed on next read (or next graphics update) from current QualitySettings.
+            PlayerPrefs.DeleteKey(PrefKeyGfxVsyncMode);
+            PlayerPrefs.DeleteKey(PrefKeyGfxVsyncModeVersion);
 
             PlayerPrefs.Save();
         }
 
         internal static int GetVsyncMode()
         {
-            return Mathf.Clamp(GetInt(PrefKeyGfxVsyncMode, 0), 0, 2);
+            int version = GetInt(PrefKeyGfxVsyncModeVersion, 0);
+            bool hasKey;
+            int raw;
+            try
+            {
+                hasKey = PlayerPrefs.HasKey(PrefKeyGfxVsyncMode);
+                raw = GetInt(PrefKeyGfxVsyncMode, -1);
+            }
+            catch
+            {
+                hasKey = false;
+                raw = -1;
+            }
+
+            // Default: On.
+            if (!hasKey)
+            {
+                SetInt(PrefKeyGfxVsyncModeVersion, 2);
+                SetInt(PrefKeyGfxVsyncMode, 1);
+                return 1;
+            }
+
+            // Migration from legacy mapping (v1): 0=Default,1=On,2=Off
+            // New mapping (v2): 0=Off,1=On
+            if (version < 2)
+            {
+                int migrated;
+                switch (raw)
+                {
+                    case 2:
+                        migrated = 0; // Off
+                        break;
+                    case 1:
+                        migrated = 1; // On
+                        break;
+                    case 0:
+                    default:
+                        migrated = 1; // Default -> On
+                        break;
+                }
+
+                SetInt(PrefKeyGfxVsyncModeVersion, 2);
+                SetInt(PrefKeyGfxVsyncMode, migrated);
+                return migrated;
+            }
+
+            return raw == 1 ? 1 : 0;
         }
 
         internal static void SetVsyncMode(int mode)
         {
-            SetInt(PrefKeyGfxVsyncMode, Mathf.Clamp(mode, 0, 2));
+            SetInt(PrefKeyGfxVsyncModeVersion, 2);
+            SetInt(PrefKeyGfxVsyncMode, Mathf.Clamp(mode, 0, 1));
         }
 
         private static void ApplyVsyncMode()
@@ -191,7 +239,7 @@ namespace SebTweaks
                 {
                     QualitySettings.vSyncCount = 1;
                 }
-                else if (mode == (int)VsyncMode.Off)
+                else
                 {
                     QualitySettings.vSyncCount = 0;
                 }

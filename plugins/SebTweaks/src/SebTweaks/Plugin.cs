@@ -11,7 +11,7 @@ namespace SebTweaks
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtweaks";
         public const string PluginName = "SebTweaks";
-        public const string PluginVersion = "1.0.3";
+        public const string PluginVersion = "1.0.4";
 
         private void Awake()
         {
@@ -142,7 +142,8 @@ namespace SebTweaks
         internal const string PrefKeyViewDistanceModeVersion = "UltrawideViewDistanceModeVersion";
 
         // SebTweaks-only graphics prefs.
-        internal const string PrefKeyGfxVsyncMode = "SebTweaks_Gfx_VSyncMode"; // 0=Default,1=On,2=Off
+        internal const string PrefKeyGfxVsyncMode = "SebTweaks_Gfx_VSyncMode"; // v2: 0=Off,1=On (legacy v1: 0=Default,1=On,2=Off)
+        internal const string PrefKeyGfxVsyncModeVersion = "SebTweaks_Gfx_VSyncModeVersion"; // 0/1=legacy, 2=new
         // PrefKeyGfxFpsCap: 0=Default, -1=Uncapped, >0=cap
         internal const string PrefKeyGfxFpsMode = "SebTweaks_Gfx_FpsMode"; // Legacy
         internal const string PrefKeyGfxFpsCap = "SebTweaks_Gfx_FpsCap";

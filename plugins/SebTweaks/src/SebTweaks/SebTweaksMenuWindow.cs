@@ -254,12 +254,11 @@ namespace SebTweaks
             string vsLabel = vsMode switch
             {
                 1 => "On",
-                2 => "Off",
-                _ => "Default"
+                _ => "Off"
             };
             if (Util.CycleButtonRaw("VSync", vsLabel, center, y))
             {
-                Plugin.SetVsyncMode((vsMode + 1) % 3);
+                Plugin.SetVsyncMode(vsMode == 1 ? 0 : 1);
             }
             y += line;
         }
@@ -516,8 +515,9 @@ namespace SebTweaks
             // Label | Slider (%ind) | Freeze toggle
             // Keep some spacing so the % label never overlaps the slider bar.
             float toggleX = p.x + p.width - 64f;
-            float pctX = toggleX - 20f;
-            float sliderX = pctX - 128f;
+            float pctBaseX = toggleX - 20f;
+            float pctX = pctBaseX + 8f;
+            float sliderX = pctBaseX - 128f;
             sliderX = Mathf.Max(p.x + 72f, sliderX);
 
             Util.R.put(LocalizationDictionary.Translate("Freeze"), toggleX + 4f, y);
