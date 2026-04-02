@@ -48,6 +48,16 @@ SebTweaks currently includes the following options:
 | Light Green | `0.00x` - `2.00x` | Multiplies ambient + fog green channel |
 | Light Blue | `0.00x` - `2.00x` | Multiplies ambient + fog blue channel |
 
+**Graphics**
+
+| Option | Values | Notes |
+| --- | --- | --- |
+| 3rd Per. FOV | `50` - `110` | Overrides third-person camera FOV |
+| 1st Per. FOV | `50` - `110` | Overrides first-person camera FOV |
+| Pixelation | `None/Finer/Fine/Default/Large` | Adjusts the in-game screen pixelation |
+| View Distance | `Near/Default/Far/Max` | Adjusts shadow distance + LOD quality |
+| VSync | `Default/On/Off` | Forces vSync on/off (or keep vanilla default) |
+
 **Time & Weather**
 
 | Option | Values | Notes |
