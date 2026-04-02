@@ -23,6 +23,7 @@ Monorepo for my Easy Delivery Co. mods.
 | SebUltrawide | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebUltrawide/ | [README](plugins/SebUltrawide/README.md) |
 | SebLogiWheel | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebLogiWheel/ | [README](plugins/SebLogiWheel/README.md) |
 | SebTruck | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/ | [README](plugins/SebTruck/README.md) |
+| SebTweaks | https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTweaks/ | [README](plugins/SebTweaks/README.md) |
 
 ## Local build config
 
