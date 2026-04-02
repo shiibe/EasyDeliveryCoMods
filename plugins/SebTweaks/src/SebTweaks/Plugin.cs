@@ -11,7 +11,7 @@ namespace SebTweaks
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtweaks";
         public const string PluginName = "SebTweaks";
-        public const string PluginVersion = "1.0.2";
+        public const string PluginVersion = "1.0.3";
 
         private void Awake()
         {
@@ -121,10 +121,16 @@ namespace SebTweaks
 
         internal const string PrefKeyIceCrackEnabled = "SebTweaks_IceCrackEnabled"; // 0/1
 
-        internal const string PrefKeyGodNoEnergyLoss = "SebTweaks_God_NoEnergyLoss";
-        internal const string PrefKeyGodNoGasLoss = "SebTweaks_God_NoGasLoss";
-        internal const string PrefKeyGodNoTempLoss = "SebTweaks_God_NoTempLoss";
         internal const string PrefKeyGodInvincibleTruck = "SebTweaks_God_InvTruck";
+
+        // Cheats/refill targets (0..1). Used when the corresponding freeze toggle is enabled.
+        internal const string PrefKeyRefillEnergy01 = "SebTweaks_Refill_Energy01";
+        internal const string PrefKeyRefillFuel01 = "SebTweaks_Refill_Fuel01";
+        internal const string PrefKeyRefillTemp01 = "SebTweaks_Refill_Temp01";
+
+        internal const string PrefKeyFreezeRefillEnergy = "SebTweaks_Refill_FreezeEnergy"; // 0/1
+        internal const string PrefKeyFreezeRefillFuel = "SebTweaks_Refill_FreezeFuel"; // 0/1
+        internal const string PrefKeyFreezeRefillTemp = "SebTweaks_Refill_FreezeTemp"; // 0/1
 
         // Shared graphics prefs (match SebUltrawide keys so settings are unified).
         internal const string PrefKeyFovLegacy = "UltrawideFovOverride";

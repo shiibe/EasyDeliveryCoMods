@@ -1,8 +1,8 @@
 {
   "name": "SebTweaks",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
-  "description": "An in-game config menu for Easy Delivery Co. with various gameplay tweaks.",
+  "description": "In-game tweaks menu for gameplay, fog/lighting, time/weather, graphics (FOV/pixelation/view distance/vsync), and extras.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2304",
     "shiibe-SebCore-1.0.2"

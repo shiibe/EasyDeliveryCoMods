@@ -17,8 +17,7 @@ namespace SebTweaks
             Atmosphere = 1,
             Graphics = 2,
             TimeWeather = 3,
-            Cheats = 4,
-            GodMode = 5
+            Cheats = 4
         }
 
         // (Cheats page has fixed increment buttons.)
@@ -77,7 +76,7 @@ namespace SebTweaks
 
             if (Util.SimpleButtonRaw("Prev", prevX, navY))
             {
-                int pageCount = (int)Page.GodMode + 1;
+                int pageCount = (int)Page.Cheats + 1;
                 _page = (Page)(((int)_page + pageCount - 1) % pageCount);
             }
             if (Util.SimpleButtonRaw("Back", cx, navY))
@@ -87,13 +86,13 @@ namespace SebTweaks
             }
             if (Util.SimpleButtonRaw("Next", nextX, navY))
             {
-                int pageCount = (int)Page.GodMode + 1;
+                int pageCount = (int)Page.Cheats + 1;
                 _page = (Page)(((int)_page + 1) % pageCount);
             }
 
             // Page indicator.
             int pageNum = (int)_page + 1;
-            int pageTotal = (int)Page.GodMode + 1;
+            int pageTotal = (int)Page.Cheats + 1;
             Util.Label(pageNum + "/" + pageTotal, p.x + p.width - 18f, p.y + 10f);
 
             Util.Label("Tweaks", cx, y);
@@ -120,12 +119,6 @@ namespace SebTweaks
             if (_page == Page.Graphics)
             {
                 DrawGraphics(p, center, ref y, line);
-                return;
-            }
-
-            if (_page == Page.GodMode)
-            {
-                DrawGodMode(p, center, ref y, line);
                 return;
             }
 
@@ -175,7 +168,6 @@ namespace SebTweaks
                 Page.Graphics => "Graphics",
                 Page.TimeWeather => "Time & Weather",
                 Page.Cheats => "Cheats",
-                Page.GodMode => "God Mode",
                 _ => ""
             };
         }
@@ -287,70 +279,6 @@ namespace SebTweaks
             }
 
             return 70f;
-        }
-
-        private void DrawGodMode(Rect p, float center, ref float y, float line)
-        {
-            float cx = p.x + p.width / 2f;
-
-            float labelX = p.x + 12f;
-            float valueX = p.x + p.width - 12f;
-
-            bool DrawToggleRow(string label, bool state, float rowY)
-            {
-                label = LocalizationDictionary.Translate(label);
-                string text = "[" + (state ? "on" : "off") + "]";
-                int rowW = (int)(valueX - labelX);
-                bool hovered = Util.M.MouseOver((int)labelX, (int)rowY, rowW, 8);
-                bool clicked = false;
-
-                if (hovered)
-                {
-                    Util.M.mouseIcon = 128;
-                    if (Util.M.mouseButton)
-                    {
-                        Util.M.mouseIcon = 160;
-                    }
-                    if (Util.M.mouseButtonUp)
-                    {
-                        clicked = true;
-                    }
-                    label = ">" + label;
-                }
-
-                Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-                Util.R.fput(label, labelX, rowY);
-                Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
-                Util.R.fput(text, valueX, rowY);
-                return clicked;
-            }
-
-            bool noEnergy = Plugin.GetInt(Plugin.PrefKeyGodNoEnergyLoss, 0) == 1;
-            if (DrawToggleRow("No Energy Loss", noEnergy, y))
-            {
-                Plugin.SetInt(Plugin.PrefKeyGodNoEnergyLoss, noEnergy ? 0 : 1);
-            }
-            y += line;
-
-            bool noGas = Plugin.GetInt(Plugin.PrefKeyGodNoGasLoss, 0) == 1;
-            if (DrawToggleRow("No Gas Loss", noGas, y))
-            {
-                Plugin.SetInt(Plugin.PrefKeyGodNoGasLoss, noGas ? 0 : 1);
-            }
-            y += line;
-
-            bool noTemp = Plugin.GetInt(Plugin.PrefKeyGodNoTempLoss, 0) == 1;
-            if (DrawToggleRow("No Temp Loss", noTemp, y))
-            {
-                Plugin.SetInt(Plugin.PrefKeyGodNoTempLoss, noTemp ? 0 : 1);
-            }
-            y += line;
-
-            bool invTruck = Plugin.GetInt(Plugin.PrefKeyGodInvincibleTruck, 0) == 1;
-            if (DrawToggleRow("Invincible Truck", invTruck, y))
-            {
-                Plugin.SetInt(Plugin.PrefKeyGodInvincibleTruck, invTruck ? 0 : 1);
-            }
         }
 
         private void DrawGameplay(Rect p, float center, ref float y, float line)
@@ -526,9 +454,6 @@ namespace SebTweaks
             float rightX = cx + colGap;
             var hud = Object.FindFirstObjectByType<sHUD>();
 
-            Util.Label("Money", cx, y);
-            y += line;
-
             if (Util.SimpleButtonRaw("Add $10", leftX, y))
             {
                 hud?.ReceivePayment(10f);
@@ -581,32 +506,97 @@ namespace SebTweaks
             }
             y += line + 4f;
 
-            Util.Label("Refill", cx, y);
-            y += line;
-
             if (hud == null)
             {
                 Util.Label("(in-game only)", cx, y);
                 return;
             }
 
-            // Energy slider
+            // Three-column layout:
+            // Label | Slider (%ind) | Freeze toggle
+            // Keep some spacing so the % label never overlaps the slider bar.
+            float toggleX = p.x + p.width - 64f;
+            float pctX = toggleX - 20f;
+            float sliderX = pctX - 128f;
+            sliderX = Mathf.Max(p.x + 72f, sliderX);
+
+            Util.R.put(LocalizationDictionary.Translate("Freeze"), toggleX + 4f, y);
+            y += line;
+
+            // Energy row
             float energy01 = hud.energyCapacity > 0f ? Mathf.Clamp01(hud.energy / hud.energyCapacity) : 0f;
-            Util.ValueLabel($"{Mathf.RoundToInt(energy01 * 100f)}%", p.x + p.width - 12f, y);
-            float? newEnergy01 = Util.Slider("Energy", energy01, center, y, ref MouseYLock);
-            if (newEnergy01.HasValue)
+            float? newEnergy01 = Util.Slider("Energy", energy01, sliderX, y, ref MouseYLock);
+            float energy01Shown = newEnergy01 ?? energy01;
+            Util.ValueLabel($"{Mathf.RoundToInt(energy01Shown * 100f)}%", pctX, y);
+            bool freezeEnergy = Plugin.GetInt(Plugin.PrefKeyFreezeRefillEnergy, 0) == 1;
+            bool? newFreezeEnergy = Util.Toggle("", freezeEnergy, toggleX, y);
+            if (newEnergy01.HasValue && hud.energyCapacity > 0f)
             {
                 hud.energy = newEnergy01.Value * hud.energyCapacity;
+                Plugin.SetFloat(Plugin.PrefKeyRefillEnergy01, newEnergy01.Value);
+            }
+            if (newFreezeEnergy.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyFreezeRefillEnergy, newFreezeEnergy.Value ? 1 : 0);
+                if (newFreezeEnergy.Value)
+                {
+                    Plugin.SetFloat(Plugin.PrefKeyRefillEnergy01, energy01Shown);
+                }
             }
             y += line;
 
-            // Fuel slider
+            // Fuel row
             float fuel01 = hud.fuelCapacity > 0f ? Mathf.Clamp01(hud.fuel / hud.fuelCapacity) : 0f;
-            Util.ValueLabel($"{Mathf.RoundToInt(fuel01 * 100f)}%", p.x + p.width - 12f, y);
-            float? newFuel01 = Util.Slider("Fuel", fuel01, center, y, ref MouseYLock);
-            if (newFuel01.HasValue)
+            float? newFuel01 = Util.Slider("Fuel", fuel01, sliderX, y, ref MouseYLock);
+            float fuel01Shown = newFuel01 ?? fuel01;
+            Util.ValueLabel($"{Mathf.RoundToInt(fuel01Shown * 100f)}%", pctX, y);
+            bool freezeFuel = Plugin.GetInt(Plugin.PrefKeyFreezeRefillFuel, 0) == 1;
+            bool? newFreezeFuel = Util.Toggle("", freezeFuel, toggleX, y);
+            if (newFuel01.HasValue && hud.fuelCapacity > 0f)
             {
                 hud.fuel = newFuel01.Value * hud.fuelCapacity;
+                Plugin.SetFloat(Plugin.PrefKeyRefillFuel01, newFuel01.Value);
+            }
+            if (newFreezeFuel.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyFreezeRefillFuel, newFreezeFuel.Value ? 1 : 0);
+                if (newFreezeFuel.Value)
+                {
+                    Plugin.SetFloat(Plugin.PrefKeyRefillFuel01, fuel01Shown);
+                }
+            }
+            y += line;
+
+            // Temp row
+            float limit = hud.temperatureLimit;
+            float temp01 = limit > 0f ? Mathf.Clamp01(hud.temperature / limit) : 0f;
+            float? newTemp01 = Util.Slider("Temp", temp01, sliderX, y, ref MouseYLock);
+            float temp01Shown = newTemp01 ?? temp01;
+            Util.ValueLabel($"{Mathf.RoundToInt(temp01Shown * 100f)}%", pctX, y);
+            bool freezeTemp = Plugin.GetInt(Plugin.PrefKeyFreezeRefillTemp, 0) == 1;
+            bool? newFreezeTemp = Util.Toggle("", freezeTemp, toggleX, y);
+            if (newTemp01.HasValue && limit > 0f)
+            {
+                hud.temperature = Mathf.Clamp(newTemp01.Value * limit, 0f, limit);
+                Plugin.SetFloat(Plugin.PrefKeyRefillTemp01, newTemp01.Value);
+            }
+            if (newFreezeTemp.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyFreezeRefillTemp, newFreezeTemp.Value ? 1 : 0);
+                if (newFreezeTemp.Value)
+                {
+                    Plugin.SetFloat(Plugin.PrefKeyRefillTemp01, temp01Shown);
+                }
+            }
+            y += line;
+
+            y += line;
+
+            bool invTruck = Plugin.GetInt(Plugin.PrefKeyGodInvincibleTruck, 0) == 1;
+            bool? newInvTruck = Util.Toggle("Invincible Truck", invTruck, toggleX, y);
+            if (newInvTruck.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyGodInvincibleTruck, newInvTruck.Value ? 1 : 0);
             }
         }
 

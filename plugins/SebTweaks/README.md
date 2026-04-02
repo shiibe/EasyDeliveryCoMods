@@ -74,15 +74,11 @@ SebTweaks currently includes the following options:
 | --- | --- | --- |
 | Add/Remove Money | `$10/$20/$50/$100` | Adds/removes money instantly |
 | Energy | `0%` - `100%` | Sets current energy |
+| Freeze Energy | `on/off` | Locks energy to the slider value |
 | Fuel | `0%` - `100%` | Sets current fuel |
-
-**God Mode**
-
-| Option | Values | Notes |
-| --- | --- | --- |
-| No Energy Loss | `on/off` | Prevents energy drain |
-| No Gas Loss | `on/off` | Prevents fuel drain |
-| No Temp Loss | `on/off` | Prevents freezing |
+| Freeze Fuel | `on/off` | Locks fuel to the slider value |
+| Temp | `0%` - `100%` | Sets current truck temperature |
+| Freeze Temp | `on/off` | Locks temperature to the slider value |
 | Invincible Truck | `on/off` | Disables collision damage |
 
 ## Screenshots
@@ -94,6 +90,9 @@ SebTweaks currently includes the following options:
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTweaks/assets/screenshots/3.jpg" alt="Screenshot 3" width="100%"></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTweaks/assets/screenshots/4.jpg" alt="Screenshot 4" width="100%"></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="https://raw.githubusercontent.com/shiibe/EasyDeliveryCoMods/refs/heads/master/plugins/SebTweaks/assets/screenshots/5.jpg" alt="Screenshot 5" width="100%"></td>
   </tr>
 </table>
 

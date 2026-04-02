@@ -14,9 +14,6 @@ namespace SebTweaks
         internal static float EnergyLossMult => Mathf.Clamp(GetFloat(PrefKeyEnergyLossMult, 1f), 0.05f, 3f);
         internal static float TempLossMult => Mathf.Clamp(GetFloat(PrefKeyTempLossMult, 1f), 0.05f, 3f);
 
-        internal static bool GodNoEnergyLoss => GetInt(PrefKeyGodNoEnergyLoss, 0) == 1;
-        internal static bool GodNoGasLoss => GetInt(PrefKeyGodNoGasLoss, 0) == 1;
-        internal static bool GodNoTempLoss => GetInt(PrefKeyGodNoTempLoss, 0) == 1;
         internal static bool GodInvincibleTruck => GetInt(PrefKeyGodInvincibleTruck, 0) == 1;
 
         internal static bool IceCrackEnabled => GetInt(PrefKeyIceCrackEnabled, 1) == 1;
@@ -170,12 +167,21 @@ namespace SebTweaks
                     return;
                 }
 
-                if (GodNoGasLoss)
+                if (__instance == null)
                 {
-                    __state = -1f;
+                    __state = 0f;
                     return;
                 }
-                __state = __instance != null ? __instance.fuel : 0f;
+
+                bool freezeFuel = GetInt(PrefKeyFreezeRefillFuel, 0) == 1;
+                if (freezeFuel)
+                {
+                    // Sentinel: freeze mode.
+                    __state = -999f;
+                    return;
+                }
+
+                __state = __instance.fuel;
             }
 
             private static void Postfix(sHUD __instance, float __state)
@@ -185,13 +191,28 @@ namespace SebTweaks
                     return;
                 }
 
-                // God mode: never let fuel drop.
-                if (__state < 0f)
+                if (!IsInGameNow())
+                {
+                    return;
+                }
+
+                // Freeze: enforce saved fuel target.
+                if (__state < -100f)
                 {
                     try
                     {
-                        __instance.fuel = __instance.fuelCapacity;
-                        __instance.navigation.car.fuelScale = 1f;
+                        float fuel01 = Mathf.Clamp01(GetFloat(PrefKeyRefillFuel01, 1f));
+                        __instance.fuel = fuel01 * __instance.fuelCapacity;
+
+                        // Keep the car's fuelScale consistent with the forced value.
+                        if (__instance.LowFuel())
+                        {
+                            __instance.navigation.car.fuelScale = Mathf.Clamp01(__instance.fuel / __instance.fuelCapacity / 0.25f);
+                        }
+                        else
+                        {
+                            __instance.navigation.car.fuelScale = 1f;
+                        }
                     }
                     catch
                     {
@@ -237,18 +258,21 @@ namespace SebTweaks
         [HarmonyPriority(Priority.Last)]
         private static class Hud_LowerEnergy_Patch
         {
-            private static void Prefix(ref float delta)
+            private static void Prefix(sHUD __instance, ref float delta)
             {
                 if (!IsInGameNow())
                 {
                     return;
                 }
 
-                if (GodNoEnergyLoss)
+                if (__instance != null && GetInt(PrefKeyFreezeRefillEnergy, 0) == 1)
                 {
+                    float energy01 = Mathf.Clamp01(GetFloat(PrefKeyRefillEnergy01, 1f));
+                    __instance.energy = energy01 * __instance.energyCapacity;
                     delta = 0f;
                     return;
                 }
+
                 delta *= EnergyLossMult;
             }
         }
@@ -270,7 +294,8 @@ namespace SebTweaks
                     return;
                 }
 
-                if (GodNoTempLoss)
+                bool freezeTemp = GetInt(PrefKeyFreezeRefillTemp, 0) == 1;
+                if (freezeTemp)
                 {
                     __state = __instance.temperatureRate;
                     __instance.temperatureRate = 0f;
@@ -295,6 +320,24 @@ namespace SebTweaks
                 }
 
                 __instance.temperatureRate = __state;
+
+                // Freeze temperature after the game's own logic runs.
+                if (GetInt(PrefKeyFreezeRefillTemp, 0) == 1)
+                {
+                    try
+                    {
+                        float limit = __instance.temperatureLimit;
+                        if (limit > 0f)
+                        {
+                            float temp01 = Mathf.Clamp01(GetFloat(PrefKeyRefillTemp01, 1f));
+                            __instance.temperature = Mathf.Clamp(temp01 * limit, 0f, limit);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
             }
         }
 

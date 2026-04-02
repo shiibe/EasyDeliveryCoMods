@@ -1,3 +1,8 @@
+## 1.0.3
+- Remove God Mode page, add freeze toggles to Energy/Fuel sliders.
+- Add Temperature slider with freeze option.
+- Update options table in the README.
+
 ## 1.0.2
 - Add Graphics page with FOV + renderer options shared with SebUltrawide (unified settings).
 - Add VSync option to Graphics page.
