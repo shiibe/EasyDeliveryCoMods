@@ -27,12 +27,12 @@ namespace SebBinds
             _debugLogging = Config.Bind("Logging", "debug_logging", false, "Log extra debug information.");
 
             var harmony = new Harmony(PluginGuid);
-            var postfix = new HarmonyMethod(typeof(Plugin), nameof(SInputManager_GetInput_Postfix))
+            var postfix = new HarmonyMethod(typeof(Plugin), nameof(SInputManager_Update_Postfix))
             {
                 priority = Priority.Last
             };
             harmony.Patch(
-                original: AccessTools.Method(typeof(sInputManager), "GetInput"),
+                original: AccessTools.Method(typeof(sInputManager), "Update"),
                 postfix: postfix
             );
 
@@ -48,7 +48,7 @@ namespace SebBinds
             Log?.LogInfo("[debug] " + message);
         }
 
-        private static void SInputManager_GetInput_Postfix(sInputManager __instance)
+        private static void SInputManager_Update_Postfix(sInputManager __instance)
         {
             if (__instance == null)
             {
@@ -391,7 +391,7 @@ namespace SebBinds
             {
                 if (DownAny(BindAction.Back))
                 {
-                    input.breakPressed = true;
+                    input.brakePressed = true;
                 }
             }
 

@@ -2525,7 +2525,7 @@ namespace SebTruck
                 if (throttle < 0f) throttle = 0f;
 
                 float brake = Mathf.Clamp01(-y);
-                float handbrake = __instance.breakPressed ? 1f : 0f;
+                float handbrake = __instance.brakePressed ? 1f : 0f;
                 brake = Mathf.Max(brake, handbrake);
 
                 // Track rev input for Neutral.
