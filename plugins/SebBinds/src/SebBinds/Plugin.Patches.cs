@@ -57,7 +57,6 @@ namespace SebBinds
 
             LastInputManager = __instance;
 
-            // Seed defaults / do one-time migrations once per input manager instance.
             int iid;
             try { iid = __instance.GetInstanceID(); }
             catch { iid = 0; }
@@ -86,9 +85,7 @@ namespace SebBinds
 
         private static void MigrateLegacyBinds()
         {
-            // Legacy: Map was used for the jobs/map menu toggle; Items was used for inventory.
-            // New: Jobs drives input.mapPressed; MapItems drives input.inventory*.
-            foreach (BindingScheme scheme in (BindingScheme[])System.Enum.GetValues(typeof(BindingScheme)))
+                foreach (BindingScheme scheme in (BindingScheme[])System.Enum.GetValues(typeof(BindingScheme)))
             {
                 foreach (BindingLayer layer in (BindingLayer[])System.Enum.GetValues(typeof(BindingLayer)))
                 {
@@ -127,14 +124,11 @@ namespace SebBinds
             bool wheelBindingCaptureActive = wheelPluginPresent && WheelInterop.IsWheelBindingCaptureActive();
             bool wheelCalibrationWizardActive = wheelPluginPresent && WheelInterop.IsWheelCalibrationWizardActive();
 
-            // Don't interfere with the wheel plugin's own UI (it expects vanilla input to work).
             if (wheelMenuActive)
             {
                 return;
             }
 
-            // Binding capture must block *all* other input so the user can press buttons
-            // without closing menus or activating UI elements.
             if (BindsMenuWindow.BindingCaptureActive)
             {
                 input.selectPressed = false;
@@ -152,6 +146,10 @@ namespace SebBinds
                 input.headlightsPressed = false;
                 input.hornPressed = false;
                 input.radioPressed = false;
+                input.shiftUp = false;
+                input.shiftDown = false;
+                input.freeCamTogglePressed = false;
+                input.freeCamSelectPressed = false;
                 input.radioInput = Vector2.zero;
                 input.mouseInput = Vector2.zero;
                 input.driveInput = Vector2.zero;
@@ -160,8 +158,6 @@ namespace SebBinds
                 return;
             }
 
-            // SebBinds owns the default action flags. Clear vanilla-computed values,
-            // then re-apply from our bindings.
             input.selectPressed = false;
             input.selectReleased = false;
             input.backPressed = false;
@@ -177,14 +173,16 @@ namespace SebBinds
             input.headlightsPressed = false;
             input.hornPressed = false;
             input.radioPressed = false;
-            // We'll reconstruct radioInput from our bound inputs.
+            input.shiftUp = false;
+            input.shiftDown = false;
+            input.freeCamTogglePressed = false;
+            input.freeCamSelectPressed = false;
             input.radioInput = Vector2.zero;
 
             BindingEvaluator.BeginFrame();
 
             var schemes = wheelPluginPresent ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
 
-            // Cache modifier state per scheme for this frame.
             BindingLayer ctrlLayer = BindingLayer.Normal;
             BindingLayer kbLayer = BindingLayer.Normal;
             BindingLayer wheelLayer = BindingLayer.Normal;
@@ -267,18 +265,12 @@ namespace SebBinds
                 return false;
             }
 
-            // FreeCam is a dev tool; not exposed to players.
-
             bool inWalkingMode = false;
             if (wheelPluginPresent)
             {
                 WheelInterop.TryGetIsInWalkingMode(out inWalkingMode);
             }
 
-            // Note: bindings are evaluated across Controller + Keyboard (+ Wheel if present).
-
-            // POV -> menu cursor (fake mouse) while paused.
-            // Don't override real mouse/left-stick input.
             if (PauseSystem.paused &&
                 !BindsMenuWindow.BindingCaptureActive &&
                 !wheelBindingCaptureActive &&
@@ -296,7 +288,6 @@ namespace SebBinds
                         input.mouseInput = mouse;
                     }
 
-                    // Also feed menu zone navigation (vanilla uses radioInput for GamepadNavigation).
                     if (mouse != Vector2.zero && input.radioInput.sqrMagnitude < 0.0001f)
                     {
                         input.radioInput = mouse;
@@ -304,7 +295,6 @@ namespace SebBinds
                 }
             }
 
-            // POV -> walking movement (on foot).
             if (inWalkingMode && !PauseSystem.paused && !input.lockInput)
             {
                 if (WheelInterop.TryGetPov8Vector(out var pov))
@@ -317,7 +307,6 @@ namespace SebBinds
                 }
             }
 
-            // Controller movement axes (on foot).
             if (!PauseSystem.paused && !input.lockInput)
             {
                 var axX = AxisBindingStore.GetAxisBinding(AxisAction.MoveX);
@@ -328,13 +317,11 @@ namespace SebBinds
                     float y = axY.Kind == BindingKind.GamepadAxis ? BindingEvaluator.GetAxisValue(axY) : 0f;
                     if (Mathf.Abs(x) > 0.05f || Mathf.Abs(y) > 0.05f)
                     {
-                        // Note: playerInput is already used by vanilla for on-foot movement.
                         input.playerInput = new Vector2(x, y);
                     }
                 }
             }
 
-            // Keyboard on-foot movement buttons.
             if (!PauseSystem.paused && !input.lockInput)
             {
                 float mx = 0f;
@@ -356,13 +343,28 @@ namespace SebBinds
                 }
             }
 
-            // Don't inject gameplay actions while the game is explicitly locking input.
+            if (PressedAny(BindAction.Horn) || PressedAny(BindAction.ShiftUp))
+            {
+                input.shiftUp = true;
+            }
+            if (PressedAny(BindAction.MapItems) || PressedAny(BindAction.Items) || PressedAny(BindAction.ShiftDown))
+            {
+                input.shiftDown = true;
+            }
+            if (PressedAny(BindAction.Camera) || PressedAny(BindAction.FreeCam))
+            {
+                input.freeCamTogglePressed = true;
+            }
+            if (PressedAny(BindAction.InteractOk) || PressedAny(BindAction.FreeCamSelect))
+            {
+                input.freeCamSelectPressed = true;
+            }
+
             if (input.lockInput)
             {
                 return;
             }
 
-            // Click/Select (Interact/OK)
             {
                 if (PressedAny(BindAction.InteractOk))
                 {
@@ -374,7 +376,6 @@ namespace SebBinds
                 }
             }
 
-            // Back
             {
                 if (PressedAny(BindAction.Back))
                 {
@@ -386,7 +387,6 @@ namespace SebBinds
                 }
             }
 
-            // Handbrake (hold) - vanilla uses the Back action (Space/B).
             if (!PauseSystem.paused && !inWalkingMode)
             {
                 if (DownAny(BindAction.Back))
@@ -395,10 +395,8 @@ namespace SebBinds
                 }
             }
 
-            // Drive (hold) - only boosts forward input; does not override existing analog.
             if (!PauseSystem.paused)
             {
-                // Prefer axis binding.
                 var axis = AxisBindingStore.GetAxisBinding(AxisAction.Throttle);
                 bool appliedAxis = false;
                 if (axis.Kind == BindingKind.GamepadAxis)
@@ -407,7 +405,6 @@ namespace SebBinds
                     if (v > 0.05f)
                     {
                         var drive = input.driveInput;
-                        // Don't override braking/reverse (negative y).
                         if (drive.y > -0.01f)
                         {
                             drive.y = Mathf.Max(drive.y, Mathf.Clamp01(v));
@@ -431,10 +428,8 @@ namespace SebBinds
                 }
             }
 
-            // Brake/Reverse (hold) - affects driveInput.y negative.
             if (!PauseSystem.paused && !inWalkingMode)
             {
-                // Prefer axis binding.
                 var axis = AxisBindingStore.GetAxisBinding(AxisAction.Brake);
                 bool appliedAxis = false;
                 if (axis.Kind == BindingKind.GamepadAxis)
@@ -460,10 +455,8 @@ namespace SebBinds
                 }
             }
 
-            // Steering buttons (keyboard).
             if (!PauseSystem.paused)
             {
-                // Prefer axis binding.
                 var steerAxis = AxisBindingStore.GetAxisBinding(AxisAction.Steering);
                 bool appliedAxis = false;
                 if (steerAxis.Kind == BindingKind.GamepadAxis)
@@ -491,7 +484,6 @@ namespace SebBinds
                 if (!appliedAxis && Mathf.Abs(steer) > 0.01f)
                 {
                     var v = input.driveInput;
-                    // Only override when the existing steer is near-neutral.
                     if (Mathf.Abs(v.x) < 0.15f)
                     {
                         v.x = steer;
@@ -500,8 +492,6 @@ namespace SebBinds
                 }
             }
 
-            // Camera look axis remap.
-            // Default mouse panning remains intact unless these binds are set.
             if (!PauseSystem.paused)
             {
                 var lookX = AxisBindingStore.GetAxisBinding(AxisAction.CameraLookX);
@@ -525,7 +515,6 @@ namespace SebBinds
                     }
                 }
 
-                // Keyboard camera look buttons (only if nothing else is driving cameraLook).
                 if (input.cameraLook.sqrMagnitude < 0.0001f)
                 {
                     float lx = 0f;
@@ -547,7 +536,6 @@ namespace SebBinds
                 }
             }
 
-            // Pause
             {
                 if (PressedAny(BindAction.Pause))
                 {
@@ -555,16 +543,13 @@ namespace SebBinds
                 }
             }
 
-            // Always allow Escape to open/close the main menu.
             if (Keyboard.current != null && Keyboard.current.escapeKey != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 input.pausePressed = true;
             }
 
-            // Jobs (jobs/map menu toggle) - press to open/close.
             {
                 bool jobsBound = AnyBindingExists(BindAction.Jobs);
-                // Vanilla blocks job-map access on foot (unless already paused).
                 if (!inWalkingMode || PauseSystem.paused)
                 {
                     if (PressedAny(BindAction.Jobs) || (!jobsBound && PressedAny(BindAction.Map)))
@@ -574,9 +559,7 @@ namespace SebBinds
                 }
             }
 
-            // Map/Items (inventory action) - used by vanilla for on-foot items and in-vehicle hold-map.
             {
-                // Back-compat: older builds used Items for this.
                 var action = AnyBindingExists(BindAction.MapItems) ? BindAction.MapItems
                     : (AnyBindingExists(BindAction.Items) ? BindAction.Items : BindAction.MapItems);
 
@@ -585,7 +568,6 @@ namespace SebBinds
                 if (DownAny(action)) input.inventoryHeld = true;
             }
 
-            // Camera toggle
             {
                 if (PressedAny(BindAction.Camera))
                 {
@@ -593,7 +575,6 @@ namespace SebBinds
                 }
             }
 
-            // Reset vehicle (press + hold)
             {
                 ApplyHoldToReset(
                     input,
@@ -603,7 +584,6 @@ namespace SebBinds
                 );
             }
 
-            // Headlights
             {
                 if (PressedAny(BindAction.Headlights))
                 {
@@ -611,7 +591,6 @@ namespace SebBinds
                 }
             }
 
-            // Horn
             {
                 if (PressedAny(BindAction.Horn))
                 {
@@ -619,9 +598,7 @@ namespace SebBinds
                 }
             }
 
-            // Radio actions
             {
-                // Menu navigation uses radioInput continuously.
                 Vector2 radio = Vector2.zero;
                 if (DownAny(BindAction.RadioScanRight)) radio.x = 1f;
                 else if (DownAny(BindAction.RadioScanLeft)) radio.x = -1f;
@@ -629,7 +606,6 @@ namespace SebBinds
                 else if (DownAny(BindAction.RadioPower)) radio.y = -1f;
                 input.radioInput = radio;
 
-                // The radio system uses radioPressed + radioInput on press.
                 bool radioPressed = false;
                 Vector2 radioPressInput = Vector2.zero;
                 if (PressedAny(BindAction.RadioPower)) { radioPressed = true; radioPressInput = new Vector2(0f, -1f); }

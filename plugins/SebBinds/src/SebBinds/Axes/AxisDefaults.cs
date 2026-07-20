@@ -4,14 +4,13 @@ namespace SebBinds
     {
         internal static void EnsureControllerDefaults()
         {
-            // Only fill unset axis bindings.
-            SetIfUnset(AxisAction.MoveY, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 3 });       // LS Y
-            SetIfUnset(AxisAction.MoveX, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 2 });       // LS X
-            SetIfUnset(AxisAction.Steering, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 2 });    // LS X
-            SetIfUnset(AxisAction.Throttle, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 1 });    // RT Axis
-            SetIfUnset(AxisAction.Brake, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 0 });       // LT Axis
-            SetIfUnset(AxisAction.CameraLookX, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 4 }); // RS X
-            SetIfUnset(AxisAction.CameraLookY, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 5 }); // RS Y
+            SetIfUnset(AxisAction.MoveY, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 3 });
+            SetIfUnset(AxisAction.MoveX, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 2 });
+            SetIfUnset(AxisAction.Steering, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 2 });
+            SetIfUnset(AxisAction.Throttle, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 1 });
+            SetIfUnset(AxisAction.Brake, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 0 });
+            SetIfUnset(AxisAction.CameraLookX, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 4 });
+            SetIfUnset(AxisAction.CameraLookY, new BindingInput { Kind = BindingKind.GamepadAxis, Code = 5 });
         }
 
         private static void SetIfUnset(AxisAction action, BindingInput input)

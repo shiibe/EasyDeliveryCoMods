@@ -22,8 +22,8 @@ namespace SebBinds
         ShiftDown = 15,
 
         IgnitionToggle = 16,
+        FreeCamSelect = 17,
 
-        // New actions (keep explicit values to avoid breaking stored keys).
         Drive = 100,
         Brake = 101,
         Map = 102,
@@ -50,7 +50,6 @@ namespace SebBinds
 
         ,SteerAxis = 110
 
-        // Vehicle indicators
         ,IndicatorLeft = 119
         ,IndicatorRight = 120
         ,IndicatorHazards = 121

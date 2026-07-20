@@ -76,7 +76,8 @@ namespace SebBinds
             BindAction.RadioScanRight,
             BindAction.RadioScanLeft,
             BindAction.RadioScanToggle,
-            // Truck-specific binds (SebTruck will expose these via the API page).
+            BindAction.FreeCam,
+            BindAction.FreeCamSelect,
             BindAction.IgnitionToggle,
             BindAction.ToggleGearbox,
             BindAction.ShiftUp,
@@ -164,7 +165,6 @@ namespace SebBinds
                 return;
             }
 
-            // Close the window.
             SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, _util?.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
             _view?.Kill();
         }
@@ -204,8 +204,6 @@ namespace SebBinds
             float cx = p.x + p.width / 2f;
             bool hasWheel = WheelInterop.IsWheelPluginPresent();
 
-            // Keep the stack vertically centered.
-            // This menu was originally tuned for 2 options; when Wheel is present we shift up by half a button step.
             float midY = p.y + p.height / 2f - 20f;
             if (hasWheel)
             {
@@ -381,15 +379,15 @@ namespace SebBinds
         {
             var pages = new List<PageDef>
             {
-                // Placeholder; populated in GetPagesForScheme().
             };
 
-            // This method is now unused; kept to reduce churn.
             return pages;
         }
 
         private List<PageDef> GetPagesForScheme()
         {
+            bool truckMenuInstalled = SebBindsApi.HasExtraPage("sebtruck");
+
             if (_scheme == BindingScheme.Controller)
             {
                 var pages = new List<PageDef>
@@ -420,6 +418,15 @@ namespace SebBinds
                     },
                     new PageDef
                     {
+                        Title = "FreeCam",
+                        Actions = new[]
+                        {
+                            BindAction.FreeCam,
+                            BindAction.FreeCamSelect
+                        }
+                    },
+                    new PageDef
+                    {
                         Title = "Radio",
                         Actions = new[]
                         {
@@ -430,6 +437,19 @@ namespace SebBinds
                         }
                     }
                 };
+
+                if (!truckMenuInstalled)
+                {
+                    pages.Insert(3, new PageDef
+                    {
+                        Title = "Rally",
+                        Actions = new[]
+                        {
+                            BindAction.ShiftUp,
+                            BindAction.ShiftDown
+                        }
+                    });
+                }
 
                 foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
                 {
@@ -445,7 +465,6 @@ namespace SebBinds
 
             if (_scheme == BindingScheme.Wheel)
             {
-                // Wheel pages mirror controller pages; only capture source differs.
                 var pages = new List<PageDef>
                 {
                     new PageDef { Title = "Axes", Actions = null },
@@ -474,6 +493,15 @@ namespace SebBinds
                     },
                     new PageDef
                     {
+                        Title = "FreeCam",
+                        Actions = new[]
+                        {
+                            BindAction.FreeCam,
+                            BindAction.FreeCamSelect
+                        }
+                    },
+                    new PageDef
+                    {
                         Title = "Radio",
                         Actions = new[]
                         {
@@ -484,6 +512,19 @@ namespace SebBinds
                         }
                     }
                 };
+
+                if (!truckMenuInstalled)
+                {
+                    pages.Insert(3, new PageDef
+                    {
+                        Title = "Rally",
+                        Actions = new[]
+                        {
+                            BindAction.ShiftUp,
+                            BindAction.ShiftDown
+                        }
+                    });
+                }
 
                 foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
                 {
@@ -496,7 +537,6 @@ namespace SebBinds
                 return pages;
             }
 
-            // Keyboard pages.
             {
                 var pages = new List<PageDef>
                 {
@@ -551,6 +591,15 @@ namespace SebBinds
                     },
                     new PageDef
                     {
+                        Title = "FreeCam",
+                        Actions = new[]
+                        {
+                            BindAction.FreeCam,
+                            BindAction.FreeCamSelect
+                        }
+                    },
+                    new PageDef
+                    {
                         Title = "Radio",
                         Actions = new[]
                         {
@@ -561,6 +610,19 @@ namespace SebBinds
                         }
                     }
                 };
+
+                if (!truckMenuInstalled)
+                {
+                    pages.Insert(3, new PageDef
+                    {
+                        Title = "Rally",
+                        Actions = new[]
+                        {
+                            BindAction.ShiftUp,
+                            BindAction.ShiftDown
+                        }
+                    });
+                }
 
                 foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
                 {
@@ -578,7 +640,6 @@ namespace SebBinds
         {
             float cx = p.x + p.width / 2f;
 
-            // Modifier capture (scheme-specific).
             if (_util.CycleButtonRaw("Modifier", BindingStore.GetBindingLabel(BindingStore.GetModifierBinding(_scheme)), center, y))
             {
                 _bindingCaptureAction = BindAction.InteractOk;
@@ -586,7 +647,6 @@ namespace SebBinds
                 _bindingDupConfirmActive = false;
                 _page = Page.BindingCapture;
                 _bindingCaptureEnterTime = Time.unscaledTime;
-                // Special-case: capture modifier.
                 _isCapturingModifier = true;
                 _bindingCaptureMissingModifier = false;
                 return;
@@ -599,7 +659,6 @@ namespace SebBinds
             float resetY = p.y + p.height - 30f;
             if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
-                // Only reset the current scheme.
                 BindingStore.ClearScheme(_scheme);
                 AxisBindingStore.ClearScheme(_scheme);
 
@@ -709,7 +768,6 @@ namespace SebBinds
 
         private bool HasAxisConflictMark(AxisAction axis, BindingInput input)
         {
-            // Mark if the same binding is used by another axis slot.
             foreach (AxisAction a in System.Enum.GetValues(typeof(AxisAction)))
             {
                 if (a == axis)
@@ -717,7 +775,6 @@ namespace SebBinds
                     continue;
                 }
 
-                // Exception: Move Left/Right and Steering can share the same axis.
                 if ((axis == AxisAction.Steering && a == AxisAction.MoveX) || (axis == AxisAction.MoveX && a == AxisAction.Steering))
                 {
                     continue;
@@ -823,7 +880,6 @@ namespace SebBinds
             float clearY = p.y + p.height - 30f;
             float cancelY = p.y + p.height - 18f;
 
-            // If attempting to bind Modif. without a modifier, show an error screen.
             if (!_isCapturingModifier && _bindingCaptureLayer == BindingLayer.Modified && BindingStore.GetModifierBinding(_scheme).Kind == BindingKind.None)
             {
                 _bindingCaptureMissingModifier = true;
@@ -897,7 +953,6 @@ namespace SebBinds
                     _util.Label("Enter=Keep  Esc=Try", p.x + p.width / 2f, promptY + line * 7f);
                 }
 
-                // Keyboard shortcuts while conflict prompt is open.
                 if (_scheme == BindingScheme.Keyboard)
                 {
                     var kb = Keyboard.current;
@@ -942,7 +997,6 @@ namespace SebBinds
                     return;
                 }
 
-                // Don't capture bindings while the user is deciding.
                 return;
             }
 
@@ -976,14 +1030,11 @@ namespace SebBinds
                 }
             }
 
-            // For Modif. bindings, wait for the modifier to be held before capturing.
-            // Also ignore the modifier itself (pressing it is how the user starts holding it).
             if (requireModifierHeld && !modifierHeld)
             {
                 return;
             }
 
-            // If the user is clicking UI buttons, don't treat the click as a bind.
             if (allowUiClicks && _util.M != null && _util.M.mouseButton)
             {
                 if (_util.M.MouseOver((int)cx - 32, (int)clearY, 64, 8) || _util.M.MouseOver((int)cx - 32, (int)cancelY, 64, 8))
@@ -999,7 +1050,6 @@ namespace SebBinds
 
             if (requireModifierHeld && captured.Kind == modifier.Kind && captured.Code == modifier.Code)
             {
-                // User just pressed the modifier; keep waiting for the actual bind input.
                 return;
             }
 
@@ -1065,7 +1115,6 @@ namespace SebBinds
                 return;
             }
 
-            // Prefer axis movement.
             if (allowUiClicks && AxisCapture.TryCaptureNextAxis(_scheme, out var capturedAxis))
             {
                 AxisBindingStore.SetAxisBinding(_scheme, _axisCaptureAction, capturedAxis);
@@ -1073,13 +1122,10 @@ namespace SebBinds
                 return;
             }
 
-            // Also allow binding a button/key/mouse to an axis slot.
             if (allowUiClicks && InputCapture.TryCaptureNextBinding(_scheme, BindAction.InteractOk, BindingLayer.Normal, out var capturedBtn))
             {
-                // In wheel scheme, treat POV bindings as Dpad axes so they behave like controller Dpad X/Y.
                 if (_scheme == BindingScheme.Wheel && capturedBtn.Kind == BindingKind.Pov)
                 {
-                    // Map: Up/Down => Y, Left/Right => X
                     int d = Mathf.Clamp(capturedBtn.Code, 0, 3);
                     capturedBtn = new BindingInput { Kind = BindingKind.WheelDpadAxis, Code = (d == 1 || d == 3) ? 0 : 1 };
                 }
@@ -1103,7 +1149,6 @@ namespace SebBinds
                 }
             }
 
-            // If we are replacing and there's an axis conflict, clear it too.
             if (replaceDuplicates)
             {
                 ClearAxisConflictForButton(_bindingCaptureAction);
@@ -1135,7 +1180,6 @@ namespace SebBinds
 
         private string GetAxisConflictForButton(BindAction action)
         {
-            // If an axis is mapped for the same conceptual control, warn.
             bool HasAxis(AxisAction a)
             {
                 var b = AxisBindingStore.GetAxisBinding(_scheme, a);
@@ -1206,13 +1250,16 @@ namespace SebBinds
                 return true;
             }
 
-            // Vanilla uses the same input for Back + Brake.
             if ((a == BindAction.Back && b == BindAction.Brake) || (a == BindAction.Brake && b == BindAction.Back))
             {
                 return true;
             }
 
-            // Keyboard context-reuse: the same key commonly drives both on-foot movement and vehicle controls.
+            if ((a == BindAction.Camera && b == BindAction.FreeCam) || (a == BindAction.FreeCam && b == BindAction.Camera)) return true;
+            if ((a == BindAction.InteractOk && b == BindAction.FreeCamSelect) || (a == BindAction.FreeCamSelect && b == BindAction.InteractOk)) return true;
+            if ((a == BindAction.Horn && b == BindAction.ShiftUp) || (a == BindAction.ShiftUp && b == BindAction.Horn)) return true;
+            if ((a == BindAction.MapItems && b == BindAction.ShiftDown) || (a == BindAction.ShiftDown && b == BindAction.MapItems)) return true;
+
             if ((a == BindAction.MoveUp && b == BindAction.Drive) || (a == BindAction.Drive && b == BindAction.MoveUp)) return true;
             if ((a == BindAction.MoveLeft && b == BindAction.SteerLeft) || (a == BindAction.SteerLeft && b == BindAction.MoveLeft)) return true;
             if ((a == BindAction.MoveRight && b == BindAction.SteerRight) || (a == BindAction.SteerRight && b == BindAction.MoveRight)) return true;
@@ -1224,7 +1271,6 @@ namespace SebBinds
         {
             if (conflicts == null || conflicts.Count == 0) return null;
 
-            // De-dupe and keep stable ordering.
             var names = new List<string>();
             for (int i = 0; i < conflicts.Count; i++)
             {

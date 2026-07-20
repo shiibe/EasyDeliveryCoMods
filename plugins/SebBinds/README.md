@@ -22,9 +22,10 @@
 <hr/>
 
 ## About
-SebBinds provides the binding UI + runtime input mapping used by the rest of the mod set.
+SebBinds provides an extensive input rebinding system for Easy Delivery Co. It allows you to rebind any action to any input, including keyboard, controller, and wheel inputs. It also supports modifier layers, allowing you to bind extra actions by holding a modifier key.
 
 ## Features
+- Works with the new Rally game mode introduced in the 2.0 update.
 - Scheme picker: `Controller` / `Keyboard` / `Wheel` (Wheel appears when SebLogiWheel is installed)
 - Dedicated `Axes` page for movement/camera/vehicle axes
 - Modifier layer (`Modif.`): bind extra inputs by holding the modifier key (e.g. hold a bumper to use face buttons as extra inputs)
@@ -69,4 +70,4 @@ Install
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.2`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.0`

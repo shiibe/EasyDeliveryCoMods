@@ -72,5 +72,26 @@ namespace SebBinds
                 return new List<Page>(ExtraPages);
             }
         }
+
+        internal static bool HasExtraPage(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return false;
+            }
+
+            lock (Sync)
+            {
+                for (int i = 0; i < ExtraPages.Count; i++)
+                {
+                    if (string.Equals(ExtraPages[i].Id, id.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 }

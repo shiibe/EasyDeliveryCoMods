@@ -1,3 +1,7 @@
+## 1.1.0
+- Fixes incompatibilities with the new 2.0 game update.
+- Add Rally and FreeCam bindings to the UI.
+
 ## 1.0.3
 **Performance**
 - Perf: Cache bindings/axes in memory to avoid per-frame `PlayerPrefs` reads.

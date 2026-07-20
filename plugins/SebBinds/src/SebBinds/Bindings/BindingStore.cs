@@ -353,6 +353,10 @@ namespace SebBinds
                     return "Steer Axis";
                 case BindAction.Camera:
                     return "1P/3P Camera";
+                case BindAction.FreeCam:
+                    return "Free Cam Toggle";
+                case BindAction.FreeCamSelect:
+                    return "Free Cam Place";
                 case BindAction.IndicatorLeft:
                     return "L Indicator";
                 case BindAction.IndicatorRight:
