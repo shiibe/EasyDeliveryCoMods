@@ -1,3 +1,8 @@
+## 1.1.1
+- Add keyboard defaults for SebTruck ignition and turn signal binds.
+- Route Rally manual shift and direct gear binds through the game's manual-mode input path.
+- Suppress gameplay bind injection while the Rally menu title screen is active.
+
 ## 1.1.0
 - Fixes incompatibilities with the new 2.0 game update.
 - Add Rally and FreeCam bindings to the UI.

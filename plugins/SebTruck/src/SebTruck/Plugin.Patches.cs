@@ -132,6 +132,7 @@ namespace SebTruck
         private static FieldInfo _carDamageCarMatField;
         private static int _paintLastCarId;
         private static int _paintLastIndex = int.MinValue;
+        private static bool _rallyManualCheatTogglePending;
 
         private sealed class HeadlightTuningCache
         {
@@ -1869,7 +1870,7 @@ namespace SebTruck
                 radio.ToggleRadio();
             }
 
-            if (GetManualTransmissionEnabled())
+            if (IsManualTransmissionEnabledEffective())
             {
                 _manualGear = 1;
             }
@@ -2126,7 +2127,7 @@ namespace SebTruck
             }
 
             float mult;
-            if (GetManualTransmissionEnabled())
+            if (IsManualTransmissionEnabledEffective())
             {
                 mult = _manualGear < 0 ? GetManualSpeedMultReverse() : GetManualSpeedMultForward();
             }
@@ -2184,7 +2185,7 @@ namespace SebTruck
             const float redline = 6500f;
 
             float t;
-            if (!GetManualTransmissionEnabled())
+            if (!IsManualTransmissionEnabledEffective())
             {
                 t = Mathf.Clamp01(_currentSpeedKmh / (140f * Mathf.Max(0.01f, _currentSpeedMult)));
                 return Mathf.Lerp(idle, redline, t);
@@ -2201,7 +2202,7 @@ namespace SebTruck
 
         internal static float GetEstimatedRpmNormForSound()
         {
-            if (!GetManualTransmissionEnabled())
+            if (!IsManualTransmissionEnabledEffective())
             {
                 return Mathf.Clamp01(_currentSpeedKmh / (140f * Mathf.Max(0.01f, _currentSpeedMult)));
             }
@@ -2218,7 +2219,7 @@ namespace SebTruck
 
         internal static float ComputeManualAccel(float gas)
         {
-            if (!GetManualTransmissionEnabled())
+            if (!IsManualTransmissionEnabledEffective())
             {
                 return gas;
             }
@@ -2280,6 +2281,104 @@ namespace SebTruck
             // Indicator blink/update should run continuously while driving,
             // not only when input is queried.
             UpdateIndicators(__instance);
+        }
+
+
+        [HarmonyPatch(typeof(sRallyDriving), "CollectPlayerInput")]
+        [HarmonyPrefix]
+        private static void SRallyDriving_CollectPlayerInput_Prefix(sRallyDriving __instance)
+        {
+            if (__instance == null)
+            {
+                return;
+            }
+
+            bool wantManual = GetRallyManualTransmissionEnabled();
+            bool isManual = !__instance.automatic;
+            if (wantManual != isManual)
+            {
+                _rallyManualCheatTogglePending = true;
+            }
+        }
+
+        [HarmonyPatch(typeof(sRallyDriving), "CollectPlayerInput")]
+        [HarmonyPostfix]
+        private static void SRallyDriving_CollectPlayerInput_Postfix(sRallyDriving __instance)
+        {
+            if (__instance == null)
+            {
+                return;
+            }
+
+            bool wantManual = GetRallyManualTransmissionEnabled();
+            __instance.automatic = !wantManual;
+
+            if (__instance.playerNumber >= 0 && __instance.playerNumber < sInputManager.players.Length && __instance.car != null)
+            {
+                sInputManager.players[__instance.playerNumber].manualShifting = !__instance.car.GuyActive && wantManual;
+            }
+        }
+
+        [HarmonyPatch(typeof(sAutoGearshift), "FixedUpdate")]
+        [HarmonyPrefix]
+        private static bool SAutoGearshift_FixedUpdate_Prefix()
+        {
+            return !GetRallyManualTransmissionEnabled();
+        }
+
+        [HarmonyPatch(typeof(sCheatManager), "HasCheat", typeof(int), typeof(bool))]
+        [HarmonyPostfix]
+        private static void SCheatManager_HasCheat_Postfix(int index, ref bool __result)
+        {
+            if (index != 11 || !_rallyManualCheatTogglePending)
+            {
+                return;
+            }
+
+            _rallyManualCheatTogglePending = false;
+            __result = true;
+        }
+
+        private static bool PressedAnyBinding(BindAction action)
+        {
+            BindingEvaluator.BeginFrame();
+
+            for (int i = 0; i < _bindingSchemes.Length; i++)
+            {
+                BindingScheme scheme = _bindingSchemes[i];
+                var mod = BindingStore.GetModifierBinding(scheme);
+                BindingLayer layer = mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)
+                    ? BindingLayer.Modified
+                    : BindingLayer.Normal;
+
+                var binding = BindingStore.GetBinding(scheme, layer, action);
+                if (binding.Kind == BindingKind.None && layer == BindingLayer.Modified)
+                {
+                    binding = BindingStore.GetBinding(scheme, BindingLayer.Normal, action);
+                }
+
+                if (binding.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(binding))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        [HarmonyPatch(typeof(sInputManager), "Update")]
+        [HarmonyPostfix]
+        private static void SInputManager_Update_Postfix()
+        {
+            if (!IsRallyModeActive() || !sEasyRally.menuOpen || PauseSystem.paused)
+            {
+                return;
+            }
+
+            if (PressedAnyBinding(BindAction.ToggleGearbox))
+            {
+                SetRallyManualTransmissionEnabled(!GetRallyManualTransmissionEnabled());
+            }
         }
 
 
@@ -2488,11 +2587,18 @@ namespace SebTruck
                 // Toggle manual transmission
                 if (PressedAny(BindAction.ToggleGearbox))
                 {
-                    ToggleManualTransmission();
+                    if (IsRallyModeActive())
+                    {
+                        SetRallyManualTransmissionEnabled(!GetRallyManualTransmissionEnabled());
+                    }
+                    else
+                    {
+                        ToggleManualTransmission();
+                    }
                 }
 
                 // Shift
-                if (PressedAny(BindAction.ShiftUp))
+                if (!IsRallyModeActive() && PressedAny(BindAction.ShiftUp))
                 {
                     if (!GetManualTransmissionEnabled())
                     {
@@ -2501,7 +2607,7 @@ namespace SebTruck
                     ShiftManualGear(+1);
                 }
 
-                if (PressedAny(BindAction.ShiftDown))
+                if (!IsRallyModeActive() && PressedAny(BindAction.ShiftDown))
                 {
                     if (!GetManualTransmissionEnabled())
                     {
@@ -2528,7 +2634,7 @@ namespace SebTruck
 
                 // Track rev input for Neutral.
                 _lastThrottle01 = throttle;
-                if (GetManualTransmissionEnabled() && GetManualGear() == 0)
+                if (IsManualTransmissionEnabledEffective() && GetManualGear() == 0)
                 {
                     _neutralRev01 = Mathf.Lerp(_neutralRev01, _lastThrottle01, Time.deltaTime * 8f);
                 }
@@ -2538,7 +2644,7 @@ namespace SebTruck
                 }
 
                 float accel;
-                if (GetManualTransmissionEnabled())
+                if (IsManualTransmissionEnabledEffective())
                 {
                     int gear = GetManualGear();
                     float drive = ComputeManualAccel(throttle);
@@ -2788,7 +2894,7 @@ namespace SebTruck
             }
 
             // Manual-mode-only sound tweaks.
-            if (!GetManualTransmissionEnabled())
+            if (!IsManualTransmissionEnabledEffective())
             {
                 return;
             }
@@ -2910,7 +3016,7 @@ namespace SebTruck
         [HarmonyPostfix]
         private static void SPathFinder_DoResetCar_Postfix()
         {
-            if (!GetManualTransmissionEnabled())
+            if (!IsManualTransmissionEnabledEffective())
             {
                 return;
             }
@@ -2953,7 +3059,7 @@ namespace SebTruck
             bool starting = ignitionFeature && !GetIgnitionEnabled() && _ignitionHoldStart >= 0f && !_ignitionHoldConsumed;
 
             bool showSpeed = ignOn && GetHudShowSpeed();
-            bool manualEnabled = GetManualTransmissionEnabled();
+            bool manualEnabled = IsManualTransmissionEnabledEffective();
             bool showTach = ignOn && manualEnabled && GetHudShowTach();
             bool showGear = ignOn && manualEnabled && GetHudShowGear();
 

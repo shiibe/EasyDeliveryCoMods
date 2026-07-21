@@ -8,6 +8,7 @@ namespace SebTruck
     public partial class Plugin
     {
         internal const string PrefKeyManualTransmissionEnabled = "SebTruck_ManualTransmission";
+        internal const string PrefKeyRallyManualTransmissionEnabled = "SebTruck_RallyManualTransmission";
         internal const string PrefKeyManualGearCount = "SebTruck_ManualGearCount";
         internal const string PrefKeyManualSpeedMultForward = "SebTruck_ManualSpeedMultFwd";
         internal const string PrefKeyManualSpeedMultReverse = "SebTruck_ManualSpeedMultRev";
@@ -83,6 +84,8 @@ namespace SebTruck
 
         private static bool _manualTransmissionEnabled;
         private static int _manualGear = 1; // -1=R, 0=N, 1..GetManualGearCount()
+        private static int _rallyModeCacheFrame = -1;
+        private static bool _rallyModeCached;
 
         internal static int GetSelectedBobbleIndex()
         {
@@ -563,6 +566,53 @@ namespace SebTruck
             SetManualTransmissionEnabled(!GetManualTransmissionEnabled());
         }
 
+        internal static bool IsRallyModeActive()
+        {
+            int frame = Time.frameCount;
+            if (_rallyModeCacheFrame == frame)
+            {
+                return _rallyModeCached;
+            }
+
+            _rallyModeCacheFrame = frame;
+            _rallyModeCached = sEasyRally.rallyModeActive && UnityEngine.Object.FindFirstObjectByType<sEasyRally>() != null;
+            return _rallyModeCached;
+        }
+
+        private static sRallyDriving GetCurrentRallyDriving()
+        {
+            try
+            {
+                var rally = UnityEngine.Object.FindFirstObjectByType<sEasyRally>();
+                if (rally != null && rally.currentCar != null)
+                {
+                    return rally.currentCar;
+                }
+
+                return UnityEngine.Object.FindFirstObjectByType<sRallyDriving>();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        internal static bool IsManualTransmissionEnabledEffective()
+        {
+            return GetManualTransmissionEnabled() && !IsRallyModeActive();
+        }
+
+        internal static bool GetRallyManualTransmissionEnabled()
+        {
+            return PlayerPrefs.GetInt(PrefKeyRallyManualTransmissionEnabled, 0) != 0;
+        }
+
+        internal static void SetRallyManualTransmissionEnabled(bool enabled)
+        {
+            PlayerPrefs.SetInt(PrefKeyRallyManualTransmissionEnabled, enabled ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
         internal static int GetManualGear()
         {
             return _manualGear;
@@ -572,7 +622,7 @@ namespace SebTruck
         // Expects manual mode already enabled.
         internal static void SetManualGearDirect(int gear)
         {
-            if (!GetManualTransmissionEnabled())
+            if (!IsManualTransmissionEnabledEffective())
             {
                 return;
             }
@@ -610,7 +660,7 @@ namespace SebTruck
 
         internal static void ShiftManualGear(int delta)
         {
-            if (!GetManualTransmissionEnabled())
+            if (!IsManualTransmissionEnabledEffective())
             {
                 _manualGear = Mathf.Clamp(_manualGear, 1, GetManualGearCount());
                 return;
@@ -949,6 +999,7 @@ namespace SebTruck
         internal static void ResetVehicleDefaults()
         {
             SetManualTransmissionEnabled(false);
+            SetRallyManualTransmissionEnabled(false);
             SetManualGearCount(5);
             SetIgnitionFeatureEnabled(true);
             SetIgnitionEnabled(true);
@@ -972,6 +1023,11 @@ namespace SebTruck
             SetManualTransmissionEnabled(false);
             SetManualGearCount(5);
             PlayerPrefs.Save();
+        }
+
+        internal static void ResetRallyTransmissionDefaults()
+        {
+            SetRallyManualTransmissionEnabled(false);
         }
 
         internal static void ResetIgnitionDefaults()

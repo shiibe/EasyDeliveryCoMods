@@ -24,10 +24,11 @@
 <hr/>
 
 ## About
-SebTruck adds driving upgrades like manual transmission, ignition controls, and compact HUD readouts (speed/tach/gear) while you drive for just a bit more realism.
+SebTruck adds driving upgrades like manual transmission, Rally transmission settings, ignition controls, turn signals, and compact HUD readouts while you drive for just a bit more realism.
 
 ## Features
-- Manual transmission mode with shift up/down binds, and is bindable to a toggle for those who want to switch between auto/manual on the fly.
+- Story mode manual transmission with shift up/down binds and a toggle for switching between auto/manual on the fly.
+- Rally mode Auto/Manual transmission setting that unlocks the game's vanilla manual shifting without entering the cheat manually.
 - Engine overrev sound when nearing the redline of the tachometer.
 - Compact HUD elements for speed, tachometer, and gear display that can be toggled on/off and moved.
 - Turn signals that actually glow and react to steering input. Also a 4-way hazard mode.
@@ -58,7 +59,7 @@ SebTruck adds driving upgrades like manual transmission, ignition controls, and 
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
 - `shiibe-SebCore-1.0.1`
-- `shiibe-SebBinds-1.0.2`
+- `shiibe-SebBinds-1.1.1`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/
@@ -76,6 +77,7 @@ Truck page:
 - `4Way Indicator`
 - `Toggle Gearbox`
 - `Shift Up` / `Shift Down`
+- Rally gear binds from SebBinds (`Gear 1-6`, `Reverse`, `Neutral`, `Clutch`) are supported when Rally manual mode is active.
 - Keyboard defaults: `F1` ignition, `F2` left indicator, `F3` right indicator, `F4` hazards.
 
 ## Configuration
@@ -86,10 +88,10 @@ Truck page:
 - `Ignition.sfx_volume` (float): Ignition sound volume (0..1)
 
 ## Future plans
-- Add indicator blinking
+- Story and Rally handling pages
 - Custom truck sound effect overrides
-- Better HUD elements
+- Port Rally HUD elements back to Story mode
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.0.4`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.0`

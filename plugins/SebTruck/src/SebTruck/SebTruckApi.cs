@@ -9,7 +9,7 @@ namespace SebTruck
         // -1=R, 0=N, 1..GetManualGearCount()
         public static void SetManualGear(int gear)
         {
-            if (!Plugin.GetManualTransmissionEnabled())
+            if (!Plugin.IsManualTransmissionEnabledEffective())
             {
                 return;
             }
@@ -33,7 +33,7 @@ namespace SebTruck
 
         public static bool IsManualEnabled()
         {
-            return Plugin.GetManualTransmissionEnabled();
+            return Plugin.IsManualTransmissionEnabledEffective();
         }
 
         public static int GetManualGearCount()

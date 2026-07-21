@@ -115,9 +115,13 @@ namespace SebTruck
                 _util.Label(_toastMsg, cx, toastY);
             }
 
-                if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
+            if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
-                if (_page == Page.Transmission) Plugin.ResetTransmissionDefaults();
+                if (_page == Page.Transmission)
+                {
+                    if (Plugin.IsRallyModeActive()) Plugin.ResetRallyTransmissionDefaults();
+                    else Plugin.ResetTransmissionDefaults();
+                }
                 else if (_page == Page.Ignition) Plugin.ResetIgnitionDefaults();
                 else if (_page == Page.TurnSignals) Plugin.ResetIndicatorDefaults();
                 else if (_page == Page.Hud) Plugin.ResetHudDefaults();
@@ -131,10 +135,22 @@ namespace SebTruck
 
         private void DrawPage(Rect p, float center, float cx, ref float y, float line)
         {
-            bool manual = Plugin.GetManualTransmissionEnabled();
+            bool manual = Plugin.IsManualTransmissionEnabledEffective();
 
             if (_page == Page.Transmission)
             {
+                if (Plugin.IsRallyModeActive())
+                {
+                    bool rallyManual = Plugin.GetRallyManualTransmissionEnabled();
+                    string rallyModeLabel = rallyManual ? "Manual" : "Auto";
+                    if (_util.CycleButtonRaw("Transmission", rallyModeLabel, center, y))
+                    {
+                        Plugin.SetRallyManualTransmissionEnabled(!rallyManual);
+                    }
+                    y += line;
+                    return;
+                }
+
                 string modeLabel = manual ? "Manual" : "Auto";
                 if (_util.CycleButtonRaw("Transmission", modeLabel, center, y))
                 {

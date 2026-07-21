@@ -53,6 +53,28 @@ namespace SebBinds
             Log?.LogInfo("[debug] " + message);
         }
 
+        private static bool IsRallyMenuActive()
+        {
+            try
+            {
+                if (!sEasyRallyToggle.active)
+                {
+                    return false;
+                }
+
+                if (sEasyRally.menuOpen)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
+        }
+
         private static void SInputManager_Update_Postfix(sInputManager __instance)
         {
             if (__instance == null)
@@ -86,6 +108,28 @@ namespace SebBinds
             }
 
             InjectBindings(__instance);
+        }
+
+        [HarmonyPatch(typeof(sInputManager), "ManualMode")]
+        [HarmonyPostfix]
+        private static void SInputManager_ManualMode_Postfix(sInputManager __instance)
+        {
+            if (__instance == null || PauseSystem.paused || BindsMenuWindow.BindingCaptureActive)
+            {
+                return;
+            }
+
+            bool wheelPluginPresent = WheelInterop.IsWheelPluginPresent();
+            if (wheelPluginPresent && (WheelInterop.IsWheelMenuActive() || WheelInterop.IsWheelBindingCaptureActive() || WheelInterop.IsWheelCalibrationWizardActive()))
+            {
+                return;
+            }
+
+            BindingEvaluator.BeginFrame();
+            var schemes = wheelPluginPresent ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
+
+            __instance.shiftUp = PressedAny(BindAction.ShiftUp, schemes);
+            __instance.shiftDown = PressedAny(BindAction.ShiftDown, schemes);
         }
 
         private static void MigrateLegacyBinds()
@@ -160,6 +204,11 @@ namespace SebBinds
                 input.driveInput = Vector2.zero;
                 input.playerInput = Vector2.zero;
                 input.cameraLook = Vector2.zero;
+                return;
+            }
+
+            if (IsRallyMenuActive())
+            {
                 return;
             }
 
@@ -635,6 +684,11 @@ namespace SebBinds
 
             bool wheelPluginPresent = WheelInterop.IsWheelPluginPresent();
             if (wheelPluginPresent && (WheelInterop.IsWheelMenuActive() || WheelInterop.IsWheelBindingCaptureActive() || WheelInterop.IsWheelCalibrationWizardActive()))
+            {
+                return;
+            }
+
+            if (IsRallyMenuActive())
             {
                 return;
             }
