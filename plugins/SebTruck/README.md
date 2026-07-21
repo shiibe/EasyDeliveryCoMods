@@ -76,6 +76,7 @@ Truck page:
 - `4Way Indicator`
 - `Toggle Gearbox`
 - `Shift Up` / `Shift Down`
+- Keyboard defaults: `F1` ignition, `F2` left indicator, `F3` right indicator, `F4` hazards.
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.sebtruck.cfg`

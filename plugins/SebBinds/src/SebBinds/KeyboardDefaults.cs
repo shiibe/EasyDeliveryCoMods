@@ -29,6 +29,10 @@ namespace SebBinds
             SetIfUnset(BindAction.RadioScanRight, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.RightArrow });
             SetIfUnset(BindAction.RadioScanToggle, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.UpArrow });
             SetIfUnset(BindAction.Horn, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Q });
+            SetIfUnset(BindAction.IgnitionToggle, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.F1 });
+            SetIfUnset(BindAction.IndicatorLeft, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.F2 });
+            SetIfUnset(BindAction.IndicatorRight, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.F3 });
+            SetIfUnset(BindAction.IndicatorHazards, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.F4 });
             SetIfUnset(BindAction.ShiftUp, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.NumpadPlus });
             SetIfUnset(BindAction.ShiftDown, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.NumpadMinus });
             SetIfUnset(BindAction.Clutch, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad0 });

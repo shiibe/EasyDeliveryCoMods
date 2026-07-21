@@ -1383,67 +1383,65 @@ namespace SebTruck
                 lights = null;
             }
 
-            if (lights == null)
+            if (lights != null)
             {
-                // Still try renderer/material indicators.
-            }
-
-            for (int i = 0; i < lights.Length; i++)
-            {
-                var l = lights[i];
-                if (l == null)
+                for (int i = 0; i < lights.Length; i++)
                 {
-                    continue;
-                }
+                    var l = lights[i];
+                    if (l == null)
+                    {
+                        continue;
+                    }
 
-                if (headLightsGo != null && l.transform != null && l.transform.IsChildOf(headLightsGo.transform))
-                {
-                    // Headlights themselves are not indicators.
-                    continue;
-                }
+                    if (headLightsGo != null && l.transform != null && l.transform.IsChildOf(headLightsGo.transform))
+                    {
+                        // Headlights themselves are not indicators.
+                        continue;
+                    }
 
-                string n = l.name ?? string.Empty;
-                bool nameMatch = n.IndexOf("indicator", StringComparison.OrdinalIgnoreCase) >= 0
-                                 || n.IndexOf("blinker", StringComparison.OrdinalIgnoreCase) >= 0
-                                 || n.IndexOf("turn", StringComparison.OrdinalIgnoreCase) >= 0
-                                 || n.IndexOf("signal", StringComparison.OrdinalIgnoreCase) >= 0;
+                    string n = l.name ?? string.Empty;
+                    bool nameMatch = n.IndexOf("indicator", StringComparison.OrdinalIgnoreCase) >= 0
+                                     || n.IndexOf("blinker", StringComparison.OrdinalIgnoreCase) >= 0
+                                     || n.IndexOf("turn", StringComparison.OrdinalIgnoreCase) >= 0
+                                     || n.IndexOf("signal", StringComparison.OrdinalIgnoreCase) >= 0;
 
-                bool amber = l.color.r > 0.7f && l.color.g > 0.25f && l.color.b < 0.35f;
+                    bool amber = l.color.r > 0.7f && l.color.g > 0.25f && l.color.b < 0.35f;
 
-                bool isFront = false;
-                float lx = 0f;
-                try
-                {
-                    Vector3 lp = car.transform.InverseTransformPoint(l.transform.position);
-                    lx = lp.x;
-                    isFront = lp.z > 0.2f;
-                }
-                catch
-                {
-                    isFront = false;
-                }
+                    bool isFront = false;
+                    float lx = 0f;
+                    try
+                    {
+                        Vector3 lp = car.transform.InverseTransformPoint(l.transform.position);
+                        lx = lp.x;
+                        isFront = lp.z > 0.2f;
+                    }
+                    catch
+                    {
+                        isFront = false;
+                    }
 
-                if (!(nameMatch || (amber && isFront)))
-                {
-                    continue;
-                }
+                    if (!(nameMatch || (amber && isFront)))
+                    {
+                        continue;
+                    }
 
-                bool left = n.IndexOf("left", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("_l", StringComparison.OrdinalIgnoreCase) >= 0;
-                bool right = n.IndexOf("right", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("_r", StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool left = n.IndexOf("left", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("_l", StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool right = n.IndexOf("right", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("_r", StringComparison.OrdinalIgnoreCase) >= 0;
 
-                if (!left && !right)
-                {
-                    left = lx < 0f;
-                    right = !left;
-                }
+                    if (!left && !right)
+                    {
+                        left = lx < 0f;
+                        right = !left;
+                    }
 
-                if (left && !cache.Left.Contains(l))
-                {
-                    cache.Left.Add(l);
-                }
-                if (right && !cache.Right.Contains(l))
-                {
-                    cache.Right.Add(l);
+                    if (left && !cache.Left.Contains(l))
+                    {
+                        cache.Left.Add(l);
+                    }
+                    if (right && !cache.Right.Contains(l))
+                    {
+                        cache.Right.Add(l);
+                    }
                 }
             }
 
