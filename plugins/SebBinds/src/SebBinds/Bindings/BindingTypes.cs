@@ -24,6 +24,16 @@ namespace SebBinds
         IgnitionToggle = 16,
         FreeCamSelect = 17,
 
+        Clutch = 18,
+        GearReverse = 19,
+        GearNeutral = 20,
+        Gear1 = 21,
+        Gear2 = 22,
+        Gear3 = 23,
+        Gear4 = 24,
+        Gear5 = 25,
+        Gear6 = 26,
+
         Drive = 100,
         Brake = 101,
         Map = 102,

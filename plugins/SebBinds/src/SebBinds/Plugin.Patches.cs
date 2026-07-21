@@ -36,6 +36,11 @@ namespace SebBinds
                 postfix: postfix
             );
 
+            harmony.Patch(
+                original: AccessTools.Method(typeof(sRallyDriving), "CollectPlayerInput"),
+                postfix: new HarmonyMethod(typeof(Plugin), nameof(SRallyDriving_CollectPlayerInput_Postfix))
+            );
+
             Log.LogInfo("Loaded");
         }
 
@@ -619,6 +624,118 @@ namespace SebBinds
                     input.radioInput = radioPressInput;
                 }
             }
+        }
+
+        private static void SRallyDriving_CollectPlayerInput_Postfix(sRallyDriving __instance)
+        {
+            if (__instance == null || __instance.playerNumber < 0 || PauseSystem.paused || BindsMenuWindow.BindingCaptureActive)
+            {
+                return;
+            }
+
+            bool wheelPluginPresent = WheelInterop.IsWheelPluginPresent();
+            if (wheelPluginPresent && (WheelInterop.IsWheelMenuActive() || WheelInterop.IsWheelBindingCaptureActive() || WheelInterop.IsWheelCalibrationWizardActive()))
+            {
+                return;
+            }
+
+            BindingEvaluator.BeginFrame();
+            var schemes = wheelPluginPresent ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
+
+            ApplyRallyClutch(__instance, schemes);
+
+            if (__instance.automatic || __instance.car == null || __instance.car.GuyActive || __instance.gearbox == null)
+            {
+                return;
+            }
+
+            if (PressedAny(BindAction.GearReverse, schemes)) __instance.gearbox.ShiftTo(0);
+            if (PressedAny(BindAction.GearNeutral, schemes)) __instance.gearbox.ShiftTo(1);
+            if (PressedAny(BindAction.Gear1, schemes)) __instance.gearbox.ShiftTo(2);
+            if (PressedAny(BindAction.Gear2, schemes)) __instance.gearbox.ShiftTo(3);
+            if (PressedAny(BindAction.Gear3, schemes)) __instance.gearbox.ShiftTo(4);
+            if (PressedAny(BindAction.Gear4, schemes)) __instance.gearbox.ShiftTo(5);
+            if (PressedAny(BindAction.Gear5, schemes)) __instance.gearbox.ShiftTo(6);
+            if (PressedAny(BindAction.Gear6, schemes)) __instance.gearbox.ShiftTo(7);
+        }
+
+        private static void ApplyRallyClutch(sRallyDriving rally, BindingScheme[] schemes)
+        {
+            bool hasClutchBind = AnyBindingExists(BindAction.Clutch, schemes);
+            bool hasClutchAxis = false;
+            float clutch = DownAny(BindAction.Clutch, schemes) ? 1f : 0f;
+
+            for (int i = 0; i < schemes.Length; i++)
+            {
+                var axis = AxisBindingStore.GetAxisBinding(schemes[i], AxisAction.Clutch);
+                if (axis.Kind == BindingKind.None)
+                {
+                    continue;
+                }
+
+                hasClutchAxis = true;
+                float value = BindingEvaluator.GetAxisValue(axis);
+                if (axis.Kind == BindingKind.WheelAxis || axis.Kind == BindingKind.WheelDpadAxis || axis.Kind == BindingKind.GamepadDpadAxis)
+                {
+                    value = Mathf.Abs(value);
+                }
+                clutch = Mathf.Max(clutch, Mathf.Clamp01(value));
+            }
+
+            if (!hasClutchBind && !hasClutchAxis)
+            {
+                return;
+            }
+
+            rally.clutchInput = Mathf.MoveTowards(rally.clutchInput, clutch, Time.fixedDeltaTime * rally.clutchSensitivity);
+        }
+
+        private static BindingLayer GetActiveLayer(BindingScheme scheme)
+        {
+            var modifier = BindingStore.GetModifierBinding(scheme);
+            return modifier.Kind != BindingKind.None && BindingEvaluator.IsDown(modifier)
+                ? BindingLayer.Modified
+                : BindingLayer.Normal;
+        }
+
+        private static bool AnyBindingExists(BindAction action, BindingScheme[] schemes)
+        {
+            for (int i = 0; i < schemes.Length; i++)
+            {
+                var normal = BindingStore.GetBinding(schemes[i], BindingLayer.Normal, action);
+                var modified = BindingStore.GetBinding(schemes[i], BindingLayer.Modified, action);
+                if (normal.Kind != BindingKind.None || modified.Kind != BindingKind.None)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool DownAny(BindAction action, BindingScheme[] schemes)
+        {
+            for (int i = 0; i < schemes.Length; i++)
+            {
+                var binding = BindingStore.GetBinding(schemes[i], GetActiveLayer(schemes[i]), action);
+                if (binding.Kind != BindingKind.None && BindingEvaluator.IsDown(binding))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool PressedAny(BindAction action, BindingScheme[] schemes)
+        {
+            for (int i = 0; i < schemes.Length; i++)
+            {
+                var binding = BindingStore.GetBinding(schemes[i], GetActiveLayer(schemes[i]), action);
+                if (binding.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(binding))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void ApplyHoldToReset(sInputManager input, bool isBound, bool isDown, float holdSeconds)

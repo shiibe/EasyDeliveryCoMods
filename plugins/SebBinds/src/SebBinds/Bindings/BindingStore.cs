@@ -212,7 +212,7 @@ namespace SebBinds
             {
                 try
                 {
-                    return ((Key)Mathf.Max(0, input.Code)).ToString();
+                    return GetKeyLabel((UnityEngine.InputSystem.Key)Mathf.Max(0, input.Code));
                 }
                 catch
                 {
@@ -295,6 +295,47 @@ namespace SebBinds
                 return input.Code == 0 ? "Wheel Dpad X" : "Wheel Dpad Y";
             }
             return "None";
+        }
+
+        private static string GetKeyLabel(UnityEngine.InputSystem.Key key)
+        {
+            if (key >= UnityEngine.InputSystem.Key.A && key <= UnityEngine.InputSystem.Key.Z)
+            {
+                return key.ToString();
+            }
+
+            if (key >= UnityEngine.InputSystem.Key.Digit0 && key <= UnityEngine.InputSystem.Key.Digit9)
+            {
+                string name = key.ToString();
+                return name.StartsWith("Digit", System.StringComparison.Ordinal) ? name.Substring(5) : name;
+            }
+
+            if (key >= UnityEngine.InputSystem.Key.Numpad0 && key <= UnityEngine.InputSystem.Key.Numpad9)
+            {
+                string name = key.ToString();
+                return name.StartsWith("Numpad", System.StringComparison.Ordinal) ? "Num" + name.Substring(6) : name;
+            }
+
+            switch (key)
+            {
+                case UnityEngine.InputSystem.Key.Semicolon: return ";";
+                case UnityEngine.InputSystem.Key.Quote: return "'";
+                case UnityEngine.InputSystem.Key.Comma: return ",";
+                case UnityEngine.InputSystem.Key.Period: return ".";
+                case UnityEngine.InputSystem.Key.Slash: return "/";
+                case UnityEngine.InputSystem.Key.Backslash: return "\\";
+                case UnityEngine.InputSystem.Key.LeftBracket: return "[";
+                case UnityEngine.InputSystem.Key.RightBracket: return "]";
+                case UnityEngine.InputSystem.Key.Minus: return "-";
+                case UnityEngine.InputSystem.Key.Equals: return "=";
+                case UnityEngine.InputSystem.Key.Backquote: return "`";
+                case UnityEngine.InputSystem.Key.NumpadDivide: return "Num/";
+                case UnityEngine.InputSystem.Key.NumpadMultiply: return "Num*";
+                case UnityEngine.InputSystem.Key.NumpadPlus: return "Num+";
+                case UnityEngine.InputSystem.Key.NumpadMinus: return "Num-";
+                case UnityEngine.InputSystem.Key.NumpadPeriod: return "Num.";
+                default: return key.ToString();
+            }
         }
 
         public static string GetChordLabel(BindingInput input, bool modified)
@@ -385,6 +426,24 @@ namespace SebBinds
                     return "Shift Down";
                 case BindAction.IgnitionToggle:
                     return "Ignition";
+                case BindAction.Clutch:
+                    return "Clutch";
+                case BindAction.GearReverse:
+                    return "Reverse";
+                case BindAction.GearNeutral:
+                    return "Neutral";
+                case BindAction.Gear1:
+                    return "Gear 1";
+                case BindAction.Gear2:
+                    return "Gear 2";
+                case BindAction.Gear3:
+                    return "Gear 3";
+                case BindAction.Gear4:
+                    return "Gear 4";
+                case BindAction.Gear5:
+                    return "Gear 5";
+                case BindAction.Gear6:
+                    return "Gear 6";
                 default:
                     return action.ToString();
             }

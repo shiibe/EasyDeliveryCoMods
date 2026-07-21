@@ -81,7 +81,35 @@ namespace SebBinds
             BindAction.IgnitionToggle,
             BindAction.ToggleGearbox,
             BindAction.ShiftUp,
+            BindAction.ShiftDown,
+            BindAction.Clutch,
+            BindAction.GearReverse,
+            BindAction.GearNeutral,
+            BindAction.Gear1,
+            BindAction.Gear2,
+            BindAction.Gear3,
+            BindAction.Gear4,
+            BindAction.Gear5,
+            BindAction.Gear6
+        };
+
+        private static readonly BindAction[] RallyActions =
+        {
+            BindAction.Clutch,
+            BindAction.ShiftUp,
             BindAction.ShiftDown
+        };
+
+        private static readonly BindAction[] RallyGearActions =
+        {
+            BindAction.GearReverse,
+            BindAction.GearNeutral,
+            BindAction.Gear1,
+            BindAction.Gear2,
+            BindAction.Gear3,
+            BindAction.Gear4,
+            BindAction.Gear5,
+            BindAction.Gear6
         };
 
         internal static int LastMenuActiveFrame { get; private set; }
@@ -443,11 +471,12 @@ namespace SebBinds
                     pages.Insert(3, new PageDef
                     {
                         Title = "Rally",
-                        Actions = new[]
-                        {
-                            BindAction.ShiftUp,
-                            BindAction.ShiftDown
-                        }
+                        Actions = RallyActions
+                    });
+                    pages.Insert(4, new PageDef
+                    {
+                        Title = "Rally (cont.)",
+                        Actions = RallyGearActions
                     });
                 }
 
@@ -518,11 +547,12 @@ namespace SebBinds
                     pages.Insert(3, new PageDef
                     {
                         Title = "Rally",
-                        Actions = new[]
-                        {
-                            BindAction.ShiftUp,
-                            BindAction.ShiftDown
-                        }
+                        Actions = RallyActions
+                    });
+                    pages.Insert(4, new PageDef
+                    {
+                        Title = "Rally (cont.)",
+                        Actions = RallyGearActions
                     });
                 }
 
@@ -616,11 +646,12 @@ namespace SebBinds
                     pages.Insert(3, new PageDef
                     {
                         Title = "Rally",
-                        Actions = new[]
-                        {
-                            BindAction.ShiftUp,
-                            BindAction.ShiftDown
-                        }
+                        Actions = RallyActions
+                    });
+                    pages.Insert(4, new PageDef
+                    {
+                        Title = "Rally (cont.)",
+                        Actions = RallyGearActions
                     });
                 }
 
@@ -654,7 +685,10 @@ namespace SebBinds
             y += line;
 
             y += 3f;
-            DrawBindingTable(p, actions, ref y, line);
+            if (actions != null && actions.Length > 0)
+            {
+                DrawBindingTable(p, actions, ref y, line);
+            }
 
             float resetY = p.y + p.height - 30f;
             if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
@@ -702,6 +736,8 @@ namespace SebBinds
             DrawAxisRow(AxisAction.Throttle, "Throttle", labelX, bindRight, y);
             y += line;
             DrawAxisRow(AxisAction.Brake, "Brake", labelX, bindRight, y);
+            y += line;
+            DrawAxisRow(AxisAction.Clutch, "Clutch", labelX, bindRight, y);
             y += line;
 
             DrawAxisRow(AxisAction.CameraLookX, "Cam Look X", labelX, bindRight, y);
@@ -806,7 +842,7 @@ namespace SebBinds
             _util.R.fput("Modif.", holdRight, y);
             y += line;
 
-            int maxVisible = 9;
+            int maxVisible = 11;
             for (int i = 0; i < actions.Length && i < maxVisible; i++)
             {
                 var action = actions[i];

@@ -29,6 +29,17 @@ namespace SebBinds
             SetIfUnset(BindAction.RadioScanRight, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.RightArrow });
             SetIfUnset(BindAction.RadioScanToggle, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.UpArrow });
             SetIfUnset(BindAction.Horn, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Q });
+            SetIfUnset(BindAction.ShiftUp, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.NumpadPlus });
+            SetIfUnset(BindAction.ShiftDown, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.NumpadMinus });
+            SetIfUnset(BindAction.Clutch, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad0 });
+            SetIfUnset(BindAction.GearReverse, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad7 });
+            SetIfUnset(BindAction.GearNeutral, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.NumpadPeriod });
+            SetIfUnset(BindAction.Gear1, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad1 });
+            SetIfUnset(BindAction.Gear2, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad2 });
+            SetIfUnset(BindAction.Gear3, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad3 });
+            SetIfUnset(BindAction.Gear4, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad4 });
+            SetIfUnset(BindAction.Gear5, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad5 });
+            SetIfUnset(BindAction.Gear6, new BindingInput { Kind = BindingKind.Key, Code = (int)Key.Numpad6 });
             if (BindingStore.GetModifierBinding(BindingScheme.Keyboard).Kind == BindingKind.None)
             {
                 BindingStore.SetModifierBinding(BindingScheme.Keyboard, new BindingInput { Kind = BindingKind.None, Code = 0 });
