@@ -1,3 +1,8 @@
+## 1.1.0
+- Add compatibility with the 2.0 game update.
+- Fix Rally mode title screen camera.
+- Increase value of Max View Distance.
+
 ## 1.0.1
 - Add Reset Defaults button to the in-game graphics menu.
 - 1st-person FOV slider now defaults to 90.

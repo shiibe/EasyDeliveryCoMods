@@ -36,6 +36,9 @@ namespace SebUltrawide
         private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
         private static readonly int AlphaTexId = Shader.PropertyToID("_AlphaTex");
         private static float _perfLastLogTime;
+        private static int _lastScreenWidth = -1;
+        private static int _lastScreenHeight = -1;
+        private static bool _lastScreenFullscreen;
 
         private static int _pixelationMode = -1;
         private static int _viewDistanceMode = -1;
@@ -96,6 +99,32 @@ namespace SebUltrawide
             GetViewDistanceMode();
             RefreshViewDistance();
 
+        }
+
+        private static void RefreshPresentationIfChanged()
+        {
+            int width = Screen.width;
+            int height = Screen.height;
+            bool fullscreen = Screen.fullScreen;
+
+            if (_lastScreenWidth == width && _lastScreenHeight == height && _lastScreenFullscreen == fullscreen)
+            {
+                return;
+            }
+
+            _lastScreenWidth = width;
+            _lastScreenHeight = height;
+            _lastScreenFullscreen = fullscreen;
+
+            if (!ShouldApply())
+            {
+                return;
+            }
+
+            ApplyAllCameras();
+            ScaleOverlayBackdrops();
+            ApplySavedMenuSettings();
+            LogDebug($"Refreshed presentation after resolution/fullscreen change: {width}x{height}, fullscreen={fullscreen}.");
         }
 
         internal static int GetViewDistanceMode()
@@ -485,11 +514,6 @@ namespace SebUltrawide
                 return true;
             }
 
-            if (string.Equals(camera.name, "Camera", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
             if (string.Equals(camera.name, "RearViewCam", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
@@ -592,6 +616,27 @@ namespace SebUltrawide
 
             var cam = menuCameraObject.GetComponentInChildren<Camera>(true);
             ApplyMenuCameraAspect(cam);
+        }
+
+        private static void ApplyFreeCamAspect(Camera camera)
+        {
+            if (camera == null)
+            {
+                return;
+            }
+
+            if (!ShouldApply() || !IsUltrawide())
+            {
+                return;
+            }
+
+            float targetAspect = GetTargetAspect();
+            if (targetAspect <= 0.01f)
+            {
+                return;
+            }
+
+            camera.aspect = targetAspect;
         }
 
         private static void ApplyAllCameras()

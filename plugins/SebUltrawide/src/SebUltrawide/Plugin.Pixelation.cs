@@ -42,6 +42,27 @@ namespace SebUltrawide
 
         private static void EnsurePixelationTargets()
         {
+            bool hasActiveFreeCam = TryGetActiveFreeCam(out Camera freeCam);
+            if (hasActiveFreeCam && freeCam != _pixelMainCamera)
+            {
+                SwitchMainPixelCamera(freeCam);
+            }
+
+            if (hasActiveFreeCam)
+            {
+                ApplyFreeCamAspect(freeCam);
+            }
+
+            if (!hasActiveFreeCam && TryGetRaceCamera(out Camera raceCamera) && raceCamera != _pixelMainCamera)
+            {
+                SwitchMainPixelCamera(raceCamera);
+            }
+
+            if (!hasActiveFreeCam && TryGetGameplayCamera(out Camera gameplayCamera) && gameplayCamera != _pixelMainCamera && IsInactiveCamera(_pixelMainCamera))
+            {
+                SwitchMainPixelCamera(gameplayCamera);
+            }
+
             if (_pixelMainCamera == null)
             {
                 var controller = UnityEngine.Object.FindFirstObjectByType<sCameraController>();
@@ -124,6 +145,75 @@ namespace SebUltrawide
             {
                 _pixelDefaultRearRt = _pixelRearCamera.targetTexture;
             }
+        }
+
+        private static bool TryGetActiveFreeCam(out Camera camera)
+        {
+            camera = null;
+
+            var freeCam = UnityEngine.Object.FindFirstObjectByType<sFreeCam>();
+            if (freeCam == null || !freeCam.freeCamEnabled || freeCam.cam == null)
+            {
+                return false;
+            }
+
+            camera = freeCam.cam;
+            return true;
+        }
+
+        private static bool TryGetGameplayCamera(out Camera camera)
+        {
+            camera = null;
+
+            var controller = UnityEngine.Object.FindFirstObjectByType<sCameraController>();
+            if (controller == null || controller.cam == null)
+            {
+                return false;
+            }
+
+            camera = controller.cam;
+            return true;
+        }
+
+        private static bool IsInactiveCamera(Camera camera)
+        {
+            return camera == null || !camera.gameObject.activeInHierarchy;
+        }
+
+        private static bool TryGetRaceCamera(out Camera camera)
+        {
+            camera = null;
+
+            var raceManager = UnityEngine.Object.FindFirstObjectByType<RaceManager>();
+            if (raceManager == null || raceManager.players == null || raceManager.players.Count == 0)
+            {
+                return false;
+            }
+
+            var player = raceManager.players[0];
+            if (player == null || player.cam == null)
+            {
+                return false;
+            }
+
+            camera = player.cam;
+            return true;
+        }
+
+        private static void SwitchMainPixelCamera(Camera camera)
+        {
+            if (camera == null)
+            {
+                return;
+            }
+
+            ReleaseCustomRt(ref _pixelCustomRt, _pixelDefaultRt);
+            _pixelMainCamera = camera;
+            _pixelDefaultRt = camera.targetTexture;
+            _pixelLastMode = -1;
+            _pixelLastW = 0;
+            _pixelLastH = 0;
+            LogDebug($"Switched pixelation source camera to {camera.name} ({camera.GetInstanceID()}).");
         }
 
         private static void ApplyPixelation()

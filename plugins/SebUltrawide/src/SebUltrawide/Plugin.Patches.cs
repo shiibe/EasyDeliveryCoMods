@@ -35,11 +35,16 @@ namespace SebUltrawide
 
             var harmony = new Harmony(PluginGuid);
             PatchByName(harmony, "PlayerManager", "SetupCameras", postfix: nameof(PlayerManager_SetupCameras_Postfix));
+            PatchByName(harmony, "RaceManager", "StartRace", postfix: nameof(RaceManager_StartRace_Postfix));
             PatchByName(harmony, "RaceManager", "StartingCutScene", prefix: nameof(RaceManager_StartingCutScene_Prefix), postfix: nameof(RaceManager_StartingCutScene_Postfix));
             PatchByName(harmony, "PauseSystem", "Start", postfix: nameof(PauseSystem_Start_Postfix));
             PatchByName(harmony, "PauseSystem", "SetResolution", postfix: nameof(PauseSystem_SetResolution_Postfix));
             PatchByName(harmony, "PauseSystem", "SetFullscreen", postfix: nameof(PauseSystem_SetFullscreen_Postfix));
             PatchByName(harmony, "PauseSystem", "TogglePaused", postfix: nameof(PauseSystem_TogglePaused_Postfix));
+            PatchByName(harmony, "sOptionsMenu", "FrameUpdate", postfix: nameof(PresentationChange_Postfix));
+            PatchByName(harmony, "sEasyRally", "Update", postfix: nameof(PresentationChange_Postfix));
+            PatchByName(harmony, "sEasyCinema", "Update", postfix: nameof(SEasyCinema_Update_Postfix));
+            PatchByName(harmony, "sFreeCam", "ToggleFreeCam", postfix: nameof(SFreeCam_ToggleFreeCam_Postfix));
             PatchByName(harmony, "sCameraController", "Update", postfix: nameof(SCameraController_Update_Postfix));
             PatchByName(harmony, "sCameraController", "LateUpdate", postfix: nameof(SCameraController_LateUpdate_Postfix));
             PatchByName(harmony, "IntroDotExe", "Setup", postfix: nameof(IntroDotExe_Setup_Postfix));
@@ -159,6 +164,12 @@ namespace SebUltrawide
             cam.rect = __state;
         }
 
+        private static void RaceManager_StartRace_Postfix()
+        {
+            RefreshPixelation();
+            ApplyAllCameras();
+        }
+
         private static void PauseSystem_Start_Postfix(object __instance)
         {
             if (!ShouldApply())
@@ -210,6 +221,22 @@ namespace SebUltrawide
             }
 
             ApplySavedMenuSettings();
+        }
+
+        private static void PresentationChange_Postfix()
+        {
+            RefreshPresentationIfChanged();
+        }
+
+        private static void SFreeCam_ToggleFreeCam_Postfix()
+        {
+            RefreshPixelation();
+            ApplyAllCameras();
+        }
+
+        private static void SEasyCinema_Update_Postfix()
+        {
+            RefreshPixelation();
         }
 
         private static void SCameraController_LateUpdate_Postfix(object __instance)

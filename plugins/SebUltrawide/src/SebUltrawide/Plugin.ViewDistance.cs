@@ -65,8 +65,8 @@ namespace SebUltrawide
                     lodBias = 3.0f;
                     break;
                 case 3:
-                    shadowDistance = 3000f;
-                    lodBias = 6.0f;
+                    shadowDistance = 8000f;
+                    lodBias = 12.0f;
                     break;
                 default:
                     shadowDistance = _baseShadowDistance;
@@ -108,7 +108,7 @@ namespace SebUltrawide
                     far = 25000f;
                     break;
                 case 3:
-                    far = 100000f;
+                    far = 250000f;
                     break;
                 default:
                     far = 10000f;
