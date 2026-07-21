@@ -95,6 +95,30 @@ namespace SebTruck
         private static readonly Dictionary<int, (float maxSpeedScale, float drivePowerScale)> _carScaleDefaults =
             new Dictionary<int, (float maxSpeedScale, float drivePowerScale)>();
 
+        private sealed class StoryHandlingDefaults
+        {
+            public float maxDrivePower;
+            public float maxSpeed;
+            public float steeringAngle;
+            public float downForce;
+            public float[] maxFrictionForce;
+        }
+
+        private sealed class RallyHandlingDefaults
+        {
+            public float mass;
+            public float gripScalar;
+            public float turningRadius;
+            public float torqueCurveMultiplier;
+            public float redlineRPM;
+        }
+
+        private static readonly Dictionary<int, StoryHandlingDefaults> _storyHandlingDefaults =
+            new Dictionary<int, StoryHandlingDefaults>();
+
+        private static readonly Dictionary<int, RallyHandlingDefaults> _rallyHandlingDefaults =
+            new Dictionary<int, RallyHandlingDefaults>();
+
         private static readonly Dictionary<int, (float intensity, float range)> _lightDefaults =
             new Dictionary<int, (float intensity, float range)>();
 
@@ -109,6 +133,8 @@ namespace SebTruck
         private static FieldInfo _radioRadioVolumeField;
         private static FieldInfo _radioSourceField;
         private static FieldInfo _radioNoiseField;
+
+        private static FieldInfo _rallyWheelTurningRadiusField;
 
         private static readonly Dictionary<int, float> _enginePitchMulApplied = new Dictionary<int, float>();
 
@@ -175,6 +201,23 @@ namespace SebTruck
             _radioRadioVolumeField = AccessTools.Field(typeof(sRadioSystem), "radioVolume");
             _radioSourceField = AccessTools.Field(typeof(sRadioSystem), "source");
             _radioNoiseField = AccessTools.Field(typeof(sRadioSystem), "noise");
+        }
+
+        private static void EnsureRallyWheelRefs()
+        {
+            if (_rallyWheelTurningRadiusField != null)
+            {
+                return;
+            }
+
+            try
+            {
+                _rallyWheelTurningRadiusField = AccessTools.Field(typeof(sRallyDriving.Wheel), "turningRadius");
+            }
+            catch
+            {
+                _rallyWheelTurningRadiusField = null;
+            }
         }
 
         private static void EnsureCarDamageRefs()
@@ -2153,6 +2196,114 @@ namespace SebTruck
             _currentSpeedMult = mult;
         }
 
+        private static void ApplyStoryHandlingTuning(sCarController car)
+        {
+            if (car == null || car.overridePhysics)
+            {
+                return;
+            }
+
+            int id = car.GetInstanceID();
+            if (!_storyHandlingDefaults.TryGetValue(id, out var d))
+            {
+                d = new StoryHandlingDefaults
+                {
+                    maxDrivePower = car.maxDrivePower,
+                    maxSpeed = car.maxSpeed,
+                    steeringAngle = car.steeringAngle,
+                    downForce = car.downForce,
+                    maxFrictionForce = car.wheels == null ? null : new float[car.wheels.Length]
+                };
+
+                if (car.wheels != null)
+                {
+                    for (int i = 0; i < car.wheels.Length; i++)
+                    {
+                        d.maxFrictionForce[i] = car.wheels[i] != null ? car.wheels[i].maxFrictionForce : 0f;
+                    }
+                }
+
+                _storyHandlingDefaults[id] = d;
+            }
+
+            car.maxDrivePower = d.maxDrivePower * GetHandlingPowerMult();
+            car.maxSpeed = d.maxSpeed * GetHandlingSpeedMult();
+            car.steeringAngle = d.steeringAngle * GetHandlingSteeringMult();
+            car.downForce = d.downForce * GetHandlingDownforceMult();
+
+            if (car.wheels == null || d.maxFrictionForce == null)
+            {
+                return;
+            }
+
+            float grip = GetHandlingGripMult();
+            int n = Mathf.Min(car.wheels.Length, d.maxFrictionForce.Length);
+            for (int i = 0; i < n; i++)
+            {
+                if (car.wheels[i] != null)
+                {
+                    car.wheels[i].maxFrictionForce = d.maxFrictionForce[i] * grip;
+                }
+            }
+        }
+
+        private static void ApplyRallyHandlingTuning(sRallyDriving car)
+        {
+            if (car == null)
+            {
+                return;
+            }
+
+            int id = car.GetInstanceID();
+            if (!_rallyHandlingDefaults.TryGetValue(id, out var d))
+            {
+                d = new RallyHandlingDefaults
+                {
+                    mass = car.mass,
+                    gripScalar = car.gripScalar,
+                    turningRadius = car.turningRadius,
+                    torqueCurveMultiplier = car.engine != null ? car.engine.torqueCurveMultiplier : 0f,
+                    redlineRPM = car.engine != null ? car.engine.redlineRPM : 0f
+                };
+                _rallyHandlingDefaults[id] = d;
+            }
+
+            car.mass = d.mass * GetHandlingMassMult();
+            car.gripScalar = d.gripScalar * GetHandlingGripMult();
+            car.turningRadius = d.turningRadius / Mathf.Max(0.01f, GetHandlingSteeringMult());
+
+            if (car.rb != null)
+            {
+                car.rb.mass = car.mass;
+            }
+            if (car.engine != null)
+            {
+                car.engine.torqueCurveMultiplier = d.torqueCurveMultiplier * GetHandlingPowerMult();
+                car.engine.redlineRPM = d.redlineRPM * GetHandlingSpeedMult();
+            }
+
+            if (car.wheels != null)
+            {
+                EnsureRallyWheelRefs();
+                for (int i = 0; i < car.wheels.Length; i++)
+                {
+                    var w = car.wheels[i];
+                    if (w == null)
+                    {
+                        continue;
+                    }
+                    try
+                    {
+                        _rallyWheelTurningRadiusField?.SetValue(w, car.turningRadius);
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+            }
+        }
+
         private static float GetMaxSpeedForGearKmh(int gear)
         {
             int count = GetManualGearCount();
@@ -2268,6 +2419,7 @@ namespace SebTruck
                 _currentSpeedKmh = __instance.rb.linearVelocity.magnitude * 3.6f;
             }
 
+            ApplyStoryHandlingTuning(__instance);
             ApplyHeadlightTuning(__instance);
             ApplySpeedScaleTuning(__instance);
 
@@ -2281,6 +2433,28 @@ namespace SebTruck
             // Indicator blink/update should run continuously while driving,
             // not only when input is queried.
             UpdateIndicators(__instance);
+        }
+
+
+        [HarmonyPatch(typeof(sRallyDriving), "Setup")]
+        [HarmonyPrefix]
+        private static void SRallyDriving_Setup_Prefix(sRallyDriving __instance)
+        {
+            ApplyRallyHandlingTuning(__instance);
+        }
+
+        [HarmonyPatch(typeof(sRallyDriving), "Setup")]
+        [HarmonyPostfix]
+        private static void SRallyDriving_Setup_Postfix(sRallyDriving __instance)
+        {
+            ApplyRallyHandlingTuning(__instance);
+        }
+
+        [HarmonyPatch(typeof(sRallyDriving), "FixedUpdate")]
+        [HarmonyPrefix]
+        private static void SRallyDriving_FixedUpdate_Prefix(sRallyDriving __instance)
+        {
+            ApplyRallyHandlingTuning(__instance);
         }
 
 

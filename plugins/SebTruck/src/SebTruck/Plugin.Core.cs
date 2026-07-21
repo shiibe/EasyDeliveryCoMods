@@ -41,6 +41,13 @@ namespace SebTruck
         internal const string PrefKeyHeadlightIntensityMult = "SebTruck_HeadlightIntensityMult";
         internal const string PrefKeyHeadlightRangeMult = "SebTruck_HeadlightRangeMult";
 
+        internal const string PrefKeyHandlingPowerMult = "SebTruck_HandlingPowerMult";
+        internal const string PrefKeyHandlingSpeedMult = "SebTruck_HandlingSpeedMult";
+        internal const string PrefKeyHandlingSteeringMult = "SebTruck_HandlingSteeringMult";
+        internal const string PrefKeyHandlingGripMult = "SebTruck_HandlingGripMult";
+        internal const string PrefKeyHandlingDownforceMult = "SebTruck_HandlingDownforceMult";
+        internal const string PrefKeyHandlingMassMult = "SebTruck_HandlingMassMult";
+
         private const string SaveKeySnowcats = "cats";
         private const string SaveKeyDisplayBobble = "displayBobble";
         private const string SaveKeyEquippedPaint = "playerEquipedPaint";
@@ -597,6 +604,27 @@ namespace SebTruck
             }
         }
 
+        internal static string GetCurrentRallyVariantLabel()
+        {
+            try
+            {
+                var sync = UnityEngine.Object.FindFirstObjectByType<sUpgradeSync>();
+                if (sync == null || sync.car == null)
+                {
+                    return "Rally";
+                }
+                if (sync.car == sync.slowRWD) return "Slow RWD";
+                if (sync.car == sync.fastRWD) return "Fast RWD";
+                if (sync.car == sync.slowAWD) return "Slow AWD";
+                if (sync.car == sync.fastAWD) return "Fast AWD";
+            }
+            catch
+            {
+                // ignore
+            }
+            return "Rally";
+        }
+
         internal static bool IsManualTransmissionEnabledEffective()
         {
             return GetManualTransmissionEnabled() && !IsRallyModeActive();
@@ -995,6 +1023,66 @@ namespace SebTruck
             PlayerPrefs.SetFloat(PrefKeyHeadlightRangeMult, Mathf.Clamp(mult, 0.1f, 1.0f));
         }
 
+        internal static float GetHandlingPowerMult()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHandlingPowerMult, 1f), 0.25f, 3.0f);
+        }
+
+        internal static void SetHandlingPowerMult(float mult)
+        {
+            PlayerPrefs.SetFloat(PrefKeyHandlingPowerMult, Mathf.Clamp(mult, 0.25f, 3.0f));
+        }
+
+        internal static float GetHandlingSpeedMult()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHandlingSpeedMult, 1f), 0.25f, 3.0f);
+        }
+
+        internal static void SetHandlingSpeedMult(float mult)
+        {
+            PlayerPrefs.SetFloat(PrefKeyHandlingSpeedMult, Mathf.Clamp(mult, 0.25f, 3.0f));
+        }
+
+        internal static float GetHandlingSteeringMult()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHandlingSteeringMult, 1f), 0.25f, 3.0f);
+        }
+
+        internal static void SetHandlingSteeringMult(float mult)
+        {
+            PlayerPrefs.SetFloat(PrefKeyHandlingSteeringMult, Mathf.Clamp(mult, 0.25f, 3.0f));
+        }
+
+        internal static float GetHandlingGripMult()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHandlingGripMult, 1f), 0.25f, 3.0f);
+        }
+
+        internal static void SetHandlingGripMult(float mult)
+        {
+            PlayerPrefs.SetFloat(PrefKeyHandlingGripMult, Mathf.Clamp(mult, 0.25f, 3.0f));
+        }
+
+        internal static float GetHandlingDownforceMult()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHandlingDownforceMult, 1f), 0.0f, 3.0f);
+        }
+
+        internal static void SetHandlingDownforceMult(float mult)
+        {
+            PlayerPrefs.SetFloat(PrefKeyHandlingDownforceMult, Mathf.Clamp(mult, 0.0f, 3.0f));
+        }
+
+        internal static float GetHandlingMassMult()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHandlingMassMult, 1f), 0.25f, 3.0f);
+        }
+
+        internal static void SetHandlingMassMult(float mult)
+        {
+            PlayerPrefs.SetFloat(PrefKeyHandlingMassMult, Mathf.Clamp(mult, 0.25f, 3.0f));
+        }
+
 
         internal static void ResetVehicleDefaults()
         {
@@ -1015,6 +1103,7 @@ namespace SebTruck
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
             SetHeadlightRangeMult(1.0f);
+            ResetHandlingDefaults(save: false);
             PlayerPrefs.Save();
         }
 
@@ -1057,6 +1146,20 @@ namespace SebTruck
             SetHeadlightIntensityMult(1.0f);
             SetHeadlightRangeMult(1.0f);
             PlayerPrefs.Save();
+        }
+
+        internal static void ResetHandlingDefaults(bool save = true)
+        {
+            SetHandlingPowerMult(1.0f);
+            SetHandlingSpeedMult(1.0f);
+            SetHandlingSteeringMult(1.0f);
+            SetHandlingGripMult(1.0f);
+            SetHandlingDownforceMult(1.0f);
+            SetHandlingMassMult(1.0f);
+            if (save)
+            {
+                PlayerPrefs.Save();
+            }
         }
 
         internal static void ResetHudDefaults()
