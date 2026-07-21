@@ -14,9 +14,12 @@ namespace SebTruck
         private static int _currentCarFrame = -1;
         private static bool _isInWalkingMode;
         private static float _currentSpeedKmh;
+        private static float _currentSignedSpeedKmh;
         private static float _currentSpeedMult = 1f;
         private static float _lastThrottle01;
         private static float _neutralRev01;
+        private static float _storyVirtualRpm;
+        private static int _storyVirtualRpmLastGear = 1;
 
         private static float _ignitionHoldStart = -1f;
         private static bool _ignitionHoldConsumed;
@@ -2310,7 +2313,7 @@ namespace SebTruck
             gear = Mathf.Clamp(gear, 1, count);
 
             const float baseKmh = 25f;
-            const float topKmh = 125f;
+            const float topKmh = 145f;
 
             // Virtual gearbox curve: lower gears top out earlier.
             // This is an exponential/geometric progression in max speed per gear, which corresponds to a
@@ -2330,42 +2333,106 @@ namespace SebTruck
             return Mathf.Max(1f, baseKmh * Mathf.Max(0.01f, _currentSpeedMult));
         }
 
-        internal static float GetEstimatedRpm()
+        private const float StoryIdleRpm = 1000f;
+        private const float StoryRedlineRpm = 7200f;
+        private const float StoryRedlineDisplayRpm = StoryRedlineRpm + 500f;
+        private const float StoryEngineInertia = 0.5f;
+        private const float StoryEngineTorqueMultiplier = 2.5f;
+        private const float StoryEngineInitialFrictionTorque = 10f;
+        private const float StoryEngineFrictionLossCoefficient = 0.025f;
+
+        private static void ResetStoryVirtualRpmForCurrentIgnition()
         {
-            const float idle = 900f;
-            const float redline = 6500f;
+            _storyVirtualRpm = GetIgnitionEnabledEffective() ? StoryIdleRpm : 0f;
+            _storyVirtualRpmLastGear = _manualGear;
+        }
 
-            float t;
-            if (!IsManualTransmissionEnabledEffective())
-            {
-                t = Mathf.Clamp01(_currentSpeedKmh / (140f * Mathf.Max(0.01f, _currentSpeedMult)));
-                return Mathf.Lerp(idle, redline, t);
-            }
-
+        private static float GetStoryGearRpmTarget(float throttle)
+        {
             if (_manualGear == 0)
             {
-                return Mathf.Lerp(idle, redline, _neutralRev01);
+                return Mathf.Lerp(StoryIdleRpm, StoryRedlineRpm, _neutralRev01);
             }
 
-            t = Mathf.Clamp01(_currentSpeedKmh / GetMaxSpeedForCurrentGearKmh());
-            return Mathf.Lerp(idle, redline, t);
+            float gearLoad = Mathf.Clamp01(Mathf.Abs(_currentSignedSpeedKmh) / GetMaxSpeedForCurrentGearKmh());
+            float throttleBump = Mathf.Clamp01(throttle) * 0.03f;
+            float targetLoad = Mathf.Clamp01(gearLoad + throttleBump);
+            return Mathf.Lerp(StoryIdleRpm, StoryRedlineRpm, targetLoad);
+        }
+
+        private static float EvaluateStoryRallyTorqueCurve(float rpm)
+        {
+            if (rpm <= 0f) return 0.71691895f;
+            if (rpm < 1018.26434f) return Mathf.Lerp(0.71691895f, 90.08408f, rpm / 1018.26434f);
+            if (rpm < 4491.81f) return Mathf.Lerp(90.08408f, 99.910545f, Mathf.InverseLerp(1018.26434f, 4491.81f, rpm));
+            if (rpm < 6998.332f) return Mathf.Lerp(99.910545f, 99.24677f, Mathf.InverseLerp(4491.81f, 6998.332f, rpm));
+            if (rpm < 10000f) return Mathf.Lerp(99.24677f, 1.0767212f, Mathf.InverseLerp(6998.332f, 10000f, rpm));
+            return 1.0767212f;
+        }
+
+        private static float GetStoryRallyRpmRate(float target, float throttle)
+        {
+            float rpm = Mathf.Max(StoryIdleRpm, _storyVirtualRpm);
+            float torque = EvaluateStoryRallyTorqueCurve(rpm) * StoryEngineTorqueMultiplier * Mathf.Max(0.12f, Mathf.Clamp01(throttle));
+            float friction = StoryEngineInitialFrictionTorque + rpm * StoryEngineFrictionLossCoefficient;
+            float netTorque = target > rpm ? Mathf.Max(0f, torque - friction * 0.35f) : friction;
+            float rpmPerSecond = netTorque / StoryEngineInertia * (30f / Mathf.PI);
+            return Mathf.Clamp(rpmPerSecond, target > rpm ? 900f : 1200f, target > rpm ? 4800f : 3600f);
+        }
+
+        private static void UpdateStoryVirtualRpm(bool engineOn)
+        {
+            if (!engineOn)
+            {
+                _storyVirtualRpm = Mathf.MoveTowards(_storyVirtualRpm, 0f, Time.deltaTime * 4500f);
+                return;
+            }
+
+            float throttle = Mathf.Clamp01(_lastThrottle01);
+            float target;
+            if (IsManualTransmissionEnabledEffective())
+            {
+                if (_manualGear != _storyVirtualRpmLastGear)
+                {
+                    _storyVirtualRpm = Mathf.Max(StoryIdleRpm, GetStoryGearRpmTarget(0f));
+                    _storyVirtualRpmLastGear = _manualGear;
+                }
+                target = GetStoryGearRpmTarget(throttle);
+            }
+            else
+            {
+                float cruiseLoad = Mathf.Clamp01(_currentSpeedKmh / (140f * Mathf.Max(0.01f, _currentSpeedMult))) * 0.55f;
+                float throttleLoad = Mathf.Pow(throttle, 0.7f) * 0.35f;
+                target = Mathf.Lerp(StoryIdleRpm, StoryRedlineRpm, Mathf.Max(cruiseLoad, throttleLoad));
+                _storyVirtualRpmLastGear = _manualGear;
+            }
+
+            target = Mathf.Max(StoryIdleRpm, target);
+            float rate = GetStoryRallyRpmRate(target, throttle);
+            _storyVirtualRpm = Mathf.MoveTowards(_storyVirtualRpm <= 1f ? StoryIdleRpm : _storyVirtualRpm, target, Time.deltaTime * rate);
+        }
+
+        internal static float GetEstimatedRpm()
+        {
+            return GetIgnitionEnabledEffective() ? Mathf.Max(StoryIdleRpm, _storyVirtualRpm) : Mathf.Max(0f, _storyVirtualRpm);
         }
 
         internal static float GetEstimatedRpmNormForSound()
         {
-            if (!IsManualTransmissionEnabledEffective())
+            if (GetIgnitionEnabledEffective())
             {
-                return Mathf.Clamp01(_currentSpeedKmh / (140f * Mathf.Max(0.01f, _currentSpeedMult)));
+                return Mathf.Clamp(GetEstimatedRpm() / StoryRedlineRpm, 0f, 1.2f);
             }
+            return 0f;
+        }
 
-            if (_manualGear == 0)
+        internal static float GetEstimatedRpmNormForHud()
+        {
+            if (GetIgnitionEnabledEffective())
             {
-                _neutralRev01 = Mathf.Lerp(_neutralRev01, Mathf.Clamp01(_lastThrottle01), Time.deltaTime * 8f);
-                return Mathf.Clamp(_neutralRev01, 0f, 1.2f);
+                return Mathf.Clamp(GetEstimatedRpm() / StoryRedlineDisplayRpm, 0f, 1.2f);
             }
-
-            float t = _currentSpeedKmh / GetMaxSpeedForCurrentGearKmh();
-            return Mathf.Clamp(t, 0f, 1.2f);
+            return 0f;
         }
 
         internal static float ComputeManualAccel(float gas)
@@ -2411,12 +2478,28 @@ namespace SebTruck
             }
 
             _currentCar = __instance;
+            bool wasWalking = _isInWalkingMode;
             _isInWalkingMode = __instance.GuyActive;
             _currentCarFrame = Time.frameCount;
+
+            if (!wasWalking && _isInWalkingMode)
+            {
+                _manualGear = 1;
+                _neutralRev01 = 0f;
+                ResetStoryVirtualRpmForCurrentIgnition();
+            }
 
             if (__instance.rb != null)
             {
                 _currentSpeedKmh = __instance.rb.linearVelocity.magnitude * 3.6f;
+                try
+                {
+                    _currentSignedSpeedKmh = Vector3.Dot(__instance.rb.linearVelocity, __instance.transform.forward) * 3.6f;
+                }
+                catch
+                {
+                    _currentSignedSpeedKmh = _currentSpeedKmh;
+                }
             }
 
             ApplyStoryHandlingTuning(__instance);
@@ -2816,6 +2899,7 @@ namespace SebTruck
                 {
                     _neutralRev01 = Mathf.Lerp(_neutralRev01, 0f, Time.deltaTime * 6f);
                 }
+                UpdateStoryVirtualRpm(GetIgnitionEnabledEffective());
 
                 float accel;
                 if (IsManualTransmissionEnabledEffective())
@@ -2823,18 +2907,7 @@ namespace SebTruck
                     int gear = GetManualGear();
                     float drive = ComputeManualAccel(throttle);
 
-                    float signedKmh = _currentSpeedKmh;
-                    try
-                    {
-                        if (car.rb != null)
-                        {
-                            signedKmh = Vector3.Dot(car.rb.linearVelocity, car.transform.forward) * 3.6f;
-                        }
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
+                    float signedKmh = _currentSignedSpeedKmh;
 
                     if (gear > 0)
                     {
@@ -3198,6 +3271,7 @@ namespace SebTruck
             // Any reset path (manual reset, ice crack, explosion) should leave you in 1st gear.
             _manualGear = 1;
             _neutralRev01 = 0f;
+            ResetStoryVirtualRpmForCurrentIgnition();
         }
 
 
@@ -3210,6 +3284,8 @@ namespace SebTruck
             {
                 return;
             }
+
+            bool isRally = IsRallyModeActive();
 
             var car = _currentCar;
             if (car == null)
@@ -3231,13 +3307,13 @@ namespace SebTruck
             bool ignitionFeature = GetIgnitionFeatureEnabled();
             bool ignOn = GetIgnitionEnabledEffective();
             bool starting = ignitionFeature && !GetIgnitionEnabled() && _ignitionHoldStart >= 0f && !_ignitionHoldConsumed;
-
-            bool showSpeed = ignOn && GetHudShowSpeed();
-            bool manualEnabled = IsManualTransmissionEnabledEffective();
-            bool showTach = ignOn && manualEnabled && GetHudShowTach();
-            bool showGear = ignOn && manualEnabled && GetHudShowGear();
-
             bool showOff = ignitionFeature && !ignOn && !starting;
+
+            bool manualEnabled = IsManualTransmissionEnabledEffective();
+            bool showSpeed = !isRally && ignOn && GetHudShowSpeed();
+            bool showTach = !isRally && ignOn && manualEnabled && GetHudShowTach();
+            bool showGear = !isRally && ignOn && manualEnabled && GetHudShowGear();
+
             if (!starting && !showOff && !showSpeed && !showTach && !showGear)
             {
                 return;
@@ -3247,6 +3323,11 @@ namespace SebTruck
             float xRight = R.width - 68f;
             float yLeft = R.height - 64f + 22f;
             float yRight = yLeft;
+            if (isRally)
+            {
+                yLeft += 10f;
+                yRight += 10f;
+            }
 
             var aSpeed = GetHudSpeedAnchor();
             var aTach = GetHudTachAnchor();
@@ -3283,52 +3364,214 @@ namespace SebTruck
                 PutLine(aSpeed, "ENGN OFF");
             }
 
+            if (isRally)
+            {
+                return;
+            }
+
+            if (GetHudStyle() == HudStyle.Rally)
+            {
+                DrawStoryRallyStyleHud(R, 68f, 40f, showSpeed, showTach, showGear);
+                return;
+            }
+
+            DrawStoryClassicTelemetry(R, PutLine, showSpeed, showTach, showGear, aTach, aGear, xRight, ref yLeft, ref yRight);
+        }
+
+        private static void DrawStoryClassicTelemetry(
+            MiniRenderer R,
+            Action<HudReadoutAnchor, string> putLine,
+            bool showSpeed,
+            bool showTach,
+            bool showGear,
+            HudReadoutAnchor aTach,
+            HudReadoutAnchor aGear,
+            float xRight,
+            ref float yLeft,
+            ref float yRight)
+        {
             if (showSpeed)
             {
                 float spd = ConvertSpeedForHud(_currentSpeedKmh);
                 int spdInt = Mathf.Max(0, Mathf.RoundToInt(spd));
-                string unit = GetHudSpeedUnitLabel(GetHudSpeedUnit());
-                PutLine(aSpeed, spdInt + unit);
+                putLine(GetHudSpeedAnchor(), spdInt + GetHudSpeedUnitLabel(GetHudSpeedUnit()));
             }
             if (showTach)
             {
                 float target = GetEstimatedRpm();
-                float rpmNorm = Mathf.Clamp(GetEstimatedRpmNormForSound(), 0f, 1.2f);
+                float rpmNorm = Mathf.Clamp(GetEstimatedRpmNormForHud(), 0f, 1.2f);
                 bool lastGear = GetManualGear() > 0 && GetManualGear() == GetManualGearCount();
                 string suffix = lastGear ? "" : (rpmNorm >= 1.0f ? "!!" : (rpmNorm >= 0.92f ? "!" : ""));
-                PutLine(aTach, Mathf.RoundToInt(target) + "rpm" + suffix);
+                putLine(aTach, Mathf.RoundToInt(target) + "rpm" + suffix);
             }
+            if (!showGear)
+            {
+                return;
+            }
+
+            int g = GetManualGear();
+            int gearCount = GetManualGearCount();
+            string line = "RN";
+            for (int i = 1; i <= gearCount; i++)
+            {
+                line += i.ToString();
+            }
+
+            if (aGear == HudReadoutAnchor.BottomRight)
+            {
+                float lineXLeft = xRight - 8f * line.Length;
+                R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+                R.put(line, lineXLeft, yRight);
+                int selIndex = g < 0 ? 0 : (g == 0 ? 1 : Mathf.Clamp(g, 1, gearCount) + 1);
+                yRight += 10f;
+                R.put("^", lineXLeft + 8f * selIndex, yRight);
+                yRight += 10f;
+            }
+            else
+            {
+                R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+                R.put(line, 68f, yLeft);
+                int selIndex = g < 0 ? 0 : (g == 0 ? 1 : Mathf.Clamp(g, 1, gearCount) + 1);
+                yLeft += 10f;
+                R.put("^", 68f + 8f * selIndex, yLeft);
+                yLeft += 10f;
+            }
+        }
+
+        private static void DrawStoryRallyStyleHud(MiniRenderer R, float x, float y, bool showSpeed, bool showTach, bool showGear)
+        {
+            int gearCount = GetManualGearCount();
+            int gear = GetManualGear();
+            float rpmNorm = Mathf.Clamp(GetEstimatedRpmNormForHud(), 0f, 1.2f);
+            float speed = ConvertSpeedForHud(_currentSpeedKmh);
+            DrawRallyStyleHudParts(R, x, y, showSpeed, showTach, showGear, gear, gearCount, rpmNorm, speed, GetHudSpeedUnitLabel(GetHudSpeedUnit()));
+        }
+
+        private static void DrawRallyDrivingHud(sRallyDriving car, MiniRenderer R, float x, float y)
+        {
+            if (car == null || R == null || car.car == null || car.car.GuyActive || car.drawDebugInfo)
+            {
+                return;
+            }
+
+            bool showSpeed = GetRallyHudShowSpeed();
+            bool showTach = GetRallyHudShowTach();
+            bool showGear = GetRallyHudShowGear();
+            if (!showSpeed && !showTach && !showGear)
+            {
+                return;
+            }
+
+            int gearCount = car.gearbox != null && car.gearbox.gearRatios != null ? Mathf.Max(1, car.gearbox.gearRatios.Length - 2) : 6;
+            int gear = car.gearbox != null ? RallyGearboxIndexToDisplayGear(car.gearbox.currentGear) : 0;
+            float redline = car.engine != null ? Mathf.Max(1f, car.engine.redlineRPM + 500f) : 1f;
+            float rpm = car.engine != null ? car.engine.engineRPM : 0f;
+            float rpmNorm = Mathf.Clamp(rpm / redline, 0f, 1.2f);
+            float kmh = car.rb != null ? car.rb.linearVelocity.magnitude * 3.6f : 0f;
+            var units = GetRallyHudSpeedUnit();
+            float speed = units == SpeedUnit.Mph ? kmh * 0.621371f : kmh;
+
+            DrawRallyStyleHudParts(R, x, y, showSpeed, showTach, showGear, gear, gearCount, rpmNorm, speed, GetHudSpeedUnitLabel(units));
+        }
+
+        private static int RallyGearboxIndexToDisplayGear(int currentGear)
+        {
+            if (currentGear <= 0) return -1;
+            if (currentGear == 1) return 0;
+            return currentGear - 1;
+        }
+
+        private static string FormatRallyGearLine(int gear, int gearCount)
+        {
+            const string tokens = "RN123456789";
+            gearCount = Mathf.Clamp(gearCount, 1, tokens.Length - 2);
+            int currentGear = gear < 0 ? 0 : (gear == 0 ? 1 : Mathf.Clamp(gear, 1, gearCount) + 1);
+            string text = "";
+            for (int i = 0; i < gearCount + 2; i++)
+            {
+                text += tokens[i];
+                text = currentGear != i + 1 ? text + (currentGear == i ? "]" : " ") : text + "[";
+            }
+            return text;
+        }
+
+        private static void DrawRallyStyleHudParts(MiniRenderer R, float x, float y, bool showSpeed, bool showTach, bool showGear, int gear, int gearCount, float rpmNorm, float speed, string unit)
+        {
+            float yy = y;
             if (showGear)
             {
-                int g = GetManualGear();
-                int gearCount = GetManualGearCount();
-
-                string line = "RN";
-                for (int i = 1; i <= gearCount; i++)
-                {
-                    line += i.ToString();
-                }
-
-                if (aGear == HudReadoutAnchor.BottomRight)
-                {
-                    float lineXLeft = xRight - 8f * line.Length;
-                    R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-                    R.put(line, lineXLeft, yRight);
-                    int selIndex = g < 0 ? 0 : (g == 0 ? 1 : Mathf.Clamp(g, 1, gearCount) + 1);
-                    yRight += 10f;
-                    R.put("^", lineXLeft + 8f * selIndex, yRight);
-                    yRight += 10f;
-                }
-                else
-                {
-                    R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-                    R.put(line, xLeft, yLeft);
-                    int selIndex = g < 0 ? 0 : (g == 0 ? 1 : Mathf.Clamp(g, 1, gearCount) + 1);
-                    yLeft += 10f;
-                    R.put("^", xLeft + 8f * selIndex, yLeft);
-                    yLeft += 10f;
-                }
+                R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+                R.put(FormatRallyGearLine(gear, gearCount), x, yy);
+                yy += 10f;
             }
+
+            if (showTach)
+            {
+                float num = Mathf.Clamp(rpmNorm, 0f, 1.2f);
+                int wholeBars = Mathf.Clamp((int)(8f * num), 0, 8);
+                float partial = num * 8f - wholeBars;
+                bool redlining = rpmNorm >= 1.0f;
+                bool flashOn = !redlining || Mathf.FloorToInt(Time.unscaledTime * 8f) % 2 == 0;
+                for (int j = 0; j < wholeBars; j++)
+                {
+                    if (redlining && j == 7 && !flashOn)
+                    {
+                        continue;
+                    }
+                    R.spr(160f, 48f, (int)(x + j * 16f), yy, 8f, 2f, flip: false, 16f, 2f);
+                }
+                if (wholeBars < 8 && flashOn)
+                {
+                    int frame = (int)((1f - partial) * 6f);
+                    int sx = 160 + frame % 2 * 8;
+                    int sy = 48 + frame / 2 * 5;
+                    R.spr(sx, sy, (int)(x + wholeBars * 16f), yy, 8f, 2f, flip: false, 16f, 2f);
+                }
+                yy += 4f;
+            }
+
+            if (showSpeed)
+            {
+                R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+                R.put(Mathf.Round(speed) + unit, x, yy);
+            }
+        }
+
+        private static MiniRenderer GetCurrentHudRenderer()
+        {
+            try
+            {
+                var hud = UnityEngine.Object.FindFirstObjectByType<sHUD>();
+                if (hud == null)
+                {
+                    return null;
+                }
+                var rField = AccessTools.Field(typeof(sHUD), "R");
+                return rField != null ? rField.GetValue(hud) as MiniRenderer : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        [HarmonyPatch(typeof(sHUD), "DebugDraw")]
+        [HarmonyPrefix]
+        private static bool SHUD_DebugDraw_Prefix(Action<MiniRenderer, float, float> Draw, float x, float y)
+        {
+            if (Draw != null && Draw.Target is sRallyDriving rally && Draw.Method != null && Draw.Method.Name == "DrawCarHUD")
+            {
+                try
+                {
+                    DrawRallyDrivingHud(rally, GetCurrentHudRenderer(), x, y);
+                }
+                catch
+                {
+                    // ignore
+                }
+                return false;
+            }
+            return true;
         }
 
         // Note: engine SFX patching uses reflection to avoid AudioModule reference.

@@ -20,12 +20,11 @@ namespace SebTruck
 
         private enum Page
         {
-            Transmission = 0,
+            Handling = 0,
             Ignition = 1,
             TurnSignals = 2,
             Hud = 3,
-            Handling = 4,
-            Tweaks = 5
+            Tweaks = 4
         }
 
         public void FrameUpdate(DesktopDotExe.WindowView view)
@@ -71,7 +70,7 @@ namespace SebTruck
             float line = 12f;
             float sectionGap = 4f;
 
-            const int pageCount = 6;
+            const int pageCount = 5;
 
             _util.Label("Truck", cx, y);
             y += line;
@@ -118,15 +117,15 @@ namespace SebTruck
 
             if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
-                if (_page == Page.Transmission)
+                if (_page == Page.Handling)
                 {
                     if (Plugin.IsRallyModeActive()) Plugin.ResetRallyTransmissionDefaults();
                     else Plugin.ResetTransmissionDefaults();
+                    Plugin.ResetHandlingDefaults();
                 }
                 else if (_page == Page.Ignition) Plugin.ResetIgnitionDefaults();
                 else if (_page == Page.TurnSignals) Plugin.ResetIndicatorDefaults();
                 else if (_page == Page.Hud) Plugin.ResetHudDefaults();
-                else if (_page == Page.Handling) Plugin.ResetHandlingDefaults();
                 else Plugin.ResetTweaksDefaults();
             }
 
@@ -137,48 +136,90 @@ namespace SebTruck
 
         private void DrawPage(Rect p, float center, float cx, ref float y, float line)
         {
+            bool rally = Plugin.IsRallyModeActive();
             bool manual = Plugin.IsManualTransmissionEnabledEffective();
 
-            if (_page == Page.Transmission)
+            if (_page == Page.Handling)
             {
-                if (Plugin.IsRallyModeActive())
+                if (rally)
                 {
                     bool rallyManual = Plugin.GetRallyManualTransmissionEnabled();
-                    string rallyModeLabel = rallyManual ? "Manual" : "Auto";
-                    if (_util.CycleButtonRaw("Transmission", rallyModeLabel, center, y))
+                    if (_util.CycleButtonRaw("Transmission", rallyManual ? "Manual" : "Auto", center, y))
                     {
                         Plugin.SetRallyManualTransmissionEnabled(!rallyManual);
                     }
                     y += line;
-                    return;
                 }
-
-                string modeLabel = manual ? "Manual" : "Auto";
-                if (_util.CycleButtonRaw("Transmission", modeLabel, center, y))
+                else
                 {
-                    Plugin.ToggleManualTransmission();
-                }
-                y += line;
-
-                if (manual)
-                {
-                    int gears = Plugin.GetManualGearCount();
-                    if (_util.CycleButtonRaw("Max Gears", gears.ToString(), center, y))
+                    if (_util.CycleButtonRaw("Transmission", manual ? "Manual" : "Auto", center, y))
                     {
-                        Plugin.SetManualGearCount(Plugin.NextManualGearCount(gears));
+                        Plugin.ToggleManualTransmission();
                     }
                     y += line;
+
+                    if (manual)
+                    {
+                        int gears = Plugin.GetManualGearCount();
+                        if (_util.CycleButtonRaw("Max Gears", gears.ToString(), center, y))
+                        {
+                            Plugin.SetManualGearCount(Plugin.NextManualGearCount(gears));
+                        }
+                        y += line;
+                    }
                 }
+
+                y += 2f;
+                _util.Label(rally ? Plugin.GetCurrentRallyVariantLabel() : "Story Truck", cx, y);
+                y += line;
+
+                float power = Plugin.GetHandlingPowerMult();
+                _util.ValueLabel($"{power:0.00}x", p.x + p.width - 12f, y);
+                float? newPowerNorm = _util.Slider("Power", Mathf.InverseLerp(0.5f, 2.0f, power), center, y, ref _mouseYLock);
+                if (newPowerNorm.HasValue) Plugin.SetHandlingPowerMult(Mathf.Lerp(0.5f, 2.0f, newPowerNorm.Value));
+                y += line;
+
+                float speed = Plugin.GetHandlingSpeedMult();
+                _util.ValueLabel($"{speed:0.00}x", p.x + p.width - 12f, y);
+                float? newSpeedNorm = _util.Slider("Top Speed", Mathf.InverseLerp(0.5f, 2.0f, speed), center, y, ref _mouseYLock);
+                if (newSpeedNorm.HasValue) Plugin.SetHandlingSpeedMult(Mathf.Lerp(0.5f, 2.0f, newSpeedNorm.Value));
+                y += line;
+
+                float steering = Plugin.GetHandlingSteeringMult();
+                _util.ValueLabel($"{steering:0.00}x", p.x + p.width - 12f, y);
+                float? newSteeringNorm = _util.Slider("Steering", Mathf.InverseLerp(0.5f, 2.0f, steering), center, y, ref _mouseYLock);
+                if (newSteeringNorm.HasValue) Plugin.SetHandlingSteeringMult(Mathf.Lerp(0.5f, 2.0f, newSteeringNorm.Value));
+                y += line;
+
+                float grip = Plugin.GetHandlingGripMult();
+                _util.ValueLabel($"{grip:0.00}x", p.x + p.width - 12f, y);
+                float? newGripNorm = _util.Slider("Grip", Mathf.InverseLerp(0.5f, 2.0f, grip), center, y, ref _mouseYLock);
+                if (newGripNorm.HasValue) Plugin.SetHandlingGripMult(Mathf.Lerp(0.5f, 2.0f, newGripNorm.Value));
+                y += line;
+
+                if (rally)
+                {
+                    float mass = Plugin.GetHandlingMassMult();
+                    _util.ValueLabel($"{mass:0.00}x", p.x + p.width - 12f, y);
+                    float? newMassNorm = _util.Slider("Mass", Mathf.InverseLerp(0.5f, 2.0f, mass), center, y, ref _mouseYLock);
+                    if (newMassNorm.HasValue) Plugin.SetHandlingMassMult(Mathf.Lerp(0.5f, 2.0f, newMassNorm.Value));
+                }
+                else
+                {
+                    float downforce = Plugin.GetHandlingDownforceMult();
+                    _util.ValueLabel($"{downforce:0.00}x", p.x + p.width - 12f, y);
+                    float? newDownforceNorm = _util.Slider("Downforce", Mathf.InverseLerp(0.0f, 2.0f, downforce), center, y, ref _mouseYLock);
+                    if (newDownforceNorm.HasValue) Plugin.SetHandlingDownforceMult(Mathf.Lerp(0.0f, 2.0f, newDownforceNorm.Value));
+                }
+                y += line;
 
                 return;
             }
 
             if (_page == Page.Ignition)
             {
-                
                 bool ignFeature = Plugin.GetIgnitionFeatureEnabled();
-                string ignLabel = ignFeature ? "Enabled" : "Disabled";
-                if (_util.CycleButtonRaw("Ignition", ignLabel, center, y))
+                if (_util.CycleButtonRaw("Ignition", ignFeature ? "Enabled" : "Disabled", center, y))
                 {
                     Plugin.SetIgnitionFeatureEnabled(!ignFeature);
                 }
@@ -186,17 +227,12 @@ namespace SebTruck
 
                 float holdS = Plugin.GetIgnitionHoldSeconds();
                 _util.ValueLabel($"{holdS:0.00}s", p.x + p.width - 12f, y);
-                float holdNorm = Mathf.InverseLerp(0.25f, 3.0f, holdS);
-                float? newHoldNorm = _util.Slider("Ignition Time", holdNorm, center, y, ref _mouseYLock);
-                if (newHoldNorm.HasValue)
-                {
-                    Plugin.SetIgnitionHoldSeconds(Mathf.Lerp(0.25f, 3.0f, newHoldNorm.Value));
-                }
+                float? newHoldNorm = _util.Slider("Ignition Time", Mathf.InverseLerp(0.25f, 3.0f, holdS), center, y, ref _mouseYLock);
+                if (newHoldNorm.HasValue) Plugin.SetIgnitionHoldSeconds(Mathf.Lerp(0.25f, 3.0f, newHoldNorm.Value));
                 y += line;
 
                 bool ignSfx = Plugin.GetIgnitionSfxEnabled();
-                string ignSfxLabel = ignSfx ? "On" : "Off";
-                if (_util.CycleButtonRaw("Ignition SFX", ignSfxLabel, center, y))
+                if (_util.CycleButtonRaw("Ignition SFX", ignSfx ? "On" : "Off", center, y))
                 {
                     Plugin.SetIgnitionSfxEnabled(!ignSfx);
                 }
@@ -205,10 +241,7 @@ namespace SebTruck
                 float vol = Plugin.GetIgnitionSfxVolume();
                 _util.ValueLabel($"{Mathf.RoundToInt(vol * 100f)}%", p.x + p.width - 12f, y);
                 float? newVol = _util.Slider("Ignition Vol.", vol, center, y, ref _mouseYLock);
-                if (newVol.HasValue)
-                {
-                    Plugin.SetIgnitionSfxVolume(newVol.Value);
-                }
+                if (newVol.HasValue) Plugin.SetIgnitionSfxVolume(newVol.Value);
                 y += line;
 
                 return;
@@ -217,8 +250,7 @@ namespace SebTruck
             if (_page == Page.TurnSignals)
             {
                 bool indFeature = Plugin.GetIndicatorFeatureEnabled();
-                string indLabel = indFeature ? "Enabled" : "Disabled";
-                if (_util.CycleButtonRaw("Turn Signals", indLabel, center, y))
+                if (_util.CycleButtonRaw("Turn Signals", indFeature ? "Enabled" : "Disabled", center, y))
                 {
                     Plugin.SetIndicatorFeatureEnabled(!indFeature);
                 }
@@ -226,27 +258,18 @@ namespace SebTruck
 
                 float step = Plugin.GetIndicatorBlinkSeconds();
                 _util.ValueLabel($"{step:0.00}s", p.x + p.width - 12f, y);
-                float stepNorm = Mathf.InverseLerp(0.20f, 1.20f, step);
-                float? newStepNorm = _util.Slider("Blink Rate", stepNorm, center, y, ref _mouseYLock);
-                if (newStepNorm.HasValue)
-                {
-                    Plugin.SetIndicatorBlinkSeconds(Mathf.Lerp(0.20f, 1.20f, newStepNorm.Value));
-                }
+                float? newStepNorm = _util.Slider("Blink Rate", Mathf.InverseLerp(0.20f, 1.20f, step), center, y, ref _mouseYLock);
+                if (newStepNorm.HasValue) Plugin.SetIndicatorBlinkSeconds(Mathf.Lerp(0.20f, 1.20f, newStepNorm.Value));
                 y += line;
 
                 float inten = Plugin.GetTurnSignalLightIntensity();
                 _util.ValueLabel($"{inten:0.00}", p.x + p.width - 12f, y);
-                float intenNorm = Mathf.InverseLerp(0.0f, 1.0f, inten);
-                float? newIntenNorm = _util.Slider("Intensity", intenNorm, center, y, ref _mouseYLock);
-                if (newIntenNorm.HasValue)
-                {
-                    Plugin.SetTurnSignalLightIntensity(Mathf.Lerp(0.0f, 1.0f, newIntenNorm.Value));
-                }
+                float? newIntenNorm = _util.Slider("Intensity", Mathf.InverseLerp(0.0f, 1.0f, inten), center, y, ref _mouseYLock);
+                if (newIntenNorm.HasValue) Plugin.SetTurnSignalLightIntensity(Mathf.Lerp(0.0f, 1.0f, newIntenNorm.Value));
                 y += line;
 
                 bool indSfx = Plugin.GetIndicatorSfxEnabled();
-                string indSfxLabel = indSfx ? "On" : "Off";
-                if (_util.CycleButtonRaw("Signal SFX", indSfxLabel, center, y))
+                if (_util.CycleButtonRaw("Signal SFX", indSfx ? "On" : "Off", center, y))
                 {
                     Plugin.SetIndicatorSfxEnabled(!indSfx);
                 }
@@ -255,10 +278,7 @@ namespace SebTruck
                 float vol = Plugin.GetIndicatorSfxVolume();
                 _util.ValueLabel($"{Mathf.RoundToInt(vol * 100f)}%", p.x + p.width - 12f, y);
                 float? newVol = _util.Slider("Signal Vol.", vol, center, y, ref _mouseYLock);
-                if (newVol.HasValue)
-                {
-                    Plugin.SetIndicatorSfxVolume(newVol.Value);
-                }
+                if (newVol.HasValue) Plugin.SetIndicatorSfxVolume(newVol.Value);
                 y += line;
 
                 return;
@@ -266,135 +286,89 @@ namespace SebTruck
 
             if (_page == Page.Hud)
             {
-                var units = Plugin.GetHudSpeedUnit();
-                if (_util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(units), center, y))
+                if (rally)
                 {
-                    Plugin.SetHudSpeedUnit(Plugin.NextHudSpeedUnit(units));
+                    var rallyUnits = Plugin.GetRallyHudSpeedUnit();
+                    if (_util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(rallyUnits), center, y))
+                    {
+                        Plugin.SetRallyHudSpeedUnit(Plugin.NextHudSpeedUnit(rallyUnits));
+                    }
+                    y += line;
+
+                    bool showSpeed = Plugin.GetRallyHudShowSpeed();
+                    bool? newShowSpeed = _util.Toggle("Speedomtr", showSpeed, center, y);
+                    if (newShowSpeed.HasValue) Plugin.SetRallyHudShowSpeed(newShowSpeed.Value);
+                    y += line;
+
+                    bool showTach = Plugin.GetRallyHudShowTach();
+                    bool? newShowTach = _util.Toggle("Tachomtr", showTach, center, y);
+                    if (newShowTach.HasValue) Plugin.SetRallyHudShowTach(newShowTach.Value);
+                    y += line;
+
+                    bool showGear = Plugin.GetRallyHudShowGear();
+                    bool? newShowGear = _util.Toggle("Gear Ind", showGear, center, y);
+                    if (newShowGear.HasValue) Plugin.SetRallyHudShowGear(newShowGear.Value);
+                    y += line;
+                    return;
+                }
+
+                var style = Plugin.GetHudStyle();
+                if (_util.CycleButtonRaw("Style", Plugin.GetHudStyleLabel(style), center, y))
+                {
+                    Plugin.SetHudStyle(Plugin.NextHudStyle(style));
+                }
+                y += line;
+
+                var storyUnits = Plugin.GetHudSpeedUnit();
+                if (_util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(storyUnits), center, y))
+                {
+                    Plugin.SetHudSpeedUnit(Plugin.NextHudSpeedUnit(storyUnits));
                 }
                 y += line;
 
                 bool hudSpeed = Plugin.GetHudShowSpeed();
                 bool? newHudSpeed = _util.Toggle("Speedomtr", hudSpeed, center, y);
-                if (newHudSpeed.HasValue)
-                {
-                    Plugin.SetHudShowSpeed(newHudSpeed.Value);
-                }
+                if (newHudSpeed.HasValue) Plugin.SetHudShowSpeed(newHudSpeed.Value);
                 y += line;
 
                 if (manual)
                 {
                     bool hudTach = Plugin.GetHudShowTach();
                     bool? newHudTach = _util.Toggle("Tachomtr", hudTach, center, y);
-                    if (newHudTach.HasValue)
-                    {
-                        Plugin.SetHudShowTach(newHudTach.Value);
-                    }
+                    if (newHudTach.HasValue) Plugin.SetHudShowTach(newHudTach.Value);
                     y += line;
 
                     bool hudGear = Plugin.GetHudShowGear();
                     bool? newHudGear = _util.Toggle("Gear Ind", hudGear, center, y);
-                    if (newHudGear.HasValue)
-                    {
-                        Plugin.SetHudShowGear(newHudGear.Value);
-                    }
+                    if (newHudGear.HasValue) Plugin.SetHudShowGear(newHudGear.Value);
                     y += line;
                 }
 
-                var spPos = Plugin.GetHudSpeedAnchor();
-                if (_util.CycleButtonRaw("Speedomtr Pos", Plugin.GetHudReadoutAnchorLabel(spPos), center, y))
+                if (style == Plugin.HudStyle.Classic)
                 {
-                    Plugin.SetHudSpeedAnchor(Plugin.NextHudReadoutAnchor(spPos));
-                }
-                y += line;
-
-                if (manual)
-                {
-                    var tPos = Plugin.GetHudTachAnchor();
-                    if (_util.CycleButtonRaw("Tachomtr Pos", Plugin.GetHudReadoutAnchorLabel(tPos), center, y))
+                    var spPos = Plugin.GetHudSpeedAnchor();
+                    if (_util.CycleButtonRaw("Speedomtr Pos", Plugin.GetHudReadoutAnchorLabel(spPos), center, y))
                     {
-                        Plugin.SetHudTachAnchor(Plugin.NextHudReadoutAnchor(tPos));
+                        Plugin.SetHudSpeedAnchor(Plugin.NextHudReadoutAnchor(spPos));
                     }
                     y += line;
 
-                    var gPos = Plugin.GetHudGearAnchor();
-                    if (_util.CycleButtonRaw("Gear Ind. Pos", Plugin.GetHudReadoutAnchorLabel(gPos), center, y))
+                    if (manual)
                     {
-                        Plugin.SetHudGearAnchor(Plugin.NextHudReadoutAnchor(gPos));
+                        var tPos = Plugin.GetHudTachAnchor();
+                        if (_util.CycleButtonRaw("Tachomtr Pos", Plugin.GetHudReadoutAnchorLabel(tPos), center, y))
+                        {
+                            Plugin.SetHudTachAnchor(Plugin.NextHudReadoutAnchor(tPos));
+                        }
+                        y += line;
+
+                        var gPos = Plugin.GetHudGearAnchor();
+                        if (_util.CycleButtonRaw("Gear Ind. Pos", Plugin.GetHudReadoutAnchorLabel(gPos), center, y))
+                        {
+                            Plugin.SetHudGearAnchor(Plugin.NextHudReadoutAnchor(gPos));
+                        }
                     }
                 }
-
-                return;
-            }
-
-            if (_page == Page.Handling)
-            {
-                bool rally = Plugin.IsRallyModeActive();
-                _util.Label(rally ? Plugin.GetCurrentRallyVariantLabel() : "Story Truck", cx, y);
-                y += line;
-
-                float power = Plugin.GetHandlingPowerMult();
-                _util.ValueLabel($"{power:0.00}x", p.x + p.width - 12f, y);
-                float powerNorm = Mathf.InverseLerp(0.5f, 2.0f, power);
-                float? newPowerNorm = _util.Slider("Power", powerNorm, center, y, ref _mouseYLock);
-                if (newPowerNorm.HasValue)
-                {
-                    Plugin.SetHandlingPowerMult(Mathf.Lerp(0.5f, 2.0f, newPowerNorm.Value));
-                }
-                y += line;
-
-                float speed = Plugin.GetHandlingSpeedMult();
-                _util.ValueLabel($"{speed:0.00}x", p.x + p.width - 12f, y);
-                float speedNorm = Mathf.InverseLerp(0.5f, 2.0f, speed);
-                float? newSpeedNorm = _util.Slider("Top Speed", speedNorm, center, y, ref _mouseYLock);
-                if (newSpeedNorm.HasValue)
-                {
-                    Plugin.SetHandlingSpeedMult(Mathf.Lerp(0.5f, 2.0f, newSpeedNorm.Value));
-                }
-                y += line;
-
-                float steering = Plugin.GetHandlingSteeringMult();
-                _util.ValueLabel($"{steering:0.00}x", p.x + p.width - 12f, y);
-                float steeringNorm = Mathf.InverseLerp(0.5f, 2.0f, steering);
-                float? newSteeringNorm = _util.Slider("Steering", steeringNorm, center, y, ref _mouseYLock);
-                if (newSteeringNorm.HasValue)
-                {
-                    Plugin.SetHandlingSteeringMult(Mathf.Lerp(0.5f, 2.0f, newSteeringNorm.Value));
-                }
-                y += line;
-
-                float grip = Plugin.GetHandlingGripMult();
-                _util.ValueLabel($"{grip:0.00}x", p.x + p.width - 12f, y);
-                float gripNorm = Mathf.InverseLerp(0.5f, 2.0f, grip);
-                float? newGripNorm = _util.Slider("Grip", gripNorm, center, y, ref _mouseYLock);
-                if (newGripNorm.HasValue)
-                {
-                    Plugin.SetHandlingGripMult(Mathf.Lerp(0.5f, 2.0f, newGripNorm.Value));
-                }
-                y += line;
-
-                if (rally)
-                {
-                    float mass = Plugin.GetHandlingMassMult();
-                    _util.ValueLabel($"{mass:0.00}x", p.x + p.width - 12f, y);
-                    float massNorm = Mathf.InverseLerp(0.5f, 2.0f, mass);
-                    float? newMassNorm = _util.Slider("Mass", massNorm, center, y, ref _mouseYLock);
-                    if (newMassNorm.HasValue)
-                    {
-                        Plugin.SetHandlingMassMult(Mathf.Lerp(0.5f, 2.0f, newMassNorm.Value));
-                    }
-                }
-                else
-                {
-                    float downforce = Plugin.GetHandlingDownforceMult();
-                    _util.ValueLabel($"{downforce:0.00}x", p.x + p.width - 12f, y);
-                    float downforceNorm = Mathf.InverseLerp(0.0f, 2.0f, downforce);
-                    float? newDownforceNorm = _util.Slider("Downforce", downforceNorm, center, y, ref _mouseYLock);
-                    if (newDownforceNorm.HasValue)
-                    {
-                        Plugin.SetHandlingDownforceMult(Mathf.Lerp(0.0f, 2.0f, newDownforceNorm.Value));
-                    }
-                }
-                y += line;
 
                 return;
             }

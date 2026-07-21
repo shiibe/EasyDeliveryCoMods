@@ -1,12 +1,16 @@
 ## 1.1.0
+- Update mod to work with new 2.0 Rally update.
+- Fix ignition and turn signal behavior after the 2.0 game update.
+
 **Rally Mode**:
-- Add a Rally Auto/Manual transmission setting for Easy Delivery Co. 2.0.
+- Add a Rally Auto/Manual transmission setting to easily toggle the manual mode on or off.
 - Use the game's vanilla Rally manual-transmission path instead of SebTruck's Story-mode manual transmission logic.
-- Prevent Rally's auto-shifter from fighting manual gear selection while Rally manual mode is active.
 
 **Story Mode**:
-- Keep SebTruck's custom manual transmission isolated to Story mode.
-- Fix ignition and turn signal behavior after the 2.0 game update.
+- Keep SebTruck's custom manual transmission isolated to Story mode. In the future, I'll look into porting the Rally driving mechanics to Story mode, but for now, the two modes are separate for technical reasons (Rally uses a different vehicle controller and input path than Story mode).
+- Add the Rally HUD style for Speedometer/Tachometer/Gear Indicators in Story mode.
+- Adjust simulated manual transmission curves/gear ratios.
+- Reset gear to 1 when the player gets out of the Truck.
 
 ## 1.0.6
 **Turn Signals**:
