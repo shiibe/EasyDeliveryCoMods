@@ -38,10 +38,11 @@ SebTweaks currently includes the following options:
 | Temp Loss | `0.10x` - `3.00x` | Multiplies freezing/temperature loss |
 | Ice Cracking | `on/off` | Toggles falling-through-ice mechanic |
 
-**Atmosphere**
+**World**
 
 | Option | Values | Notes |
 | --- | --- | --- |
+| Gravity | `0.00x` - `5.00x` | Multiplies global physics gravity |
 | Fog | `0.00x` - `3.00x` | Fog density multiplier |
 | World Light | `0.00x` - `2.00x` | Multiplies ambient + fog color brightness |
 | Light Red | `0.00x` - `2.00x` | Multiplies ambient + fog red channel |
@@ -80,6 +81,13 @@ SebTweaks currently includes the following options:
 | Temp | `0%` - `100%` | Sets current truck temperature |
 | Freeze Temp | `on/off` | Locks temperature to the slider value |
 | Invincible Truck | `on/off` | Disables collision damage |
+
+**Rally**
+
+| Option | Values | Notes |
+| --- | --- | --- |
+| Manual Trans. | `on/off` | Forces Rally vehicles into manual transmission mode |
+| Debug Info | `on/off` | Shows Rally debug overlay information |
 
 ## Screenshots
 <table>

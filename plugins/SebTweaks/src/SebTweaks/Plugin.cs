@@ -11,7 +11,7 @@ namespace SebTweaks
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtweaks";
         public const string PluginName = "SebTweaks";
-        public const string PluginVersion = "1.0.4";
+        public const string PluginVersion = "1.1.0";
 
         private void Awake()
         {
@@ -113,6 +113,7 @@ namespace SebTweaks
         internal const string PrefKeyWorldLightColorR = "SebTweaks_WorldLightColorR";
         internal const string PrefKeyWorldLightColorG = "SebTweaks_WorldLightColorG";
         internal const string PrefKeyWorldLightColorB = "SebTweaks_WorldLightColorB";
+        internal const string PrefKeyGravityMult = "SebTweaks_GravityMult";
         internal const string PrefKeyTimeMode = "SebTweaks_TimeMode"; // Legacy: 0=Auto,1=Manual
         internal const string PrefKeyTimeOfDay = "SebTweaks_TimeOfDay"; // 0..1
         internal const string PrefKeyFreezeTime = "SebTweaks_FreezeTime"; // 0/1
@@ -122,6 +123,8 @@ namespace SebTweaks
         internal const string PrefKeyIceCrackEnabled = "SebTweaks_IceCrackEnabled"; // 0/1
 
         internal const string PrefKeyGodInvincibleTruck = "SebTweaks_God_InvTruck";
+        internal const string PrefKeyRallyManualTransmission = "SebTweaks_Rally_ManualTransmission";
+        internal const string PrefKeyRallyDebugInfo = "SebTweaks_Rally_DebugInfo";
 
         // Cheats/refill targets (0..1). Used when the corresponding freeze toggle is enabled.
         internal const string PrefKeyRefillEnergy01 = "SebTweaks_Refill_Energy01";

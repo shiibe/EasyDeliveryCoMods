@@ -25,6 +25,10 @@ namespace SebTweaks
         internal static float WorldLightColorR => Mathf.Clamp(GetFloat(PrefKeyWorldLightColorR, 1f), 0f, 2f);
         internal static float WorldLightColorG => Mathf.Clamp(GetFloat(PrefKeyWorldLightColorG, 1f), 0f, 2f);
         internal static float WorldLightColorB => Mathf.Clamp(GetFloat(PrefKeyWorldLightColorB, 1f), 0f, 2f);
+        internal static float GravityMult => Mathf.Clamp(GetFloat(PrefKeyGravityMult, 1f), 0f, 5f);
+
+        internal static bool RallyManualTransmission => GetInt(PrefKeyRallyManualTransmission, 0) == 1;
+        internal static bool RallyDebugInfo => GetInt(PrefKeyRallyDebugInfo, 0) == 1;
 
         internal static bool TimeManual => GetInt(PrefKeyTimeMode, 0) == 1;
         internal static float ManualTime01 => Mathf.Repeat(GetFloat(PrefKeyTimeOfDay, 0.25f), 1f);
@@ -441,29 +445,41 @@ namespace SebTweaks
                     }
                 }
 
-                // Atmosphere tuning (works even when oldLighting is disabled).
-                float lm = WorldLightMult;
-                float mr = WorldLightColorR;
-                float mg = WorldLightColorG;
-                float mb = WorldLightColorB;
-                if (Mathf.Abs(lm - 1f) < 0.0001f && Mathf.Abs(mr - 1f) < 0.0001f && Mathf.Abs(mg - 1f) < 0.0001f && Mathf.Abs(mb - 1f) < 0.0001f)
+                ApplyWorldLightTuning();
+            }
+        }
+
+        [HarmonyPatch(typeof(sRallyDriving), "CollectPlayerInput")]
+        [HarmonyPriority(Priority.Last)]
+        private static class RallyDriving_CollectPlayerInput_Patch
+        {
+            private static void Postfix(sRallyDriving __instance)
+            {
+                if (!IsInGameNow() || __instance == null)
                 {
                     return;
                 }
 
-                try
+                __instance.automatic = !RallyManualTransmission;
+                if (__instance.playerNumber >= 0)
                 {
-                    var c = RenderSettings.fogColor;
-                    c.r = Mathf.Clamp01(c.r * mr * lm);
-                    c.g = Mathf.Clamp01(c.g * mg * lm);
-                    c.b = Mathf.Clamp01(c.b * mb * lm);
-                    RenderSettings.fogColor = c;
-                    RenderSettings.ambientLight = c;
+                    sInputManager.players[__instance.playerNumber].manualShifting = RallyManualTransmission;
                 }
-                catch
+            }
+        }
+
+        [HarmonyPatch(typeof(sRallyDriving), "Update")]
+        [HarmonyPriority(Priority.Last)]
+        private static class RallyDriving_Update_Patch
+        {
+            private static void Prefix(sRallyDriving __instance)
+            {
+                if (!IsInGameNow() || __instance == null)
                 {
-                    // ignore
+                    return;
                 }
+
+                __instance.drawDebugInfo = RallyDebugInfo;
             }
         }
 
@@ -498,14 +514,12 @@ namespace SebTweaks
                 }
 
                 float m = FogMult;
-                if (Mathf.Abs(m - 1f) < 0.0001f)
+                if (Mathf.Abs(m - 1f) >= 0.0001f)
                 {
-                    return;
+                    // Mirror the old ultrawide approach: multiply the final fog density.
+                    // (FogVolume will override in LateUpdate; we patch that too.)
+                    RenderSettings.fogDensity = Mathf.Max(0.000001f, RenderSettings.fogDensity * m);
                 }
-
-                // Mirror the old ultrawide approach: multiply the final fog density.
-                // (FogVolume will override in LateUpdate; we patch that too.)
-                RenderSettings.fogDensity = Mathf.Max(0.000001f, RenderSettings.fogDensity * m);
             }
         }
 
@@ -527,32 +541,56 @@ namespace SebTweaks
                 }
 
                 float m = FogMult;
-                if (Mathf.Abs(m - 1f) < 0.0001f)
-                {
-                    return;
-                }
 
                 // FogVolume only sets fog density when p != 1.0; avoid double-applying
                 // on frames where FogVolume doesn't override the weather fog.
-                try
+                if (Mathf.Abs(m - 1f) >= 0.0001f)
                 {
-                    _fogVolumePField ??= AccessTools.Field(typeof(FogVolume), "p");
-                    if (_fogVolumePField != null)
+                    try
                     {
-                        float p = (float)_fogVolumePField.GetValue(__instance);
-                        if (Mathf.Abs(p - 1f) < 0.0001f)
+                        _fogVolumePField ??= AccessTools.Field(typeof(FogVolume), "p");
+                        if (_fogVolumePField != null)
                         {
-                            return;
+                            float p = (float)_fogVolumePField.GetValue(__instance);
+                            if (Mathf.Abs(p - 1f) >= 0.0001f)
+                            {
+                                RenderSettings.fogDensity = Mathf.Max(0.000001f, RenderSettings.fogDensity * m);
+                            }
                         }
                     }
+                    catch
+                    {
+                        // ignore
+                    }
                 }
-                catch
-                {
-                    // ignore
-                }
-
-                RenderSettings.fogDensity = Mathf.Max(0.000001f, RenderSettings.fogDensity * m);
             }
         }
+
+        private static void ApplyWorldLightTuning()
+        {
+            float lm = WorldLightMult;
+            float mr = WorldLightColorR;
+            float mg = WorldLightColorG;
+            float mb = WorldLightColorB;
+            if (Mathf.Abs(lm - 1f) < 0.0001f && Mathf.Abs(mr - 1f) < 0.0001f && Mathf.Abs(mg - 1f) < 0.0001f && Mathf.Abs(mb - 1f) < 0.0001f)
+            {
+                return;
+            }
+
+            try
+            {
+                var c = RenderSettings.fogColor;
+                c.r = Mathf.Clamp01(c.r * mr * lm);
+                c.g = Mathf.Clamp01(c.g * mg * lm);
+                c.b = Mathf.Clamp01(c.b * mb * lm);
+                RenderSettings.fogColor = c;
+                RenderSettings.ambientLight = c;
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
     }
 }

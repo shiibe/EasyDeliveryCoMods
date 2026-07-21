@@ -14,10 +14,11 @@ namespace SebTweaks
         private enum Page
         {
             Gameplay = 0,
-            Atmosphere = 1,
+            World = 1,
             Graphics = 2,
             TimeWeather = 3,
-            Cheats = 4
+            Cheats = 4,
+            Rally = 5
         }
 
         // (Cheats page has fixed increment buttons.)
@@ -47,7 +48,7 @@ namespace SebTweaks
             float prevX = p.x + 44f;
             float nextX = p.x + p.width - 44f;
 
-            if (_page == Page.Gameplay || _page == Page.Atmosphere || _page == Page.Graphics || _page == Page.TimeWeather)
+            if (_page == Page.Gameplay || _page == Page.World || _page == Page.Graphics || _page == Page.TimeWeather || _page == Page.Rally)
             {
                 // Reset button sits above Back.
                 float resetY = navY - 12f;
@@ -57,17 +58,21 @@ namespace SebTweaks
                     {
                         ResetGameplayDefaults();
                     }
-                    else if (_page == Page.Atmosphere)
+                    else if (_page == Page.World)
                     {
-                        ResetAtmosphereDefaults();
+                        ResetWorldDefaults();
                     }
                     else if (_page == Page.Graphics)
                     {
                         Plugin.ResetGraphicsDefaults();
                     }
-                    else
+                    else if (_page == Page.TimeWeather)
                     {
                         ResetTimeWeatherDefaults();
+                    }
+                    else
+                    {
+                        ResetRallyDefaults();
                     }
 
                     MouseYLock = 0f;
@@ -76,7 +81,7 @@ namespace SebTweaks
 
             if (Util.SimpleButtonRaw("Prev", prevX, navY))
             {
-                int pageCount = (int)Page.Cheats + 1;
+                int pageCount = (int)Page.Rally + 1;
                 _page = (Page)(((int)_page + pageCount - 1) % pageCount);
             }
             if (Util.SimpleButtonRaw("Back", cx, navY))
@@ -86,13 +91,13 @@ namespace SebTweaks
             }
             if (Util.SimpleButtonRaw("Next", nextX, navY))
             {
-                int pageCount = (int)Page.Cheats + 1;
+                int pageCount = (int)Page.Rally + 1;
                 _page = (Page)(((int)_page + 1) % pageCount);
             }
 
             // Page indicator.
             int pageNum = (int)_page + 1;
-            int pageTotal = (int)Page.Cheats + 1;
+            int pageTotal = (int)Page.Rally + 1;
             Util.Label(pageNum + "/" + pageTotal, p.x + p.width - 18f, p.y + 10f);
 
             Util.Label("Tweaks", cx, y);
@@ -105,9 +110,9 @@ namespace SebTweaks
                 DrawGameplay(p, center, ref y, line);
                 return;
             }
-            if (_page == Page.Atmosphere)
+            if (_page == Page.World)
             {
-                DrawAtmosphere(p, center, ref y, line);
+                DrawWorld(p, center, ref y, line);
                 return;
             }
             if (_page == Page.TimeWeather)
@@ -122,7 +127,13 @@ namespace SebTweaks
                 return;
             }
 
-            DrawCheats(p, center, ref y, line);
+            if (_page == Page.Cheats)
+            {
+                DrawCheats(p, center, ref y, line);
+                return;
+            }
+
+            DrawRally(p, center, ref y, line);
         }
 
         private static void ResetGameplayDefaults()
@@ -137,9 +148,8 @@ namespace SebTweaks
 
         private static void ResetWorldDefaults()
         {
-            // Kept for binary compatibility; no longer used by the menu.
+            Plugin.SetFloat(Plugin.PrefKeyGravityMult, 1f);
             ResetAtmosphereDefaults();
-            ResetTimeWeatherDefaults();
         }
 
         private static void ResetAtmosphereDefaults()
@@ -159,15 +169,22 @@ namespace SebTweaks
             Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f);
         }
 
+        private static void ResetRallyDefaults()
+        {
+            Plugin.SetInt(Plugin.PrefKeyRallyManualTransmission, 0);
+            Plugin.SetInt(Plugin.PrefKeyRallyDebugInfo, 0);
+        }
+
         private static string PageLabel(Page p)
         {
             return p switch
             {
                 Page.Gameplay => "Gameplay",
-                Page.Atmosphere => "Atmosphere",
+                Page.World => "World",
                 Page.Graphics => "Graphics",
                 Page.TimeWeather => "Time & Weather",
                 Page.Cheats => "Cheats",
+                Page.Rally => "Rally",
                 _ => ""
             };
         }
@@ -297,7 +314,7 @@ namespace SebTweaks
             y += line;
         }
 
-        private void DrawAtmosphere(Rect p, float center, ref float y, float line)
+        private void DrawWorld(Rect p, float center, ref float y, float line)
         {
             // These systems typically don't exist on the main menu scene.
             // The settings still save, and will apply when you're in-game.
@@ -307,6 +324,18 @@ namespace SebTweaks
                 Util.Label("(world settings apply in-game)", cx, y);
                 y += line + 2f;
             }
+
+            float gravity = Mathf.Clamp(Plugin.GetFloat(Plugin.PrefKeyGravityMult, 1f), 0f, 5f);
+            float gravity01 = Mathf.InverseLerp(0f, 5f, gravity);
+            Util.ValueLabel($"x{gravity:0.00}", p.x + p.width - 12f, y);
+            float? newGravity01 = Util.Slider("Gravity", gravity01, center, y, ref MouseYLock);
+            if (newGravity01.HasValue)
+            {
+                Plugin.SetFloat(Plugin.PrefKeyGravityMult, Mathf.Lerp(0f, 5f, newGravity01.Value));
+            }
+            y += line;
+
+            y += 2f;
 
             // Fog
             float fog = Plugin.GetFloat(Plugin.PrefKeyFogMult, 1f);
@@ -330,33 +359,34 @@ namespace SebTweaks
             }
             y += line;
 
-            float r = Plugin.GetFloat(Plugin.PrefKeyWorldLightColorR, 1f);
-            float r01 = Mathf.InverseLerp(0f, 2f, r);
-            Util.ValueLabel($"x{r:0.00}", p.x + p.width - 12f, y);
-            float? newR01 = Util.Slider("Light Red", r01, center, y, ref MouseYLock);
-            if (newR01.HasValue)
+            DrawMultSlider(p, center, ref y, line, "Light R", Plugin.PrefKeyWorldLightColorR, 0f, 2f);
+            DrawMultSlider(p, center, ref y, line, "Light G", Plugin.PrefKeyWorldLightColorG, 0f, 2f);
+            DrawMultSlider(p, center, ref y, line, "Light B", Plugin.PrefKeyWorldLightColorB, 0f, 2f);
+        }
+
+        private void DrawRally(Rect p, float center, ref float y, float line)
+        {
+            float cx = p.x + p.width / 2f;
+
+            if (Object.FindFirstObjectByType<sRallyDriving>() == null)
             {
-                Plugin.SetFloat(Plugin.PrefKeyWorldLightColorR, Mathf.Lerp(0f, 2f, newR01.Value));
+                Util.Label("(rally settings apply in Rally)", cx, y);
+                y += line + 2f;
+            }
+
+            bool manual = Plugin.GetInt(Plugin.PrefKeyRallyManualTransmission, 0) == 1;
+            bool? newManual = Util.Toggle("Manual Trans.", manual, center, y);
+            if (newManual.HasValue)
+            {
+                Plugin.SetInt(Plugin.PrefKeyRallyManualTransmission, newManual.Value ? 1 : 0);
             }
             y += line;
 
-            float g = Plugin.GetFloat(Plugin.PrefKeyWorldLightColorG, 1f);
-            float g01 = Mathf.InverseLerp(0f, 2f, g);
-            Util.ValueLabel($"x{g:0.00}", p.x + p.width - 12f, y);
-            float? newG01 = Util.Slider("Light Green", g01, center, y, ref MouseYLock);
-            if (newG01.HasValue)
+            bool debug = Plugin.GetInt(Plugin.PrefKeyRallyDebugInfo, 0) == 1;
+            bool? newDebug = Util.Toggle("Debug Info", debug, center, y);
+            if (newDebug.HasValue)
             {
-                Plugin.SetFloat(Plugin.PrefKeyWorldLightColorG, Mathf.Lerp(0f, 2f, newG01.Value));
-            }
-            y += line;
-
-            float b = Plugin.GetFloat(Plugin.PrefKeyWorldLightColorB, 1f);
-            float b01 = Mathf.InverseLerp(0f, 2f, b);
-            Util.ValueLabel($"x{b:0.00}", p.x + p.width - 12f, y);
-            float? newB01 = Util.Slider("Light Blue", b01, center, y, ref MouseYLock);
-            if (newB01.HasValue)
-            {
-                Plugin.SetFloat(Plugin.PrefKeyWorldLightColorB, Mathf.Lerp(0f, 2f, newB01.Value));
+                Plugin.SetInt(Plugin.PrefKeyRallyDebugInfo, newDebug.Value ? 1 : 0);
             }
             y += line;
         }

@@ -1,3 +1,8 @@
+## 1.1.0
+- Rename Atmosphere page back to World and add Gravity multiplier.
+- Add Rally page with manual transmission and debug info toggles.
+- Fix Rally/freecam pixelation camera handoff to match SebUltrawide behavior.
+
 ## 1.0.4
 - Cheats: rework Refill layout with freeze column + percent labels.
 - Graphics: simplify VSync to On/Off (default On).
