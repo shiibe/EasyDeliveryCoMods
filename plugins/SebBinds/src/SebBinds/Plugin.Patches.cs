@@ -1,4 +1,5 @@
 using HarmonyLib;
+using System;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using UnityEngine.InputSystem;
@@ -57,22 +58,12 @@ namespace SebBinds
         {
             try
             {
-                if (!sEasyRallyToggle.active)
-                {
-                    return false;
-                }
-
-                if (sEasyRally.menuOpen)
-                {
-                    return true;
-                }
+                return sEasyRallyToggle.active && sEasyRally.menuOpen;
             }
             catch
             {
                 return false;
             }
-
-            return false;
         }
 
         private static void SInputManager_Update_Postfix(sInputManager __instance)
@@ -207,11 +198,6 @@ namespace SebBinds
                 return;
             }
 
-            if (IsRallyMenuActive())
-            {
-                return;
-            }
-
             input.selectPressed = false;
             input.selectReleased = false;
             input.backPressed = false;
@@ -319,11 +305,18 @@ namespace SebBinds
                 return false;
             }
 
+            if (IsRallyMenuActive())
+            {
+                ApplyRallyMenuBinds(input, DownAny, wheelPluginPresent);
+                return;
+            }
+
             bool inWalkingMode = false;
             if (wheelPluginPresent)
             {
                 WheelInterop.TryGetIsInWalkingMode(out inWalkingMode);
             }
+            bool wheelDrivingInputActive = wheelPluginPresent && WheelInterop.TryGetWheelLastInput(out _, out _);
 
             if (PauseSystem.paused &&
                 !BindsMenuWindow.BindingCaptureActive &&
@@ -449,7 +442,7 @@ namespace SebBinds
                 }
             }
 
-            if (!PauseSystem.paused)
+            if (!PauseSystem.paused && !wheelDrivingInputActive)
             {
                 var axis = AxisBindingStore.GetAxisBinding(AxisAction.Throttle);
                 bool appliedAxis = false;
@@ -482,7 +475,7 @@ namespace SebBinds
                 }
             }
 
-            if (!PauseSystem.paused && !inWalkingMode)
+            if (!PauseSystem.paused && !inWalkingMode && !wheelDrivingInputActive)
             {
                 var axis = AxisBindingStore.GetAxisBinding(AxisAction.Brake);
                 bool appliedAxis = false;
@@ -509,7 +502,7 @@ namespace SebBinds
                 }
             }
 
-            if (!PauseSystem.paused)
+            if (!PauseSystem.paused && !wheelDrivingInputActive)
             {
                 var steerAxis = AxisBindingStore.GetAxisBinding(AxisAction.Steering);
                 bool appliedAxis = false;
@@ -690,6 +683,7 @@ namespace SebBinds
 
             if (IsRallyMenuActive())
             {
+                SuppressRallyDrivingInput(__instance);
                 return;
             }
 
@@ -742,6 +736,127 @@ namespace SebBinds
             }
 
             rally.clutchInput = Mathf.MoveTowards(rally.clutchInput, clutch, Time.fixedDeltaTime * rally.clutchSensitivity);
+        }
+
+        private static void SuppressRallyDrivingInput(sRallyDriving rally)
+        {
+            rally.throttleInputRaw = 0f;
+            rally.throttleInput = 0f;
+            rally.brakingInput = 0f;
+            rally.steeringInputRaw = 0f;
+            rally.steeringInput = 0f;
+            rally.handbreakInput = false;
+            rally.shiftUpInput = false;
+            rally.shiftDownInput = false;
+            rally.clutchInput = 0f;
+        }
+
+        private static void ApplyRallyMenuBinds(sInputManager input, Func<BindAction, bool> downAny, bool wheelPluginPresent)
+        {
+            input.selectPressed = false;
+            input.selectReleased = false;
+            input.backPressed = false;
+            input.backReleased = false;
+            input.pausePressed = false;
+            input.mapPressed = false;
+            input.inventoryPressed = false;
+            input.inventoryReleased = false;
+            input.inventoryHeld = false;
+            input.cameraPressed = false;
+            input.resetPressed = false;
+            input.resetHeld = false;
+            input.headlightsPressed = false;
+            input.hornPressed = false;
+            input.radioPressed = false;
+            input.shiftUp = false;
+            input.shiftDown = false;
+            input.freeCamTogglePressed = false;
+            input.freeCamSelectPressed = false;
+            input.radioInput = Vector2.zero;
+            input.mouseInput = Vector2.zero;
+            input.driveInput = Vector2.zero;
+            input.playerInput = Vector2.zero;
+            input.cameraLook = Vector2.zero;
+            input.brakePressed = false;
+
+            if (input.btn == null || input.pbtn == null || input.btnp == null)
+            {
+                return;
+            }
+
+            bool prevUp = input.pbtn.up;
+            bool prevDown = input.pbtn.down;
+            bool prevLeft = input.pbtn.left;
+            bool prevRight = input.pbtn.right;
+            bool prevA = input.pbtn.a;
+            bool prevB = input.pbtn.b;
+            bool prevStart = input.pbtn.start;
+            bool prevSelect = input.pbtn.select;
+
+            if (!input.menuInput)
+            {
+                prevUp = input.btn.up;
+                prevDown = input.btn.down;
+                prevLeft = input.btn.left;
+                prevRight = input.btn.right;
+                prevA = input.btn.a;
+                prevB = input.btn.b;
+                prevStart = input.btn.start;
+                prevSelect = input.btn.select;
+            }
+
+            bool up = input.menuInput && input.btn.up;
+            bool down = input.menuInput && input.btn.down;
+            bool left = input.menuInput && input.btn.left;
+            bool right = input.menuInput && input.btn.right;
+            bool a = input.menuInput && input.btn.a;
+            bool b = input.menuInput && input.btn.b;
+            bool start = input.menuInput && input.btn.start;
+            bool select = input.menuInput && input.btn.select;
+
+            left |= downAny(BindAction.RadioScanLeft) || downAny(BindAction.MoveLeft) || downAny(BindAction.SteerLeft);
+            right |= downAny(BindAction.RadioScanRight) || downAny(BindAction.MoveRight) || downAny(BindAction.SteerRight);
+            up |= downAny(BindAction.RadioScanToggle) || downAny(BindAction.MoveUp);
+            down |= downAny(BindAction.RadioPower) || downAny(BindAction.MoveDown);
+            a |= downAny(BindAction.InteractOk) || downAny(BindAction.FreeCamSelect);
+            b |= downAny(BindAction.Back);
+            start |= downAny(BindAction.Pause);
+            select |= downAny(BindAction.Jobs) || downAny(BindAction.Map) || downAny(BindAction.MapItems);
+
+            if (wheelPluginPresent && WheelInterop.TryGetPov8Vector(out var pov))
+            {
+                left |= pov.x < -0.25f;
+                right |= pov.x > 0.25f;
+                up |= pov.y > 0.25f;
+                down |= pov.y < -0.25f;
+            }
+
+            input.btn.up = up;
+            input.btn.down = down;
+            input.btn.left = left;
+            input.btn.right = right;
+            input.btn.a = a;
+            input.btn.b = b;
+            input.btn.start = start;
+            input.btn.select = select;
+
+            input.pbtn.up = prevUp;
+            input.pbtn.down = prevDown;
+            input.pbtn.left = prevLeft;
+            input.pbtn.right = prevRight;
+            input.pbtn.a = prevA;
+            input.pbtn.b = prevB;
+            input.pbtn.start = prevStart;
+            input.pbtn.select = prevSelect;
+
+            input.btnp.up = up && !prevUp;
+            input.btnp.down = down && !prevDown;
+            input.btnp.left = left && !prevLeft;
+            input.btnp.right = right && !prevRight;
+            input.btnp.a = a && !prevA;
+            input.btnp.b = b && !prevB;
+            input.btnp.start = start && !prevStart;
+            input.btnp.select = select && !prevSelect;
         }
 
         private static BindingLayer GetActiveLayer(BindingScheme scheme)

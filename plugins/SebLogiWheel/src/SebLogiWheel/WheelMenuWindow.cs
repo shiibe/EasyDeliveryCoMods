@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using UnityEngine;
 
 namespace SebLogiWheel
@@ -406,6 +407,9 @@ namespace SebLogiWheel
             _util.Label(axes2, p.x + p.width / 2f, y);
             y += line - 2f;
             _util.Label(axes3, p.x + p.width / 2f, y);
+            y += line - 2f;
+
+            _util.Label(GetHeldButtonsLabel(state), p.x + p.width / 2f, y);
             y += line;
 
             _util.Label($"steer={steerNorm0:+0.00;-0.00;0.00} thr={thrNorm0:0.00}", p.x + p.width / 2f, y);
@@ -469,6 +473,8 @@ namespace SebLogiWheel
             _util.Label(axes2, p.x + p.width / 2f, y);
             y += line - 2f;
             _util.Label(axes3, p.x + p.width / 2f, y);
+            y += line - 2f;
+            _util.Label(GetHeldButtonsLabel(state), p.x + p.width / 2f, y);
             y += line + sectionGap;
 
             // axis selection
@@ -572,6 +578,49 @@ namespace SebLogiWheel
                 next = 0;
             }
             return (Plugin.AxisId)next;
+        }
+
+        private static string GetHeldButtonsLabel(LogitechGSDK.DIJOYSTATE2ENGINES state)
+        {
+            if (state.rgbButtons == null || state.rgbButtons.Length == 0)
+            {
+                return "Buttons held: none";
+            }
+
+            StringBuilder sb = new StringBuilder("Buttons held: ");
+            int shown = 0;
+            int total = 0;
+            for (int i = 0; i < state.rgbButtons.Length; i++)
+            {
+                if (state.rgbButtons[i] < 128)
+                {
+                    continue;
+                }
+
+                total++;
+                if (shown >= 8)
+                {
+                    continue;
+                }
+
+                if (shown > 0)
+                {
+                    sb.Append(", ");
+                }
+                sb.Append(i);
+                shown++;
+            }
+
+            if (total == 0)
+            {
+                return "Buttons held: none";
+            }
+            if (total > shown)
+            {
+                sb.Append(" +");
+                sb.Append(total - shown);
+            }
+            return sb.ToString();
         }
 
         private static string GetCalPrompt(CalStep step)

@@ -951,32 +951,29 @@ namespace SebTruck
 
         internal static bool GetRallyHudShowSpeed()
         {
-            return PlayerPrefs.GetInt(PrefKeyRallyHudShowSpeed, 0) != 0;
+            return true;
         }
 
         internal static void SetRallyHudShowSpeed(bool enabled)
         {
-            PlayerPrefs.SetInt(PrefKeyRallyHudShowSpeed, enabled ? 1 : 0);
         }
 
         internal static bool GetRallyHudShowTach()
         {
-            return PlayerPrefs.GetInt(PrefKeyRallyHudShowTach, 1) != 0;
+            return true;
         }
 
         internal static void SetRallyHudShowTach(bool enabled)
         {
-            PlayerPrefs.SetInt(PrefKeyRallyHudShowTach, enabled ? 1 : 0);
         }
 
         internal static bool GetRallyHudShowGear()
         {
-            return PlayerPrefs.GetInt(PrefKeyRallyHudShowGear, 1) != 0;
+            return true;
         }
 
         internal static void SetRallyHudShowGear(bool enabled)
         {
-            PlayerPrefs.SetInt(PrefKeyRallyHudShowGear, enabled ? 1 : 0);
         }
 
         internal static SpeedUnit GetRallyHudSpeedUnit()
@@ -1241,9 +1238,6 @@ namespace SebTruck
             SetHudShowTach(true);
             SetHudShowGear(true);
             SetRallyHudSpeedUnit(SpeedUnit.Kmh);
-            SetRallyHudShowSpeed(false);
-            SetRallyHudShowTach(true);
-            SetRallyHudShowGear(true);
             SetHudReadoutAnchor(HudReadoutAnchor.BottomLeft);
             PlayerPrefs.DeleteKey(PrefKeyHudSpeedAnchor);
             PlayerPrefs.DeleteKey(PrefKeyHudTachAnchor);

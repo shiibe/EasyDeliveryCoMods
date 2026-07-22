@@ -1,3 +1,9 @@
+## 1.1.2
+- Always show shared Rally and Rally Gears binding pages for Controller, Keyboard, and Wheel schemes.
+- Keep Rally shift/direct-gear actions owned by SebBinds so Rally mode and SebTruck Story manual mode can share them.
+- Route custom binds to Rally title-screen menu controls while suppressing gameplay driving input.
+- Avoid overriding active SebLogiWheel steering/throttle/brake input with controller axis bindings.
+
 ## 1.1.1
 - Add keyboard defaults for SebTruck ignition and turn signal binds.
 - Route Rally manual shift and direct gear binds through the game's manual-mode input path.

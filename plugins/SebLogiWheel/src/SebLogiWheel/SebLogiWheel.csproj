@@ -81,6 +81,7 @@
         <PropertyGroup>
             <LogiWrapperDll>LogitechSteeringWheelEnginesWrapper.dll</LogiWrapperDll>
             <LogiWrapperSource>$(LogitechSdkDir)\Lib\GameEnginesWrapper\x64\$(LogiWrapperDll)</LogiWrapperSource>
+            <LogiWrapperProfileCore>$(ProfileDir)\BepInEx\core\$(LogiWrapperDll)</LogiWrapperProfileCore>
         </PropertyGroup>
 
         <Copy
@@ -100,6 +101,18 @@
                 DestinationFolder="$(ProfileDir)\BepInEx\core"
                 SkipUnchangedFiles="true"
                 Condition="Exists('$(LogiWrapperSource)') AND Exists('$(ProfileDir)\BepInEx\core')" />
+
+        <Copy
+                SourceFiles="$(LogiWrapperProfileCore)"
+                DestinationFolder="$(TargetDir)"
+                SkipUnchangedFiles="true"
+                Condition="!Exists('$(LogiWrapperSource)') AND Exists('$(LogiWrapperProfileCore)')" />
+
+        <Copy
+                SourceFiles="$(LogiWrapperProfileCore)"
+                DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebLogiWheel"
+                SkipUnchangedFiles="true"
+                Condition="!Exists('$(LogiWrapperSource)') AND Exists('$(LogiWrapperProfileCore)')" />
     </Target>
 
 </Project>

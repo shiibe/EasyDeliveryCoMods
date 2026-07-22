@@ -414,8 +414,6 @@ namespace SebBinds
 
         private List<PageDef> GetPagesForScheme()
         {
-            bool truckMenuInstalled = SebBindsApi.HasExtraPage("sebtruck");
-
             if (_scheme == BindingScheme.Controller)
             {
                 var pages = new List<PageDef>
@@ -466,19 +464,16 @@ namespace SebBinds
                     }
                 };
 
-                if (!truckMenuInstalled)
+                pages.Insert(3, new PageDef
                 {
-                    pages.Insert(3, new PageDef
-                    {
-                        Title = "Rally",
-                        Actions = RallyActions
-                    });
-                    pages.Insert(4, new PageDef
-                    {
-                        Title = "Rally (cont.)",
-                        Actions = RallyGearActions
-                    });
-                }
+                    Title = "Rally",
+                    Actions = RallyActions
+                });
+                pages.Insert(4, new PageDef
+                {
+                    Title = "Rally Gears",
+                    Actions = RallyGearActions
+                });
 
                 foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
                 {
@@ -542,19 +537,16 @@ namespace SebBinds
                     }
                 };
 
-                if (!truckMenuInstalled)
+                pages.Insert(3, new PageDef
                 {
-                    pages.Insert(3, new PageDef
-                    {
-                        Title = "Rally",
-                        Actions = RallyActions
-                    });
-                    pages.Insert(4, new PageDef
-                    {
-                        Title = "Rally (cont.)",
-                        Actions = RallyGearActions
-                    });
-                }
+                    Title = "Rally",
+                    Actions = RallyActions
+                });
+                pages.Insert(4, new PageDef
+                {
+                    Title = "Rally Gears",
+                    Actions = RallyGearActions
+                });
 
                 foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
                 {
@@ -641,19 +633,16 @@ namespace SebBinds
                     }
                 };
 
-                if (!truckMenuInstalled)
+                pages.Insert(3, new PageDef
                 {
-                    pages.Insert(3, new PageDef
-                    {
-                        Title = "Rally",
-                        Actions = RallyActions
-                    });
-                    pages.Insert(4, new PageDef
-                    {
-                        Title = "Rally (cont.)",
-                        Actions = RallyGearActions
-                    });
-                }
+                    Title = "Rally",
+                    Actions = RallyActions
+                });
+                pages.Insert(4, new PageDef
+                {
+                    Title = "Rally Gears",
+                    Actions = RallyGearActions
+                });
 
                 foreach (var extra in SebBindsApi.GetExtraPagesSnapshot())
                 {

@@ -25,6 +25,7 @@ namespace SebBinds
         private static MethodInfo _hasCalibration;
         private static MethodInfo _requestOpenCalibrationWizard;
         private static MethodInfo _requestOpenAxisMapping;
+        private static MethodInfo _tryGetWheelLastInput;
         private static FieldInfo _isInWalkingModeField;
 
         // Cached wheel state accessors (avoid reflection lookups/allocations in hot paths).
@@ -199,6 +200,7 @@ namespace SebBinds
             _hasCalibration = t.GetMethod("HasCalibration", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
             _requestOpenCalibrationWizard = t.GetMethod("RequestOpenCalibrationWizard", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
             _requestOpenAxisMapping = t.GetMethod("RequestOpenAxisMapping", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+            _tryGetWheelLastInput = t.GetMethod("TryGetWheelLastInput", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
             // Private/internal helpers for gating input while wheel UI is active.
             _isWheelMenuActive = t.GetMethod("IsWheelMenuActive", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
@@ -627,6 +629,43 @@ namespace SebBinds
             }
 
             return false;
+        }
+
+        internal static bool TryGetWheelLastInput(out float steer, out float accel)
+        {
+            steer = 0f;
+            accel = 0f;
+            if (!IsWheelPluginPresent())
+            {
+                return false;
+            }
+            if (!EnsureWheelReflection() || _tryGetWheelLastInput == null)
+            {
+                return false;
+            }
+
+            object[] args = { 0f, 0f };
+            try
+            {
+                bool ok = (bool)_tryGetWheelLastInput.Invoke(null, args);
+                if (!ok)
+                {
+                    return false;
+                }
+                if (args[0] is float s)
+                {
+                    steer = s;
+                }
+                if (args[1] is float a)
+                {
+                    accel = a;
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

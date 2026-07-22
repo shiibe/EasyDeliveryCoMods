@@ -17,7 +17,7 @@ namespace SebTruck
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtruck";
         public const string PluginName = "SebTruck";
-        public const string PluginVersion = "1.1.0";
+        public const string PluginVersion = "1.1.1";
 
         internal static ManualLogSource Log;
 
@@ -68,9 +68,7 @@ namespace SebTruck
                     SebBinds.BindAction.IndicatorLeft,
                     SebBinds.BindAction.IndicatorRight,
                     SebBinds.BindAction.IndicatorHazards,
-                    SebBinds.BindAction.ToggleGearbox,
-                    SebBinds.BindAction.ShiftUp,
-                    SebBinds.BindAction.ShiftDown
+                    SebBinds.BindAction.ToggleGearbox
                 );
             }
             catch

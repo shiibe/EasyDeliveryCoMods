@@ -27,7 +27,7 @@
 SebTruck adds driving upgrades like manual transmission, Rally transmission settings, ignition controls, turn signals, and compact HUD readouts while you drive for just a bit more realism.
 
 ## Features
-- Story mode manual transmission with shift up/down binds and a toggle for switching between auto/manual on the fly.
+- Story mode manual transmission with shared Rally shift/direct-gear binds, including H-shifter style `R`, `N`, and `Gear 1-6` inputs.
 - Rally mode Auto/Manual transmission setting that unlocks the game's vanilla manual shifting without entering the cheat manually.
 - Engine overrev sound when nearing the redline of the tachometer.
 - Compact HUD elements for speed, tachometer, and gear display that can be toggled on/off and moved.
@@ -58,8 +58,8 @@ SebTruck adds driving upgrades like manual transmission, Rally transmission sett
 ## Installation
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
-- `shiibe-SebCore-1.0.1`
-- `shiibe-SebBinds-1.1.1`
+- `shiibe-SebCore-1.0.2`
+- `shiibe-SebBinds-1.1.2`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/
@@ -67,7 +67,7 @@ Install
 
 ## In-game menu
 - Open `mods.exe` (SebCore) then launch `Truck`
-- Binds: open `Binds` then use the `Truck` binds page
+- Binds: open `Binds`, then use the `Truck`, `Rally`, and `Rally Gears` bind pages
 
 ## Binds
 Truck page:
@@ -76,9 +76,12 @@ Truck page:
 - `R Indicator`
 - `4Way Indicator`
 - `Toggle Gearbox`
-- `Shift Up` / `Shift Down`
-- Rally gear binds from SebBinds (`Gear 1-6`, `Reverse`, `Neutral`, `Clutch`) are supported when Rally manual mode is active.
 - Keyboard defaults: `F1` ignition, `F2` left indicator, `F3` right indicator, `F4` hazards.
+
+Shared Rally pages from SebBinds:
+- `Clutch`
+- `Shift Up` / `Shift Down`
+- `Reverse`, `Neutral`, and `Gear 1-6` direct gear binds for Rally manual mode and SebTruck Story manual mode.
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.sebtruck.cfg`
@@ -87,11 +90,6 @@ Truck page:
 - `Ignition.sfx_on_path` (string): Ignition ON sound file name inside `sfx/`
 - `Ignition.sfx_volume` (float): Ignition sound volume (0..1)
 
-## Future plans
-- Story and Rally handling pages
-- Custom truck sound effect overrides
-- Port Rally HUD elements back to Story mode
-
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.0`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.1`

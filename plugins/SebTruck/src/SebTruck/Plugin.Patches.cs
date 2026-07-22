@@ -2872,6 +2872,31 @@ namespace SebTruck
                     }
                     ShiftManualGear(-1);
                 }
+
+                if (!IsRallyModeActive())
+                {
+                    void SetDirectGearIfPressed(BindAction action, int gear)
+                    {
+                        if (!PressedAny(action))
+                        {
+                            return;
+                        }
+                        if (!GetManualTransmissionEnabled())
+                        {
+                            SetManualTransmissionEnabled(true);
+                        }
+                        SetManualGearDirect(gear);
+                    }
+
+                    SetDirectGearIfPressed(BindAction.GearReverse, -1);
+                    SetDirectGearIfPressed(BindAction.GearNeutral, 0);
+                    SetDirectGearIfPressed(BindAction.Gear1, 1);
+                    SetDirectGearIfPressed(BindAction.Gear2, 2);
+                    SetDirectGearIfPressed(BindAction.Gear3, 3);
+                    SetDirectGearIfPressed(BindAction.Gear4, 4);
+                    SetDirectGearIfPressed(BindAction.Gear5, 5);
+                    SetDirectGearIfPressed(BindAction.Gear6, 6);
+                }
             }
 
 

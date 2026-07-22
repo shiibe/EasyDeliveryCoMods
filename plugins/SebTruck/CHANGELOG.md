@@ -1,3 +1,8 @@
+## 1.1.1
+- Use SebBinds' shared Rally shift/direct-gear bindings for Story manual transmission controls.
+- Limit SebTruck's binding page to ignition, indicators, and gearbox toggle actions.
+- Always show the Rally HUD in Rally mode and remove Rally HUD visibility toggles.
+
 ## 1.1.0
 - Update mod to work with new 2.0 Rally update.
 - Fix ignition and turn signal behavior after the 2.0 game update.

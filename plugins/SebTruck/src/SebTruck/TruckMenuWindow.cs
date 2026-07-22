@@ -295,19 +295,7 @@ namespace SebTruck
                     }
                     y += line;
 
-                    bool showSpeed = Plugin.GetRallyHudShowSpeed();
-                    bool? newShowSpeed = _util.Toggle("Speedomtr", showSpeed, center, y);
-                    if (newShowSpeed.HasValue) Plugin.SetRallyHudShowSpeed(newShowSpeed.Value);
-                    y += line;
-
-                    bool showTach = Plugin.GetRallyHudShowTach();
-                    bool? newShowTach = _util.Toggle("Tachomtr", showTach, center, y);
-                    if (newShowTach.HasValue) Plugin.SetRallyHudShowTach(newShowTach.Value);
-                    y += line;
-
-                    bool showGear = Plugin.GetRallyHudShowGear();
-                    bool? newShowGear = _util.Toggle("Gear Ind", showGear, center, y);
-                    if (newShowGear.HasValue) Plugin.SetRallyHudShowGear(newShowGear.Value);
+                    _util.Label("Rally HUD always shown", cx, y);
                     y += line;
                     return;
                 }
