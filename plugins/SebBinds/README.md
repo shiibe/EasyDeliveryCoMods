@@ -28,6 +28,7 @@ SebBinds provides an extensive input rebinding system for Easy Delivery Co. It a
 - Works with the new Rally game mode introduced in the 2.0 update.
 - Scheme picker: `Controller` / `Keyboard` / `Wheel` (Wheel appears when SebLogiWheel is installed)
 - Dedicated `Axes` page for movement/camera/vehicle axes
+- Shared Rally `Shift Mode`: `Toggle` for press-to-shift/direct gear binds, or `Hold` for H-shifters where held gear buttons control the active gear and no held gear means Neutral
 - Modifier layer (`Modif.`): bind extra inputs by holding the modifier key (e.g. hold a bumper to use face buttons as extra inputs)
 - Other mods can add pages via `SebBindsApi.RegisterActionsPage(...)`
 
@@ -63,6 +64,7 @@ Install
 - Open `mods.exe` (SebCore) then launch `Binds`
 - Pick a scheme and bind actions
 - Wheel scheme only listens to the Logitech wheel device (and requires calibration first)
+- For H-shifters, bind `Reverse`, `Neutral`, and `Gear 1-6` on the `Rally Gears` page, then set `Shift Mode` to `Hold` on the `Rally` page
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.sebbinds.cfg`
@@ -70,4 +72,4 @@ Install
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.0`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.3`

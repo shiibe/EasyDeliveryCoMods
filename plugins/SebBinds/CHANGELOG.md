@@ -1,3 +1,7 @@
+## 1.1.3
+- Add `Shift Mode: Hold` for H-shifters in Rally manual mode and SebTruck Story manual mode.
+- `Shift Mode: Toggle` keeps the previous press-to-shift/direct-gear behavior.
+
 ## 1.1.2
 - Always show shared Rally and Rally Gears binding pages for Controller, Keyboard, and Wheel schemes.
 - Keep Rally shift/direct-gear actions owned by SebBinds so Rally mode and SebTruck Story manual mode can share them.

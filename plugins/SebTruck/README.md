@@ -59,7 +59,7 @@ SebTruck adds driving upgrades like manual transmission, Rally transmission sett
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
 - `shiibe-SebCore-1.0.2`
-- `shiibe-SebBinds-1.1.2`
+- `shiibe-SebBinds-1.1.3`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/
@@ -82,6 +82,7 @@ Shared Rally pages from SebBinds:
 - `Clutch`
 - `Shift Up` / `Shift Down`
 - `Reverse`, `Neutral`, and `Gear 1-6` direct gear binds for Rally manual mode and SebTruck Story manual mode.
+- `Shift Mode: Hold` makes held H-shifter gear buttons control the active gear; no held gear means Neutral. `Toggle` keeps normal press-to-shift/direct-gear behavior.
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.sebtruck.cfg`
@@ -92,4 +93,4 @@ Shared Rally pages from SebBinds:
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.1`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.2`

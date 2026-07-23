@@ -2854,8 +2854,10 @@ namespace SebTruck
                     }
                 }
 
+                bool holdShiftMode = SebBinds.SebBindsApi.GetShiftMode() == SebBinds.ShiftMode.Hold;
+
                 // Shift
-                if (!IsRallyModeActive() && PressedAny(BindAction.ShiftUp))
+                if (!holdShiftMode && !IsRallyModeActive() && PressedAny(BindAction.ShiftUp))
                 {
                     if (!GetManualTransmissionEnabled())
                     {
@@ -2864,7 +2866,7 @@ namespace SebTruck
                     ShiftManualGear(+1);
                 }
 
-                if (!IsRallyModeActive() && PressedAny(BindAction.ShiftDown))
+                if (!holdShiftMode && !IsRallyModeActive() && PressedAny(BindAction.ShiftDown))
                 {
                     if (!GetManualTransmissionEnabled())
                     {
@@ -2875,6 +2877,20 @@ namespace SebTruck
 
                 if (!IsRallyModeActive())
                 {
+                    bool TryGetHeldDirectGear(out int gear)
+                    {
+                        if (DownAny(BindAction.GearReverse)) { gear = -1; return true; }
+                        if (DownAny(BindAction.GearNeutral)) { gear = 0; return true; }
+                        if (DownAny(BindAction.Gear1)) { gear = 1; return true; }
+                        if (DownAny(BindAction.Gear2)) { gear = 2; return true; }
+                        if (DownAny(BindAction.Gear3)) { gear = 3; return true; }
+                        if (DownAny(BindAction.Gear4)) { gear = 4; return true; }
+                        if (DownAny(BindAction.Gear5)) { gear = 5; return true; }
+                        if (DownAny(BindAction.Gear6)) { gear = 6; return true; }
+                        gear = 0;
+                        return false;
+                    }
+
                     void SetDirectGearIfPressed(BindAction action, int gear)
                     {
                         if (!PressedAny(action))
@@ -2888,14 +2904,29 @@ namespace SebTruck
                         SetManualGearDirect(gear);
                     }
 
-                    SetDirectGearIfPressed(BindAction.GearReverse, -1);
-                    SetDirectGearIfPressed(BindAction.GearNeutral, 0);
-                    SetDirectGearIfPressed(BindAction.Gear1, 1);
-                    SetDirectGearIfPressed(BindAction.Gear2, 2);
-                    SetDirectGearIfPressed(BindAction.Gear3, 3);
-                    SetDirectGearIfPressed(BindAction.Gear4, 4);
-                    SetDirectGearIfPressed(BindAction.Gear5, 5);
-                    SetDirectGearIfPressed(BindAction.Gear6, 6);
+                    if (holdShiftMode)
+                    {
+                        bool held = TryGetHeldDirectGear(out int gear);
+                        if (held && !GetManualTransmissionEnabled())
+                        {
+                            SetManualTransmissionEnabled(true);
+                        }
+                        if (held || GetManualTransmissionEnabled())
+                        {
+                            SetManualGearDirect(held ? gear : 0);
+                        }
+                    }
+                    else
+                    {
+                        SetDirectGearIfPressed(BindAction.GearReverse, -1);
+                        SetDirectGearIfPressed(BindAction.GearNeutral, 0);
+                        SetDirectGearIfPressed(BindAction.Gear1, 1);
+                        SetDirectGearIfPressed(BindAction.Gear2, 2);
+                        SetDirectGearIfPressed(BindAction.Gear3, 3);
+                        SetDirectGearIfPressed(BindAction.Gear4, 4);
+                        SetDirectGearIfPressed(BindAction.Gear5, 5);
+                        SetDirectGearIfPressed(BindAction.Gear6, 6);
+                    }
                 }
             }
 

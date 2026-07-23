@@ -1,3 +1,7 @@
+## 1.1.2
+- Support SebBinds' `Shift Mode: Hold` for H-shifter-style Story manual shifting.
+- Add the shared `Shift Mode` selector to SebTruck's Handling page.
+
 ## 1.1.1
 - Use SebBinds' shared Rally shift/direct-gear bindings for Story manual transmission controls.
 - Limit SebTruck's binding page to ignition, indicators, and gearbox toggle actions.

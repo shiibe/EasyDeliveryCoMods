@@ -335,7 +335,7 @@ namespace SebBinds
             }
             else
             {
-                DrawBindingsButtonsPage(p, center, ref y, line, page.Actions);
+                DrawBindingsButtonsPage(p, center, ref y, line, page.Title, page.Actions);
             }
         }
 
@@ -656,7 +656,7 @@ namespace SebBinds
             }
         }
 
-        private void DrawBindingsButtonsPage(Rect p, float center, ref float y, float line, BindAction[] actions)
+        private void DrawBindingsButtonsPage(Rect p, float center, ref float y, float line, string title, BindAction[] actions)
         {
             float cx = p.x + p.width / 2f;
 
@@ -672,6 +672,16 @@ namespace SebBinds
                 return;
             }
             y += line;
+
+            if (string.Equals(title, "Rally", StringComparison.OrdinalIgnoreCase))
+            {
+                var shiftMode = SebBindsApi.GetShiftMode();
+                if (_util.CycleButtonRaw("Shift Mode", SebBindsApi.GetShiftModeLabel(shiftMode), center, y))
+                {
+                    SebBindsApi.SetShiftMode(SebBindsApi.NextShiftMode(shiftMode));
+                }
+                y += line;
+            }
 
             y += 3f;
             if (actions != null && actions.Length > 0)

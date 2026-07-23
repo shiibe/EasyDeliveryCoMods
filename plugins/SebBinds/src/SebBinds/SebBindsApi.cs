@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SebBinds
 {
@@ -14,6 +15,7 @@ namespace SebBinds
 
         private static readonly object Sync = new object();
         private static readonly List<Page> ExtraPages = new List<Page>();
+        private const string PrefKeyShiftMode = "SebBinds_ShiftMode";
 
         private static readonly List<IAxisProvider> AxisProviders = new List<IAxisProvider>();
 
@@ -43,6 +45,26 @@ namespace SebBinds
                 }
                 ExtraPages.Add(page);
             }
+        }
+
+        public static ShiftMode GetShiftMode()
+        {
+            return (ShiftMode)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyShiftMode, (int)ShiftMode.Toggle), 0, 1);
+        }
+
+        public static void SetShiftMode(ShiftMode mode)
+        {
+            PlayerPrefs.SetInt(PrefKeyShiftMode, (int)mode);
+        }
+
+        public static ShiftMode NextShiftMode(ShiftMode mode)
+        {
+            return mode == ShiftMode.Toggle ? ShiftMode.Hold : ShiftMode.Toggle;
+        }
+
+        public static string GetShiftModeLabel(ShiftMode mode)
+        {
+            return mode == ShiftMode.Hold ? "Hold" : "Toggle";
         }
 
         public static void RegisterAxisProvider(IAxisProvider provider)

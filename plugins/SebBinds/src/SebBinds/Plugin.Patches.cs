@@ -697,14 +697,46 @@ namespace SebBinds
                 return;
             }
 
-            if (PressedAny(BindAction.GearReverse, schemes)) __instance.gearbox.ShiftTo(0);
-            if (PressedAny(BindAction.GearNeutral, schemes)) __instance.gearbox.ShiftTo(1);
-            if (PressedAny(BindAction.Gear1, schemes)) __instance.gearbox.ShiftTo(2);
-            if (PressedAny(BindAction.Gear2, schemes)) __instance.gearbox.ShiftTo(3);
-            if (PressedAny(BindAction.Gear3, schemes)) __instance.gearbox.ShiftTo(4);
-            if (PressedAny(BindAction.Gear4, schemes)) __instance.gearbox.ShiftTo(5);
-            if (PressedAny(BindAction.Gear5, schemes)) __instance.gearbox.ShiftTo(6);
-            if (PressedAny(BindAction.Gear6, schemes)) __instance.gearbox.ShiftTo(7);
+            if (SebBindsApi.GetShiftMode() == ShiftMode.Hold)
+            {
+                ShiftRallyDirectGear(__instance, GetHeldDirectGear(schemes));
+                return;
+            }
+
+            if (PressedAny(BindAction.GearReverse, schemes)) ShiftRallyDirectGear(__instance, -1);
+            if (PressedAny(BindAction.GearNeutral, schemes)) ShiftRallyDirectGear(__instance, 0);
+            if (PressedAny(BindAction.Gear1, schemes)) ShiftRallyDirectGear(__instance, 1);
+            if (PressedAny(BindAction.Gear2, schemes)) ShiftRallyDirectGear(__instance, 2);
+            if (PressedAny(BindAction.Gear3, schemes)) ShiftRallyDirectGear(__instance, 3);
+            if (PressedAny(BindAction.Gear4, schemes)) ShiftRallyDirectGear(__instance, 4);
+            if (PressedAny(BindAction.Gear5, schemes)) ShiftRallyDirectGear(__instance, 5);
+            if (PressedAny(BindAction.Gear6, schemes)) ShiftRallyDirectGear(__instance, 6);
+        }
+
+        private static int GetHeldDirectGear(BindingScheme[] schemes)
+        {
+            if (DownAny(BindAction.GearReverse, schemes)) return -1;
+            if (DownAny(BindAction.GearNeutral, schemes)) return 0;
+            if (DownAny(BindAction.Gear1, schemes)) return 1;
+            if (DownAny(BindAction.Gear2, schemes)) return 2;
+            if (DownAny(BindAction.Gear3, schemes)) return 3;
+            if (DownAny(BindAction.Gear4, schemes)) return 4;
+            if (DownAny(BindAction.Gear5, schemes)) return 5;
+            if (DownAny(BindAction.Gear6, schemes)) return 6;
+            return 0;
+        }
+
+        private static void ShiftRallyDirectGear(sRallyDriving rally, int displayGear)
+        {
+            if (rally == null || rally.gearbox == null)
+            {
+                return;
+            }
+            int gearboxGear = displayGear < 0 ? 0 : displayGear + 1;
+            if (rally.gearbox.currentGear != gearboxGear)
+            {
+                rally.gearbox.ShiftTo(gearboxGear);
+            }
         }
 
         private static void ApplyRallyClutch(sRallyDriving rally, BindingScheme[] schemes)

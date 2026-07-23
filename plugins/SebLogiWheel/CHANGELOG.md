@@ -1,3 +1,7 @@
+## 1.1.1
+- Document using SebBinds `Shift Mode: Hold` for H-shifters.
+- Update dependency to SebBinds 1.1.3.
+
 ## 1.1.0
 - Update dependency to SebBinds 1.1.2 for wheel-scheme Rally gear binds.
 - Add live held-button readout to axis mapping and calibration screens for H-shifter setup.

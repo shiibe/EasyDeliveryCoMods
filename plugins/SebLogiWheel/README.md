@@ -73,7 +73,7 @@ Wheel bindings live in `SebBinds` (Binds -> Wheel). Driving feature extensions (
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
 - `shiibe-SebCore-1.0.2`
-- `shiibe-SebBinds-1.1.2`
+- `shiibe-SebBinds-1.1.3`
 
 Force Feedback (FFB)
 - Install Logitech G HUB (or older Logitech Gaming Software) so the wheel drivers/components are present.
@@ -89,7 +89,7 @@ Quick start
 2. Open `mods.exe` (SebCore) then launch `Wheel`.
 3. Run calibration if needed.
 4. Open `Binds` -> `Wheel` and bind buttons/axes.
-5. For H-shifters, use the SebBinds `Rally Gears` page to bind `Reverse`, `Neutral`, and `Gear 1-6` to the shifter's live button positions.
+5. For H-shifters, use the SebBinds `Rally Gears` page to bind `Reverse`, `Neutral`, and `Gear 1-6` to the shifter's live button positions, then set `Shift Mode` to `Hold` on the `Rally` page.
 
 ## Configuration
 - Config file: `BepInEx/config/shibe.easydeliveryco.seblogiwheel.cfg`
@@ -105,6 +105,7 @@ Debug
 - Open `mods.exe` (SebCore) then launch `Wheel`.
 - Use this menu for wheel-specific setup (calibration, axis mapping, FFB tuning).
 - The Axis Mapping and Calibration screens show `Buttons held`, which is useful for finding each H-shifter gear position before binding it in SebBinds.
+- H-shifter gear holding is configured in SebBinds via `Shift Mode: Hold`.
 
 ## Troubleshooting
 My wheel/pedals aren't working or are stuck at full throttle.
@@ -117,4 +118,4 @@ The SDK fails to load or I get errors about missing DLLs.
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.0`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.1`

@@ -169,6 +169,13 @@ namespace SebTruck
                     }
                 }
 
+                var shiftMode = SebBinds.SebBindsApi.GetShiftMode();
+                if (_util.CycleButtonRaw("Shift Mode", SebBinds.SebBindsApi.GetShiftModeLabel(shiftMode), center, y))
+                {
+                    SebBinds.SebBindsApi.SetShiftMode(SebBinds.SebBindsApi.NextShiftMode(shiftMode));
+                }
+                y += line;
+
                 y += 2f;
                 _util.Label(rally ? Plugin.GetCurrentRallyVariantLabel() : "Story Truck", cx, y);
                 y += line;

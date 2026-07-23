@@ -87,6 +87,12 @@ namespace SebBinds
         WheelDpadAxis = 10
     }
 
+    public enum ShiftMode
+    {
+        Toggle = 0,
+        Hold = 1
+    }
+
     public struct BindingInput
     {
         public BindingKind Kind;
