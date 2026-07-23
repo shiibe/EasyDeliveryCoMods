@@ -26,6 +26,12 @@ namespace SebTruck
 
         internal const string PrefKeyTurnSignalLightIntensity = "SebTruck_TurnSignalLightIntensity";
 
+        internal const string PrefKeyBackupAlarmEnabled = "SebTruck_BackupAlarmEnabled";
+        internal const string PrefKeyBackupAlarmHazardsEnabled = "SebTruck_BackupAlarmHazardsEnabled";
+        internal const string PrefKeyBackupAlarmVolume = "SebTruck_BackupAlarmVolume";
+        internal const string PrefKeyBackupAlarmInterval = "SebTruck_BackupAlarmInterval";
+        internal const string PrefKeyBackupAlarmTone = "SebTruck_BackupAlarmTone";
+
         internal static readonly Vector3 TurnSignalLightFrontOffset = new Vector3(0f, 0f, 0.05f);
         internal static readonly Vector3 TurnSignalLightRearOffset = new Vector3(0f, -0.3f, 0.05f);
 
@@ -874,6 +880,58 @@ namespace SebTruck
             PlayerPrefs.SetFloat(PrefKeyTurnSignalLightIntensity, Mathf.Clamp(intensity, 0f, 1.0f));
         }
 
+        internal static bool GetBackupAlarmEnabled()
+        {
+            return PlayerPrefs.GetInt(PrefKeyBackupAlarmEnabled, 0) != 0;
+        }
+
+        internal static void SetBackupAlarmEnabled(bool enabled)
+        {
+            PlayerPrefs.SetInt(PrefKeyBackupAlarmEnabled, enabled ? 1 : 0);
+        }
+
+        internal static bool GetBackupAlarmHazardsEnabled()
+        {
+            return PlayerPrefs.GetInt(PrefKeyBackupAlarmHazardsEnabled, 0) != 0;
+        }
+
+        internal static void SetBackupAlarmHazardsEnabled(bool enabled)
+        {
+            PlayerPrefs.SetInt(PrefKeyBackupAlarmHazardsEnabled, enabled ? 1 : 0);
+        }
+
+        internal static float GetBackupAlarmVolume()
+        {
+            return Mathf.Clamp01(PlayerPrefs.GetFloat(PrefKeyBackupAlarmVolume, 0.55f));
+        }
+
+        internal static void SetBackupAlarmVolume(float volume)
+        {
+            PlayerPrefs.SetFloat(PrefKeyBackupAlarmVolume, Mathf.Clamp01(volume));
+        }
+
+        internal static float GetBackupAlarmInterval()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyBackupAlarmInterval, 0.65f), 0.25f, 1.5f);
+        }
+
+        internal static void SetBackupAlarmInterval(float seconds)
+        {
+            PlayerPrefs.SetFloat(PrefKeyBackupAlarmInterval, Mathf.Clamp(seconds, 0.25f, 1.5f));
+            _backupBeepClip = null;
+        }
+
+        internal static float GetBackupAlarmTone()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyBackupAlarmTone, 950f), 450f, 1800f);
+        }
+
+        internal static void SetBackupAlarmTone(float hz)
+        {
+            PlayerPrefs.SetFloat(PrefKeyBackupAlarmTone, Mathf.Clamp(hz, 450f, 1800f));
+            _backupBeepClip = null;
+        }
+
         internal static bool GetHudShowSpeed()
         {
             return PlayerPrefs.GetInt(PrefKeyHudShowSpeed, 0) != 0;
@@ -1213,6 +1271,16 @@ namespace SebTruck
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
             SetHeadlightRangeMult(1.0f);
+            PlayerPrefs.Save();
+        }
+
+        internal static void ResetBackupAlarmDefaults()
+        {
+            SetBackupAlarmEnabled(false);
+            SetBackupAlarmHazardsEnabled(false);
+            SetBackupAlarmVolume(0.55f);
+            SetBackupAlarmInterval(0.65f);
+            SetBackupAlarmTone(950f);
             PlayerPrefs.Save();
         }
 

@@ -1,3 +1,8 @@
+## 1.1.3
+- Add a synthesized backup alarm with volume, beep rate, and tone settings.
+- Add an optional backup alarm 4-way hazard flasher.
+- Lower the backup beep source volume and make beep length match the pause length.
+
 ## 1.1.2
 - Support SebBinds' `Shift Mode: Hold` for H-shifter-style Story manual shifting.
 - Add the shared `Shift Mode` selector to SebTruck's Handling page.

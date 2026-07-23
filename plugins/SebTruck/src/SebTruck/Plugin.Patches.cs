@@ -29,6 +29,14 @@ namespace SebTruck
         private static bool _ignitionPrevHeadlightsOn;
         private static bool _ignitionPrevRadioOn;
 
+        private static GameObject _backupBeepGo;
+        private static Component _backupBeepSource;
+        private static UnityEngine.Object _backupBeepClip;
+        private static float _backupBeepClipTone = -1f;
+        private static float _backupBeepClipDuration = -1f;
+        private static float _backupNextBeepTime;
+        private static bool _backupAlarmHazardsActive;
+
         private enum IndicatorMode
         {
             Off = 0,
@@ -711,8 +719,10 @@ namespace SebTruck
             }
 
             bool braking = GetTruckBraking(car);
-            bool blinkOn = _indicatorMode != IndicatorMode.Off && _indicatorBlinkOn;
-            var tex = GetTurnSignalEmissive(braking, (int)_indicatorMode, blinkOn);
+            bool backupHazards = _backupAlarmHazardsActive && GetBackupAlarmHazardsEnabled();
+            IndicatorMode displayMode = backupHazards ? IndicatorMode.Hazards : _indicatorMode;
+            bool blinkOn = displayMode != IndicatorMode.Off && _indicatorBlinkOn;
+            var tex = GetTurnSignalEmissive(braking, (int)displayMode, blinkOn);
             if (tex != null)
             {
                 mat.SetTexture("_EmissionMap", tex);
@@ -1725,6 +1735,7 @@ namespace SebTruck
             // Feature toggle: if disabled, restore defaults and bail.
             if (!GetIndicatorFeatureEnabled())
             {
+                _backupAlarmHazardsActive = false;
                 _indicatorMode = IndicatorMode.Off;
                 _indicatorBlinkOn = false;
                 _indicatorNextBlinkTime = 0f;
@@ -1738,6 +1749,7 @@ namespace SebTruck
             // Keep indicators forced off while ignition is effectively off.
             if (!GetIgnitionEnabledEffective())
             {
+                _backupAlarmHazardsActive = false;
                 _indicatorMode = IndicatorMode.Off;
                 _indicatorBlinkOn = false;
                 _indicatorNextBlinkTime = 0f;
@@ -1747,7 +1759,10 @@ namespace SebTruck
                 return;
             }
 
-            if (_indicatorMode == IndicatorMode.Off)
+            bool backupHazards = _backupAlarmHazardsActive && GetBackupAlarmHazardsEnabled();
+            IndicatorMode displayMode = backupHazards ? IndicatorMode.Hazards : _indicatorMode;
+
+            if (displayMode == IndicatorMode.Off)
             {
                 _indicatorBlinkOn = false;
                 _indicatorPauseStart = -1f;
@@ -1765,8 +1780,8 @@ namespace SebTruck
                     _indicatorPauseStart = Time.unscaledTime;
                 }
 
-                bool pLeftOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Left || _indicatorMode == IndicatorMode.Hazards);
-                bool pRightOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Right || _indicatorMode == IndicatorMode.Hazards);
+                bool pLeftOn = _indicatorBlinkOn && (displayMode == IndicatorMode.Left || displayMode == IndicatorMode.Hazards);
+                bool pRightOn = _indicatorBlinkOn && (displayMode == IndicatorMode.Right || displayMode == IndicatorMode.Hazards);
                 UpdateTurnSignalWorldLights(car, pLeftOn, pRightOn, forceOff: false);
                 return;
             }
@@ -1801,11 +1816,11 @@ namespace SebTruck
                 PlayIndicatorClick(car, highPitch: _indicatorBlinkOn);
             }
 
-            SetIndicators(car, _indicatorMode, _indicatorBlinkOn, forceOff: false);
+            SetIndicators(car, displayMode, _indicatorBlinkOn, forceOff: false);
             ApplyTruckEmissionMap(car);
 
-            bool leftOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Left || _indicatorMode == IndicatorMode.Hazards);
-            bool rightOn = _indicatorBlinkOn && (_indicatorMode == IndicatorMode.Right || _indicatorMode == IndicatorMode.Hazards);
+            bool leftOn = _indicatorBlinkOn && (displayMode == IndicatorMode.Left || displayMode == IndicatorMode.Hazards);
+            bool rightOn = _indicatorBlinkOn && (displayMode == IndicatorMode.Right || displayMode == IndicatorMode.Hazards);
             UpdateTurnSignalWorldLights(car, leftOn, rightOn, forceOff: false);
         }
 
@@ -2516,6 +2531,13 @@ namespace SebTruck
             // Indicator blink/update should run continuously while driving,
             // not only when input is queried.
             UpdateIndicators(__instance);
+
+            if (!IsRallyModeActive())
+            {
+                bool reverseActive = !__instance.GuyActive && GetIgnitionEnabledEffective() &&
+                    (IsManualTransmissionEnabledEffective() ? GetManualGear() == -1 : _currentSignedSpeedKmh < -0.5f);
+                UpdateBackupAlarm(__instance, reverseActive);
+            }
         }
 
 
@@ -2574,6 +2596,115 @@ namespace SebTruck
             {
                 sInputManager.players[__instance.playerNumber].manualShifting = !__instance.car.GuyActive && wantManual;
             }
+
+            bool reverseActive = __instance.car != null && !__instance.car.GuyActive && __instance.gearbox != null && __instance.gearbox.currentGear == 0;
+            UpdateBackupAlarm(__instance.car, reverseActive);
+        }
+
+        private static void UpdateBackupAlarm(sCarController car, bool reverseActive)
+        {
+            if (!GetBackupAlarmEnabled() || car == null || car.GuyActive || !reverseActive || PauseSystem.paused)
+            {
+                _backupAlarmHazardsActive = false;
+                _backupNextBeepTime = 0f;
+                return;
+            }
+
+            _backupAlarmHazardsActive = true;
+
+            float volume = GetBackupAlarmVolume();
+            if (volume <= 0.001f)
+            {
+                return;
+            }
+
+            if (Time.unscaledTime < _backupNextBeepTime)
+            {
+                return;
+            }
+
+            Component source = EnsureBackupBeepSource(car);
+            UnityEngine.Object clip = EnsureBackupBeepClip();
+            if (source == null || clip == null)
+            {
+                return;
+            }
+
+            float duration = GetBackupAlarmInterval();
+            Call(source, "PlayOneShot", clip, volume);
+            _backupNextBeepTime = Time.unscaledTime + duration * 2f;
+        }
+
+        private static Component EnsureBackupBeepSource(sCarController car)
+        {
+            if (_backupBeepGo == null || _backupBeepSource == null)
+            {
+                _backupBeepGo = new GameObject("SebTruck_BackupAlarmSFX");
+                _backupBeepGo.hideFlags = HideFlags.HideAndDontSave;
+                var audioSourceType = Type.GetType("UnityEngine.AudioSource, UnityEngine.AudioModule");
+                if (audioSourceType == null)
+                {
+                    return null;
+                }
+                _backupBeepSource = _backupBeepGo.AddComponent(audioSourceType);
+                SetProp(_backupBeepSource, "playOnAwake", false);
+                SetProp(_backupBeepSource, "loop", false);
+                SetProp(_backupBeepSource, "spatialBlend", 1f);
+                SetProp(_backupBeepSource, "minDistance", 2f);
+                SetProp(_backupBeepSource, "maxDistance", 35f);
+            }
+
+            if (_backupBeepGo.transform.parent != car.transform)
+            {
+                _backupBeepGo.transform.SetParent(car.transform, false);
+                _backupBeepGo.transform.localPosition = new Vector3(0f, 0.6f, -1.4f);
+            }
+            return _backupBeepSource;
+        }
+
+        private static UnityEngine.Object EnsureBackupBeepClip()
+        {
+            float tone = GetBackupAlarmTone();
+            float duration = GetBackupAlarmInterval();
+            if (_backupBeepClip != null && Mathf.Abs(_backupBeepClipTone - tone) < 0.1f && Mathf.Abs(_backupBeepClipDuration - duration) < 0.001f)
+            {
+                return _backupBeepClip;
+            }
+
+            const int sampleRate = 44100;
+            int count = Mathf.Max(1, Mathf.RoundToInt(sampleRate * duration));
+            float[] data = new float[count];
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float env = Mathf.Min(1f, Mathf.Min(i / (sampleRate * 0.008f), (count - i - 1) / (sampleRate * 0.012f)));
+                float s = Mathf.Sin(t * tone * Mathf.PI * 2f);
+                data[i] = s * env * 0.14f;
+            }
+
+            var audioClipType = Type.GetType("UnityEngine.AudioClip, UnityEngine.AudioModule");
+            if (audioClipType == null)
+            {
+                return null;
+            }
+
+            var create = audioClipType.GetMethod("Create", new[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(bool) });
+            if (create == null)
+            {
+                return null;
+            }
+
+            _backupBeepClip = create.Invoke(null, new object[] { "SebTruck_BackupBeep", count, 1, sampleRate, false }) as UnityEngine.Object;
+            if (_backupBeepClip == null)
+            {
+                return null;
+            }
+
+            var setData = audioClipType.GetMethod("SetData", new[] { typeof(float[]), typeof(int) });
+            setData?.Invoke(_backupBeepClip, new object[] { data, 0 });
+            _backupBeepClipTone = tone;
+            _backupBeepClipDuration = duration;
+            return _backupBeepClip;
         }
 
         [HarmonyPatch(typeof(sAutoGearshift), "FixedUpdate")]

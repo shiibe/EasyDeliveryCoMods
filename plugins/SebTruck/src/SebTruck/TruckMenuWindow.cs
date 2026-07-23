@@ -23,8 +23,9 @@ namespace SebTruck
             Handling = 0,
             Ignition = 1,
             TurnSignals = 2,
-            Hud = 3,
-            Tweaks = 4
+            BackupAlarm = 3,
+            Hud = 4,
+            Tweaks = 5
         }
 
         public void FrameUpdate(DesktopDotExe.WindowView view)
@@ -70,7 +71,7 @@ namespace SebTruck
             float line = 12f;
             float sectionGap = 4f;
 
-            const int pageCount = 5;
+            const int pageCount = 6;
 
             _util.Label("Truck", cx, y);
             y += line;
@@ -102,6 +103,10 @@ namespace SebTruck
             {
                 pageLabel = "Turn Signals";
             }
+            else if (_page == Page.BackupAlarm)
+            {
+                pageLabel = "Backup Alarm";
+            }
             _util.Label(pageLabel, cx, y);
             y += line;
 
@@ -125,6 +130,7 @@ namespace SebTruck
                 }
                 else if (_page == Page.Ignition) Plugin.ResetIgnitionDefaults();
                 else if (_page == Page.TurnSignals) Plugin.ResetIndicatorDefaults();
+                else if (_page == Page.BackupAlarm) Plugin.ResetBackupAlarmDefaults();
                 else if (_page == Page.Hud) Plugin.ResetHudDefaults();
                 else Plugin.ResetTweaksDefaults();
             }
@@ -286,6 +292,43 @@ namespace SebTruck
                 _util.ValueLabel($"{Mathf.RoundToInt(vol * 100f)}%", p.x + p.width - 12f, y);
                 float? newVol = _util.Slider("Signal Vol.", vol, center, y, ref _mouseYLock);
                 if (newVol.HasValue) Plugin.SetIndicatorSfxVolume(newVol.Value);
+                y += line;
+
+                return;
+            }
+
+            if (_page == Page.BackupAlarm)
+            {
+                bool backupEnabled = Plugin.GetBackupAlarmEnabled();
+                if (_util.CycleButtonRaw("Backup Alarm", backupEnabled ? "On" : "Off", center, y))
+                {
+                    Plugin.SetBackupAlarmEnabled(!backupEnabled);
+                }
+                y += line;
+
+                bool hazards = Plugin.GetBackupAlarmHazardsEnabled();
+                if (_util.CycleButtonRaw("4-Ways", hazards ? "On" : "Off", center, y))
+                {
+                    Plugin.SetBackupAlarmHazardsEnabled(!hazards);
+                }
+                y += line;
+
+                float vol = Plugin.GetBackupAlarmVolume();
+                _util.ValueLabel($"{Mathf.RoundToInt(vol * 100f)}%", p.x + p.width - 12f, y);
+                float? newVol = _util.Slider("Volume", vol, center, y, ref _mouseYLock);
+                if (newVol.HasValue) Plugin.SetBackupAlarmVolume(newVol.Value);
+                y += line;
+
+                float interval = Plugin.GetBackupAlarmInterval();
+                _util.ValueLabel($"{interval:0.00}s", p.x + p.width - 12f, y);
+                float? newInterval = _util.Slider("Beep Rate", Mathf.InverseLerp(1.2f, 0.35f, interval), center, y, ref _mouseYLock);
+                if (newInterval.HasValue) Plugin.SetBackupAlarmInterval(Mathf.Lerp(1.2f, 0.35f, newInterval.Value));
+                y += line;
+
+                float tone = Plugin.GetBackupAlarmTone();
+                _util.ValueLabel($"{Mathf.RoundToInt(tone)}hz", p.x + p.width - 12f, y);
+                float? newTone = _util.Slider("Tone", Mathf.InverseLerp(450f, 1800f, tone), center, y, ref _mouseYLock);
+                if (newTone.HasValue) Plugin.SetBackupAlarmTone(Mathf.Lerp(450f, 1800f, newTone.Value));
                 y += line;
 
                 return;

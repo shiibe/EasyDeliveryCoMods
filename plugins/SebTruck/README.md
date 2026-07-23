@@ -32,6 +32,7 @@ SebTruck adds driving upgrades like manual transmission, Rally transmission sett
 - Engine overrev sound when nearing the redline of the tachometer.
 - Compact HUD elements for speed, tachometer, and gear display that can be toggled on/off and moved.
 - Turn signals that actually glow and react to steering input. Also a 4-way hazard mode.
+- Synthesized backup alarm with volume, beep rate, and tone controls.
 - Ignition toggle with hold-to-start behavior and sound effect.
 - Change selected Bobblehead and Truck Paint in the menu (if you have them unlocked).
 
@@ -91,6 +92,13 @@ Shared Rally pages from SebBinds:
 - `Ignition.sfx_on_path` (string): Ignition ON sound file name inside `sfx/`
 - `Ignition.sfx_volume` (float): Ignition sound volume (0..1)
 
+Backup Alarm page:
+- `Backup Alarm`: On/off, off by default
+- `4-Ways`: Automatically flash hazards while the backup alarm is active, off by default
+- `Volume`: beep volume
+- `Beep Rate`: beep length and matching pause length while reverse is active
+- `Tone`: synthesized beep frequency
+
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.2`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.3`
