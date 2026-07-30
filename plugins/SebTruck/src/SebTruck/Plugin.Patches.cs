@@ -3135,6 +3135,7 @@ namespace SebTruck
                 UpdateStoryVirtualRpm(GetIgnitionEnabledEffective());
 
                 float accel;
+                bool forceBrakePressed = false;
                 if (IsManualTransmissionEnabledEffective())
                 {
                     int gear = GetManualGear();
@@ -3155,12 +3156,15 @@ namespace SebTruck
                     }
                     else if (gear < 0)
                     {
-                        float reverseAccel = -Mathf.Abs(drive);
-                        if (signedKmh < -1.0f)
+                        if (brake > 0.05f)
                         {
-                            reverseAccel += brake;
+                            accel = 0f;
+                            forceBrakePressed = true;
                         }
-                        accel = Mathf.Min(0f, reverseAccel);
+                        else
+                        {
+                            accel = -Mathf.Abs(drive);
+                        }
                     }
                     else
                     {
@@ -3181,6 +3185,10 @@ namespace SebTruck
                 var v = __instance.driveInput;
                 v.y = accel;
                 __instance.driveInput = v;
+                if (forceBrakePressed)
+                {
+                    __instance.brakePressed = true;
+                }
             }
         }
 
