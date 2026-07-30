@@ -133,6 +133,8 @@ namespace SebTruck
         private static readonly Dictionary<int, (float intensity, float range)> _lightDefaults =
             new Dictionary<int, (float intensity, float range)>();
 
+        private static readonly Dictionary<int, Vector3> _visualScaleDefaults = new Dictionary<int, Vector3>();
+
         private static Type _engineSfxRuntimeType;
         private static FieldInfo _engineCarField;
         private static FieldInfo _engineIdleField;
@@ -2214,6 +2216,49 @@ namespace SebTruck
             _currentSpeedMult = mult;
         }
 
+        private static void ApplyVisualScaleTuning(sCarController car)
+        {
+            if (car == null || !IsTruckCar(car))
+            {
+                return;
+            }
+
+            float wheelScale = GetWheelScale();
+
+            if (car.wheels == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < car.wheels.Length; i++)
+            {
+                var w = car.wheels[i];
+                if (w == null || w.view == null)
+                {
+                    continue;
+                }
+
+                ApplyTransformScale(w.view, wheelScale);
+            }
+        }
+
+        private static void ApplyTransformScale(Transform t, float scale)
+        {
+            if (t == null)
+            {
+                return;
+            }
+
+            int id = t.GetInstanceID();
+            if (!_visualScaleDefaults.TryGetValue(id, out var baseScale))
+            {
+                baseScale = t.localScale;
+                _visualScaleDefaults[id] = baseScale;
+            }
+
+            t.localScale = baseScale * Mathf.Clamp(scale, 0.5f, 2.0f);
+        }
+
         private static void ApplyStoryHandlingTuning(sCarController car)
         {
             if (car == null || car.overridePhysics)
@@ -2520,6 +2565,7 @@ namespace SebTruck
             ApplyStoryHandlingTuning(__instance);
             ApplyHeadlightTuning(__instance);
             ApplySpeedScaleTuning(__instance);
+            ApplyVisualScaleTuning(__instance);
 
             ApplyTruckPaintIfNeeded(__instance);
 
@@ -3109,14 +3155,12 @@ namespace SebTruck
                     }
                     else if (gear < 0)
                     {
+                        float reverseAccel = -Mathf.Abs(drive);
                         if (signedKmh < -1.0f)
                         {
-                            accel = drive + brake;
+                            reverseAccel += brake;
                         }
-                        else
-                        {
-                            accel = Mathf.Min(0f, drive + brake);
-                        }
+                        accel = Mathf.Min(0f, reverseAccel);
                     }
                     else
                     {

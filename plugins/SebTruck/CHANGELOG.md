@@ -1,3 +1,7 @@
+## 1.1.4
+- Add a visual-only Wheel Scale control to the Tweaks/Cosmetics page.
+- Fix Story manual reverse gear so brake input cannot cross into forward drive while still in reverse.
+
 ## 1.1.3
 - Add a synthesized backup alarm with volume, beep rate, and tone settings.
 - Add an optional backup alarm 4-way hazard flasher.

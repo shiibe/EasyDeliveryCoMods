@@ -1,3 +1,7 @@
+## 1.1.2
+- Activate the wheel-specific steering patches so wheel input bypasses the gamepad steering curve and smoothing path.
+- Seed default steering center calibration from the selected steering axis instead of hardcoded `lX`.
+
 ## 1.1.1
 - Document using SebBinds `Shift Mode: Hold` for H-shifters.
 - Update dependency to SebBinds 1.1.3.

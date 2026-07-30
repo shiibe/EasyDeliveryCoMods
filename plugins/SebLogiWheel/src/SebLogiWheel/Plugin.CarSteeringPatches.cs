@@ -58,14 +58,14 @@ namespace SebLogiWheel
                     return;
                 }
 
-                if (!TryGetWheelLastInput(out float steer, out float accel))
+                if (!TryGetWheelLastInput(out float steer, out _))
                 {
                     return;
                 }
 
-                // Override right before physics uses input.
+                // Override steering right before physics uses input. Leave throttle/brake on the normal
+                // input path so transmission mods can convert throttle into reverse drive.
                 __instance.input.x = steer;
-                __instance.input.y = accel;
             }
         }
     }

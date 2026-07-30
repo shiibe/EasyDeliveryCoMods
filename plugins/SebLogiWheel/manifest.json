@@ -1,6 +1,6 @@
 {
   "name": "SebLogiWheel",
-  "version_number": "1.1.1",
+  "version_number": "1.1.2",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
   "description": "Logitech Steering Wheel and FFB support for Easy Delivery Co.",
   "dependencies": [

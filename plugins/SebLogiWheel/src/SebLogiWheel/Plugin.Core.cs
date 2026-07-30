@@ -1672,7 +1672,7 @@ namespace SebLogiWheel
 
             if (!PlayerPrefs.HasKey(PrefKeyCalSteerCenter))
             {
-                PlayerPrefs.SetInt(PrefKeyCalSteerCenter, state.lX);
+                PlayerPrefs.SetInt(PrefKeyCalSteerCenter, GetAxisValue(state, GetSteeringAxis()));
             }
             if (!PlayerPrefs.HasKey(PrefKeyCalSteerLeft))
             {

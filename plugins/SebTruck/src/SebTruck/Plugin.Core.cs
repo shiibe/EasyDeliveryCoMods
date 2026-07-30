@@ -52,6 +52,8 @@ namespace SebTruck
         internal const string PrefKeyHeadlightIntensityMult = "SebTruck_HeadlightIntensityMult";
         internal const string PrefKeyHeadlightRangeMult = "SebTruck_HeadlightRangeMult";
 
+        internal const string PrefKeyWheelScale = "SebTruck_WheelScale";
+
         internal const string PrefKeyHandlingPowerMult = "SebTruck_HandlingPowerMult";
         internal const string PrefKeyHandlingSpeedMult = "SebTruck_HandlingSpeedMult";
         internal const string PrefKeyHandlingSteeringMult = "SebTruck_HandlingSteeringMult";
@@ -1149,6 +1151,16 @@ namespace SebTruck
             PlayerPrefs.SetFloat(PrefKeyHeadlightRangeMult, Mathf.Clamp(mult, 0.1f, 1.0f));
         }
 
+        internal static float GetWheelScale()
+        {
+            return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyWheelScale, 1f), 0.5f, 2.0f);
+        }
+
+        internal static void SetWheelScale(float scale)
+        {
+            PlayerPrefs.SetFloat(PrefKeyWheelScale, Mathf.Clamp(scale, 0.5f, 2.0f));
+        }
+
         internal static float GetHandlingPowerMult()
         {
             return Mathf.Clamp(PlayerPrefs.GetFloat(PrefKeyHandlingPowerMult, 1f), 0.25f, 3.0f);
@@ -1229,6 +1241,7 @@ namespace SebTruck
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
             SetHeadlightRangeMult(1.0f);
+            SetWheelScale(1.0f);
             ResetHandlingDefaults(save: false);
             PlayerPrefs.Save();
         }
@@ -1271,6 +1284,7 @@ namespace SebTruck
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);
             SetHeadlightRangeMult(1.0f);
+            SetWheelScale(1.0f);
             PlayerPrefs.Save();
         }
 

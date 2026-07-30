@@ -27,6 +27,7 @@ namespace SebLogiWheel
             MigratePrefsFromG920IfNeeded();
 
             var harmony = new Harmony(PluginGuid);
+            harmony.PatchAll(typeof(Plugin).Assembly);
 
             // Icon/menu launching is handled by SebCore.
             PatchByName(harmony, "sCarController", "Update", prefix: nameof(SCarController_Update_Prefix));

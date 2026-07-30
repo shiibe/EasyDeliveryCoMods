@@ -9,6 +9,6 @@ namespace SebLogiWheel
     {
         public const string PluginGuid = "shibe.easydeliveryco.seblogiwheel";
         public const string PluginName = "SebLogiWheel";
-        public const string PluginVersion = "1.1.1";
+        public const string PluginVersion = "1.1.2";
     }
 }

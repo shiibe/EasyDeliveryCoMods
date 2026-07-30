@@ -459,6 +459,16 @@ namespace SebTruck
                 _util.Label("Cosmetics", cx, y);
                 y += line;
 
+                float wheelScale = Plugin.GetWheelScale();
+                _util.ValueLabel($"{wheelScale:0.00}x", p.x + p.width - 12f, y);
+                float wheelScaleNorm = Mathf.InverseLerp(0.5f, 2.0f, wheelScale);
+                float? newWheelScaleNorm = _util.Slider("Wheel Scale", wheelScaleNorm, center, y, ref _mouseYLock);
+                if (newWheelScaleNorm.HasValue)
+                {
+                    Plugin.SetWheelScale(Mathf.Lerp(0.5f, 2.0f, newWheelScaleNorm.Value));
+                }
+                y += line;
+
                 int bobble = Plugin.GetSelectedBobbleIndexUnlockedOrNone();
                 if (_util.CycleButtonRaw("Bobblehead", Plugin.GetBobbleLabel(bobble), center, y))
                 {
