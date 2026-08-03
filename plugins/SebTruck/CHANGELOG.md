@@ -1,3 +1,7 @@
+## 1.1.6
+- Use SebCore's shared cartridge window base and UI wiring for the Truck menu.
+- Update dependency metadata for SebCore 1.1.0 and SebBinds 1.1.4.
+
 ## 1.1.5
 - Fix Story manual reverse gear so accelerator drives backward and brake still brakes.
 

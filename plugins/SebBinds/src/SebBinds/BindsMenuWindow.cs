@@ -363,38 +363,7 @@ namespace SebBinds
 
         private bool TryOpenWheelMenuAndFocus()
         {
-            var desktop = _util != null ? _util.M : null;
-            if (desktop == null)
-            {
-                return false;
-            }
-
-            var file = new DesktopDotExe.File(desktop.R, desktop)
-            {
-                name = "wheel",
-                type = DesktopDotExe.FileType.exe,
-                data = "listener_G920Menu",
-                icon = 7,
-                iconHover = 7,
-                position = Vector2.zero,
-                visible = false,
-                cantFolder = true
-            };
-
-            DesktopDotExe.WindowView windowView;
-            file.Execute(out windowView);
-            if (windowView == null)
-            {
-                return false;
-            }
-
-            var windowViewerField = typeof(DesktopDotExe).GetField("windowViewer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (windowViewerField == null)
-            {
-                return false;
-            }
-            windowViewerField.SetValue(desktop, windowView);
-            return true;
+            return SebCore.CartridgeApps.TryOpen(_util?.M, _util?.R, SebCore.CartridgeApps.Wheel);
         }
 
         private sealed class PageDef

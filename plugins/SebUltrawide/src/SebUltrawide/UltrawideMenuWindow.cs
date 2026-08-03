@@ -1,56 +1,15 @@
+using SebCore;
 using UnityEngine;
 
 namespace SebUltrawide
 {
-    public class UltrawideMenuWindow : MonoBehaviour
+    public class UltrawideMenuWindow : CartridgeWindowBase
     {
         public const string FileName = "wide";
         public const string ListenerName = "UltrawideMenu";
         public const string ListenerData = "listener_UltrawideMenu";
 
-        private float _mouseYLock;
-        private UIUtil _util;
-
-        private DesktopDotExe.WindowView _view;
-
-        public void FrameUpdate(DesktopDotExe.WindowView view)
-        {
-            if (view == null)
-            {
-                return;
-            }
-
-            _view = view;
-
-            _util ??= new UIUtil();
-            
-            _util.M = view.M;
-            _util.R = view.R;
-            _util.Nav = view.M.nav;
-
-            Rect p = new Rect(view.position * 8f, view.size * 8f);
-            p.position += new Vector2(8f, 8f);
-
-            if (_util.M.mouseButtonUp)
-            {
-                _mouseYLock = 0f;
-            }
-
-            if (_mouseYLock > 0f)
-            {
-                _util.M.mouse.y = _mouseYLock;
-            }
-
-            DrawMenu(p);
-        }
-
-        public void BackButtonPressed()
-        {
-            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, _util?.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
-            _view?.Kill();
-        }
-
-        private void DrawMenu(Rect p)
+        protected override void DrawWindow(Rect p)
         {
             float center = p.x + p.width / 2f - 16f;
             float y = p.y + 10f;
@@ -63,23 +22,22 @@ namespace SebUltrawide
 
             // Reset button sits above Back.
             float resetY = navY - 12f;
-            if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
+            if (Util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
                 Plugin.ResetGraphicsDefaults();
-                _mouseYLock = 0f;
+                MouseYLock = 0f;
             }
 
-            if (_util.SimpleButtonRaw("Back", cx, navY))
+            if (Util.SimpleButtonRaw("Back", cx, navY))
             {
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
-                _view?.Kill();
+                BackButtonPressed();
                 return;
             }
 
-            _util.Label("Graphics", p.x + p.width / 2f, y);
+            Util.Label("Graphics", p.x + p.width / 2f, y);
             y += line + sectionGap;
 
-            _util.Label("FOV", p.x + p.width / 2f, y);
+            Util.Label("FOV", p.x + p.width / 2f, y);
             y += line;
 
             float fovMin;
@@ -90,8 +48,8 @@ namespace SebUltrawide
 
             float thirdFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: false, fallback: currentFov), fovMin, fovMax);
             float thirdValue = Mathf.InverseLerp(fovMin, fovMax, thirdFov);
-            _util.ValueLabel($"{thirdFov:0}", p.x + p.width - 12f, y);
-            float? newThirdValue = _util.Slider("3rd Person", thirdValue, center, y, ref _mouseYLock);
+            Util.ValueLabel($"{thirdFov:0}", p.x + p.width - 12f, y);
+            float? newThirdValue = Util.Slider("3rd Person", thirdValue, center, y, ref MouseYLock);
             if (newThirdValue.HasValue)
             {
                 float newFov = Mathf.Lerp(fovMin, fovMax, newThirdValue.Value);
@@ -103,8 +61,8 @@ namespace SebUltrawide
             // The game's default 1st-person FOV is higher than the menu camera's.
             float firstFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
             float firstValue = Mathf.InverseLerp(fovMin, fovMax, firstFov);
-            _util.ValueLabel($"{firstFov:0}", p.x + p.width - 12f, y);
-            float? newFirstValue = _util.Slider("1st Person", firstValue, center, y, ref _mouseYLock);
+            Util.ValueLabel($"{firstFov:0}", p.x + p.width - 12f, y);
+            float? newFirstValue = Util.Slider("1st Person", firstValue, center, y, ref MouseYLock);
             if (newFirstValue.HasValue)
             {
                 float newFov = Mathf.Lerp(fovMin, fovMax, newFirstValue.Value);
@@ -113,7 +71,7 @@ namespace SebUltrawide
 
             y += line + sectionGap;
 
-            _util.Label("Renderer", p.x + p.width / 2f, y);
+            Util.Label("Renderer", p.x + p.width / 2f, y);
             y += line;
 
             int pixelMode = Plugin.GetPixelationMode();
@@ -126,10 +84,10 @@ namespace SebUltrawide
                 4 => "Large",
                 _ => "Default"
             };
-            _util.ValueLabel(pixelLabel, p.x + p.width - 12f, y);
+            Util.ValueLabel(pixelLabel, p.x + p.width - 12f, y);
 
             float pixelValue = Mathf.Clamp01(pixelMode / 4f);
-            float? newPixelValue = _util.Slider("Pixelation", pixelValue, center, y, ref _mouseYLock);
+            float? newPixelValue = Util.Slider("Pixelation", pixelValue, center, y, ref MouseYLock);
             if (newPixelValue.HasValue)
             {
                 int newMode = Mathf.Clamp(Mathf.RoundToInt(newPixelValue.Value * 4f), 0, 4);
@@ -150,10 +108,10 @@ namespace SebUltrawide
                 3 => "Max",
                 _ => "Default"
             };
-            _util.ValueLabel(viewLabel, p.x + p.width - 12f, y);
+            Util.ValueLabel(viewLabel, p.x + p.width - 12f, y);
 
             float viewValue = Mathf.Clamp01(viewMode / 3f);
-            float? newViewValue = _util.Slider("View Distance", viewValue, center, y, ref _mouseYLock);
+            float? newViewValue = Util.Slider("View Distance", viewValue, center, y, ref MouseYLock);
             if (newViewValue.HasValue)
             {
                 int newMode = Mathf.Clamp(Mathf.RoundToInt(newViewValue.Value * 3f), 0, 3);
@@ -161,6 +119,17 @@ namespace SebUltrawide
                 {
                     Plugin.SaveViewDistanceMode(newMode);
                 }
+            }
+
+            y += line;
+
+            int vsMode = Plugin.GetVsyncMode();
+            string vsLabel = vsMode == 1 ? "On" : "Off";
+            Util.ValueLabel(vsLabel, p.x + p.width - 12f, y);
+            float? newVsyncValue = Util.Slider("VSync", vsMode == 1 ? 1f : 0f, center, y, ref MouseYLock);
+            if (newVsyncValue.HasValue)
+            {
+                Plugin.SetVsyncMode(newVsyncValue.Value >= 0.5f ? 1 : 0);
             }
 
             y += line + sectionGap;

@@ -17,6 +17,8 @@ namespace SebUltrawide
         private const string PrefKeyPixelationModeVersion = "UltrawidePixelationModeVersion";
         internal const string PrefKeyViewDistanceMode = "UltrawideViewDistanceMode";
         private const string PrefKeyViewDistanceModeVersion = "UltrawideViewDistanceModeVersion";
+        internal const string PrefKeyGfxVsyncMode = "SebTweaks_Gfx_VSyncMode"; // shared with SebTweaks; v2: 0=Off,1=On
+        private const string PrefKeyGfxVsyncModeVersion = "SebTweaks_Gfx_VSyncModeVersion";
         private const float DefaultAspect = 16f / 9f;
 
         private static ConfigEntry<bool> _debugMode;
@@ -98,6 +100,8 @@ namespace SebUltrawide
 
             GetViewDistanceMode();
             RefreshViewDistance();
+
+            ApplyVsyncMode();
 
         }
 
@@ -226,6 +230,50 @@ namespace SebUltrawide
             RefreshPixelation();
         }
 
+        internal static int GetVsyncMode()
+        {
+            int version = SebCore.ModPrefs.GetInt(PrefKeyGfxVsyncModeVersion, 0);
+            bool hasKey = SebCore.ModPrefs.HasKey(PrefKeyGfxVsyncMode);
+            int raw = SebCore.ModPrefs.GetInt(PrefKeyGfxVsyncMode, -1);
+
+            if (!hasKey)
+            {
+                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncModeVersion, 2);
+                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncMode, 1);
+                return 1;
+            }
+
+            // Migration from legacy SebTweaks mapping (v1): 0=Default,1=On,2=Off.
+            if (version < 2)
+            {
+                int migrated = raw == 2 ? 0 : 1;
+                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncModeVersion, 2);
+                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncMode, migrated);
+                return migrated;
+            }
+
+            return raw == 1 ? 1 : 0;
+        }
+
+        internal static void SetVsyncMode(int mode)
+        {
+            SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncModeVersion, 2);
+            SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncMode, Mathf.Clamp(mode, 0, 1));
+            ApplyVsyncMode();
+        }
+
+        private static void ApplyVsyncMode()
+        {
+            try
+            {
+                QualitySettings.vSyncCount = GetVsyncMode() == 1 ? 1 : 0;
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
         internal static int GetPixelationDivisor()
         {
             switch (GetPixelationMode())
@@ -291,6 +339,9 @@ namespace SebUltrawide
             // Reset renderer knobs.
             SavePixelationMode(3); // Default
             SaveViewDistanceMode(1); // Default
+            PlayerPrefs.DeleteKey(PrefKeyGfxVsyncMode);
+            PlayerPrefs.DeleteKey(PrefKeyGfxVsyncModeVersion);
+            ApplyVsyncMode();
 
             PlayerPrefs.Save();
         }

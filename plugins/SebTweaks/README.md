@@ -111,7 +111,7 @@ Install via Thunderstore / r2modman.
 Dependencies:
 
 - `BepInEx-BepInExPack-5.4.2304`
-- `shiibe-SebCore-1.0.2`
+- `shiibe-SebCore-1.1.0`
 
 ## In-game menu
 Open the in-game desktop icon `mods.exe`, then launch `Tweaks`.

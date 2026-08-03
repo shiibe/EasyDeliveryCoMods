@@ -1,3 +1,7 @@
+## 1.1.4
+- Use SebCore's shared cartridge launcher when opening the Wheel menu from calibration prompts.
+- Update dependency metadata for SebCore 1.1.0.
+
 ## 1.1.3
 - Add `Shift Mode: Hold` for H-shifters in Rally manual mode and SebTruck Story manual mode.
 - `Shift Mode: Toggle` keeps the previous press-to-shift/direct-gear behavior.

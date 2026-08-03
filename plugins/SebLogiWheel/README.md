@@ -72,8 +72,8 @@ Wheel bindings live in `SebBinds` (Binds -> Wheel). Driving feature extensions (
 ## Installation
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
-- `shiibe-SebCore-1.0.2`
-- `shiibe-SebBinds-1.1.3`
+- `shiibe-SebCore-1.1.0`
+- `shiibe-SebBinds-1.1.4`
 
 Force Feedback (FFB)
 - Install Logitech G HUB (or older Logitech Gaming Software) so the wheel drivers/components are present.
@@ -118,4 +118,4 @@ The SDK fails to load or I get errors about missing DLLs.
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.2`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.3`

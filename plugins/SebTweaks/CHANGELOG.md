@@ -1,3 +1,6 @@
+## 1.1.1
+- Update dependency metadata for SebCore 1.1.0.
+
 ## 1.1.0
 - Rename Atmosphere page back to World and add Gravity multiplier.
 - Add Rally page with manual transmission and debug info toggles.

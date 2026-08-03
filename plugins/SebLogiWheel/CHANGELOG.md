@@ -1,3 +1,8 @@
+## 1.1.3
+- Use SebCore's shared cartridge window base, UI utilities, config migration helper, and Harmony patch helper.
+- Use SebCore cartridge launching for the Binds shortcut.
+- Update dependency metadata for SebCore 1.1.0 and SebBinds 1.1.4.
+
 ## 1.1.2
 - Activate the wheel-specific steering patches so wheel input bypasses the gamepad steering curve and smoothing path.
 - Seed default steering center calibration from the selected steering axis instead of hardcoded `lX`.

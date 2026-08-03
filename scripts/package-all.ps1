@@ -1,5 +1,4 @@
 param(
-    [Parameter(Mandatory = $true)]
     [string]$Version,
     [string]$Configuration = "Release",
     [string[]]$Only = @()
@@ -15,6 +14,7 @@ $plugins = @(
     @{ Name = "SebCore";     Csproj = "plugins/SebCore/src/SebCore/SebCore.csproj";     ExtraDlls = @(); },
     @{ Name = "SebBinds";    Csproj = "plugins/SebBinds/src/SebBinds/SebBinds.csproj";  ExtraDlls = @(); },
     @{ Name = "SebUltrawide";Csproj = "plugins/SebUltrawide/src/SebUltrawide/SebUltrawide.csproj"; ExtraDlls = @(); },
+    @{ Name = "SebTweaks";   Csproj = "plugins/SebTweaks/src/SebTweaks/SebTweaks.csproj"; ExtraDlls = @(); },
     @{ Name = "SebTruck";    Csproj = "plugins/SebTruck/src/SebTruck/SebTruck.csproj";  ExtraDlls = @(); },
     @{ Name = "SebLogiWheel";Csproj = "plugins/SebLogiWheel/src/SebLogiWheel/SebLogiWheel.csproj"; ExtraDlls = @("LogitechSteeringWheelEnginesWrapper.dll"); }
 )
@@ -48,6 +48,17 @@ function Write-ManifestWithVersion($srcManifestPath, $dstManifestPath, $version)
     $manifest = Get-Content $srcManifestPath -Raw | ConvertFrom-Json
     $manifest.version_number = $version
     $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $dstManifestPath
+}
+
+function Read-ManifestVersion([string]$manifestPath)
+{
+    $raw = Get-Content -Path $manifestPath -Raw
+    $m = [regex]::Match($raw, '"version_number"\s*:\s*"(?<v>\d+\.\d+\.\d+)"')
+    if (-not $m.Success)
+    {
+        throw "Could not find version_number in $manifestPath"
+    }
+    return $m.Groups["v"].Value
 }
 
 function Write-ChangelogWithHeader($srcChangelogPath, $dstChangelogPath, $version)
@@ -94,6 +105,12 @@ foreach ($p in $plugins)
 
     Write-Host "Packaging $name..."
 
+    $packageVersion = $Version
+    if ([string]::IsNullOrWhiteSpace($packageVersion))
+    {
+        $packageVersion = Read-ManifestVersion $manifestPath
+    }
+
     $csprojPath = Join-Path $repoRoot $p.Csproj
     $outputDir = Join-Path (Split-Path -Parent $csprojPath) ("bin\\" + $Configuration + "\\net472")
     $dllPath = Join-Path $outputDir ($name + ".dll")
@@ -134,12 +151,12 @@ foreach ($p in $plugins)
         Copy-Item $emissivesDir -Destination (Join-Path $stagePlugins "emissives") -Recurse -Force
     }
 
-    Write-ManifestWithVersion $manifestPath (Join-Path $stage "manifest.json") $Version
+    Write-ManifestWithVersion $manifestPath (Join-Path $stage "manifest.json") $packageVersion
     Copy-Item $readmePath -Destination (Join-Path $stage "README.md") -Force
-    Write-ChangelogWithHeader $changelogPath (Join-Path $stage "CHANGELOG.md") $Version
+    Write-ChangelogWithHeader $changelogPath (Join-Path $stage "CHANGELOG.md") $packageVersion
     Copy-Item $iconPath -Destination (Join-Path $stage "icon.png") -Force
 
-    $zipPath = Join-Path $distRoot ("${name}_${Version}.zip")
+    $zipPath = Join-Path $distRoot ("${name}_${packageVersion}.zip")
     Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zipPath
     Write-Host "Created: $zipPath"
 }

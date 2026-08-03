@@ -1,7 +1,4 @@
 using HarmonyLib;
-using System;
-using System.IO;
-using BepInEx;
 using UnityEngine;
 
 namespace SebUltrawide
@@ -12,7 +9,7 @@ namespace SebUltrawide
         {
             _log = Logger;
 
-            MigrateConfigIfNeeded(oldGuid: "shibe.easydeliveryco.ultrawide", newGuid: PluginGuid);
+            SebCore.ConfigUtil.CopyLegacyConfigIfNeeded(oldGuid: "shibe.easydeliveryco.ultrawide", newGuid: PluginGuid);
             _aspectRatio = Config.Bind(
                 "General",
                 "aspect_ratio",
@@ -62,29 +59,6 @@ namespace SebUltrawide
             PatchByName(harmony, "sTeleporter", "Teleport", postfix: nameof(Steleporter_Teleport_Postfix));
             // Icon/menu launching is handled by SebCore.
             // Fog controls moved out of this plugin.
-        }
-
-        private static void MigrateConfigIfNeeded(string oldGuid, string newGuid)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(oldGuid) || string.IsNullOrWhiteSpace(newGuid) || string.Equals(oldGuid, newGuid, StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-
-                string cfgDir = Paths.ConfigPath;
-                string oldPath = Path.Combine(cfgDir, oldGuid + ".cfg");
-                string newPath = Path.Combine(cfgDir, newGuid + ".cfg");
-
-                if (File.Exists(oldPath) && !File.Exists(newPath))
-                {
-                    File.Copy(oldPath, newPath);
-                }
-            }
-            catch
-            {
-            }
         }
 
         private static bool ShouldOverrideSplitScreen()
