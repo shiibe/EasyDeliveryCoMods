@@ -1,3 +1,7 @@
+## 1.1.1
+- Add VSync control to the Graphics menu using the shared SebTweaks VSync preference keys.
+- Use SebCore's shared cartridge window base, UI utilities, config migration helper, and Harmony patch helper.
+
 ## 1.1.0
 - Add compatibility with the 2.0 game update.
 - Fix Rally mode title screen camera.

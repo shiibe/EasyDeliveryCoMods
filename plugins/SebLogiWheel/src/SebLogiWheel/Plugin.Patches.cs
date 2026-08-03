@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -16,7 +14,7 @@ namespace SebLogiWheel
             _log = Logger;
             _instance = this;
 
-            MigrateConfigIfNeeded(oldGuid: "shibe.easydeliveryco.logiwheel", newGuid: PluginGuid);
+            SebCore.ConfigUtil.CopyLegacyConfigIfNeeded(oldGuid: "shibe.easydeliveryco.logiwheel", newGuid: PluginGuid);
 
             _logDetectedDevices = Config.Bind("Debug", "log_detected_devices", true, "Log joystick names detected by Unity on startup.");
             _debugLogging = Config.Bind("Debug", "debug_logging", false, "Log debug information.");
@@ -37,29 +35,6 @@ namespace SebLogiWheel
             TryInitLogitech();
 
             _log.LogInfo("SebLogiWheel loaded.");
-        }
-
-        private static void MigrateConfigIfNeeded(string oldGuid, string newGuid)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(oldGuid) || string.IsNullOrWhiteSpace(newGuid) || string.Equals(oldGuid, newGuid, StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-
-                string cfgDir = Paths.ConfigPath;
-                string oldPath = Path.Combine(cfgDir, oldGuid + ".cfg");
-                string newPath = Path.Combine(cfgDir, newGuid + ".cfg");
-
-                if (File.Exists(oldPath) && !File.Exists(newPath))
-                {
-                    File.Copy(oldPath, newPath);
-                }
-            }
-            catch
-            {
-            }
         }
 
         private void Update()

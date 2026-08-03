@@ -1,6 +1,6 @@
 {
   "name": "SebCore",
-  "version_number": "1.0.2",
+  "version_number": "1.1.0",
   "website_url": "https://github.com/shiibe/EasyDeliveryCoMods",
   "description": "Menu/launcher and shared utilities/APIs for Easy Delivery Co mods.",
   "dependencies": [

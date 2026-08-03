@@ -59,8 +59,8 @@ SebTruck adds driving upgrades like manual transmission, Rally transmission sett
 ## Installation
 Dependencies
 - `BepInEx-BepInExPack-5.4.2304`
-- `shiibe-SebCore-1.0.2`
-- `shiibe-SebBinds-1.1.3`
+- `shiibe-SebCore-1.1.0`
+- `shiibe-SebBinds-1.1.4`
 
 Install
 - r2modman/Thunderstore: https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/
@@ -101,4 +101,4 @@ Backup Alarm page:
 
 ## Build
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
-- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.5`
+- Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1 -Version 1.1.6`

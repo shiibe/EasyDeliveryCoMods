@@ -1,19 +1,15 @@
 using System;
 using System.Text;
+using SebCore;
 using UnityEngine;
 
 namespace SebLogiWheel
 {
-    public class WheelMenuWindow : MonoBehaviour
+    public class WheelMenuWindow : CartridgeWindowBase
     {
         public const string FileName = "wheel";
         public const string ListenerName = "G920Menu";
         public const string ListenerData = "listener_G920Menu";
-
-        private float _mouseYLock;
-        private UIUtil _util;
-
-        private DesktopDotExe.WindowView _view;
 
         private Page _page;
         private CalStep _calStep;
@@ -42,15 +38,8 @@ namespace SebLogiWheel
             Bindings = 6
         }
 
-        public void FrameUpdate(DesktopDotExe.WindowView view)
+        public override void FrameUpdate(DesktopDotExe.WindowView view)
         {
-            if (view == null)
-            {
-                return;
-            }
-
-            _view = view;
-
             // Allow SebBinds to deep-link into the calibration wizard for pedals.
             if (Plugin.ConsumeOpenCalibrationWizardRequest())
             {
@@ -63,29 +52,10 @@ namespace SebLogiWheel
                 _page = Page.Bindings;
             }
 
-            _util ??= new UIUtil();
-
-            _util.M = view.M;
-            _util.R = view.R;
-            _util.Nav = view.M.nav;
-
-            Rect p = new Rect(view.position * 8f, view.size * 8f);
-            p.position += new Vector2(8f, 8f);
-
-            if (_util.M.mouseButtonUp)
-            {
-                _mouseYLock = 0f;
-            }
-
-            if (_mouseYLock > 0f)
-            {
-                _util.M.mouse.y = _mouseYLock;
-            }
-
-            DrawMenu(p);
+            base.FrameUpdate(view);
         }
 
-        public void BackButtonPressed()
+        public override void BackButtonPressed()
         {
             if (_page == Page.CalibrationWizard)
             {
@@ -102,11 +72,10 @@ namespace SebLogiWheel
             }
 
             // From the main page, return to SebCore.
-            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, _util?.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
-            _view?.Kill();
+            ReturnToSebCoreAndClose();
         }
 
-        private void DrawMenu(Rect p)
+        protected override void DrawWindow(Rect p)
         {
             float center = p.x + p.width / 2f - 16f;
             float y = p.y + 10f;
@@ -119,7 +88,7 @@ namespace SebLogiWheel
 
             if (_page == Page.Main)
             {
-                _util.Label("Wheel Settings", p.x + p.width / 2f, y);
+                Util.Label("Wheel Settings", p.x + p.width / 2f, y);
                 y += line + sectionGap;
             }
 
@@ -155,34 +124,31 @@ namespace SebLogiWheel
 
             // Main navigation buttons
             float btnGap = 22f;
-            if (_util.FancyButton("Button Binds", cx, y))
+            if (Util.FancyButton("Button Binds", cx, y))
             {
-                if (SebCore.CartridgeApps.EnsureListener(_util.M, SebCore.CartridgeApps.Binds))
-                {
-                    SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "binds", "listener_SebBindsMenu");
-                }
+                SebCore.CartridgeApps.TryOpen(Util.M, Util.R, SebCore.CartridgeApps.Binds);
             }
 
             y += btnGap;
-            if (_util.FancyButton("Axis Mapping", cx, y))
+            if (Util.FancyButton("Axis Mapping", cx, y))
             {
                 _page = Page.Bindings;
             }
 
             y += btnGap;
-            if (_util.FancyButton("Force Feedback", cx, y))
+            if (Util.FancyButton("Force Feedback", cx, y))
             {
                 _page = Page.Ffb;
             }
 
             y += btnGap;
-            if (_util.FancyButton("Steering", cx, y))
+            if (Util.FancyButton("Steering", cx, y))
             {
                 _page = Page.Steering;
             }
 
             y += btnGap;
-            if (_util.FancyButton("Calibration", cx, y))
+            if (Util.FancyButton("Calibration", cx, y))
             {
                 _page = Page.Calibration;
             }
@@ -191,32 +157,31 @@ namespace SebLogiWheel
             float statusY = p.y + p.height - 66f;
             float retryY = p.y + p.height - 54f;
             float backY = p.y + p.height - 18f;
-            _util.Label("Logitech SDK: " + Plugin.GetLogitechStatus(), cx, statusY);
-            if (_util.SimpleButton("Retry SDK", cx, retryY))
+            Util.Label("Logitech SDK: " + Plugin.GetLogitechStatus(), cx, statusY);
+            if (Util.SimpleButton("Retry SDK", cx, retryY))
             {
                 Plugin.ForceReinitLogitech(true);
             }
 
-            if (_util.SimpleButton("Back", cx, backY))
+            if (Util.SimpleButton("Back", cx, backY))
             {
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
-                _view?.Kill();
+                BackButtonPressed();
             }
         }
 
         private void DrawFfb(Rect p, float center, ref float y, float line, float sectionGap)
         {
-            _util.Label("Force Feedback", p.x + p.width / 2f, y);
+            Util.Label("Force Feedback", p.x + p.width / 2f, y);
             y += line;
 
             float cx = p.x + p.width / 2f;
             float resetY = p.y + p.height - 30f;
             float backY = p.y + p.height - 18f;
-            if (_util.SimpleButton("Reset Defaults", cx, resetY))
+            if (Util.SimpleButton("Reset Defaults", cx, resetY))
             {
                 Plugin.ResetFfbDefaults();
             }
-            if (_util.SimpleButton("Back", cx, backY))
+            if (Util.SimpleButton("Back", cx, backY))
             {
                 _page = Page.Main;
                 return;
@@ -225,7 +190,7 @@ namespace SebLogiWheel
             y += sectionGap;
 
             bool ffbEnabled = Plugin.GetFfbEnabled();
-            bool? newFfbEnabled = _util.Toggle("Enable FFB", ffbEnabled, center, y);
+            bool? newFfbEnabled = Util.Toggle("Enable FFB", ffbEnabled, center, y);
             if (newFfbEnabled.HasValue)
             {
                 Plugin.SetFfbEnabled(newFfbEnabled.Value);
@@ -233,8 +198,8 @@ namespace SebLogiWheel
             y += line;
 
             float overall = Plugin.GetFfbOverallGain();
-            _util.ValueLabel($"{Mathf.RoundToInt(overall * 100f)}%", p.x + p.width - 12f, y);
-            float? newOverall = _util.Slider("Strength", overall, center, y, ref _mouseYLock);
+            Util.ValueLabel($"{Mathf.RoundToInt(overall * 100f)}%", p.x + p.width - 12f, y);
+            float? newOverall = Util.Slider("Strength", overall, center, y, ref MouseYLock);
             if (newOverall.HasValue)
             {
                 Plugin.SetFfbOverallGain(newOverall.Value);
@@ -242,8 +207,8 @@ namespace SebLogiWheel
             y += line;
 
             float spring = Plugin.GetFfbSpringGain();
-            _util.ValueLabel($"{Mathf.RoundToInt(spring * 100f)}%", p.x + p.width - 12f, y);
-            float? newSpring = _util.Slider("Spring", spring, center, y, ref _mouseYLock);
+            Util.ValueLabel($"{Mathf.RoundToInt(spring * 100f)}%", p.x + p.width - 12f, y);
+            float? newSpring = Util.Slider("Spring", spring, center, y, ref MouseYLock);
             if (newSpring.HasValue)
             {
                 Plugin.SetFfbSpringGain(newSpring.Value);
@@ -251,8 +216,8 @@ namespace SebLogiWheel
             y += line;
 
             float damper = Plugin.GetFfbDamperGain();
-            _util.ValueLabel($"{Mathf.RoundToInt(damper * 100f)}%", p.x + p.width - 12f, y);
-            float? newDamper = _util.Slider("Damper", damper, center, y, ref _mouseYLock);
+            Util.ValueLabel($"{Mathf.RoundToInt(damper * 100f)}%", p.x + p.width - 12f, y);
+            float? newDamper = Util.Slider("Damper", damper, center, y, ref MouseYLock);
             if (newDamper.HasValue)
             {
                 Plugin.SetFfbDamperGain(newDamper.Value);
@@ -261,17 +226,17 @@ namespace SebLogiWheel
 
         private void DrawSteering(Rect p, float center, ref float y, float line, float sectionGap)
         {
-            _util.Label("Steering", p.x + p.width / 2f, y);
+            Util.Label("Steering", p.x + p.width / 2f, y);
             y += line;
 
             float cx = p.x + p.width / 2f;
             float resetY = p.y + p.height - 30f;
             float backY = p.y + p.height - 18f;
-            if (_util.SimpleButton("Reset Defaults", cx, resetY))
+            if (Util.SimpleButton("Reset Defaults", cx, resetY))
             {
                 Plugin.ResetSteeringDefaults();
             }
-            if (_util.SimpleButton("Back", cx, backY))
+            if (Util.SimpleButton("Back", cx, backY))
             {
                 _page = Page.Main;
                 return;
@@ -280,9 +245,9 @@ namespace SebLogiWheel
             y += sectionGap;
 
             int range = Plugin.GetWheelRange();
-            _util.ValueLabel($"{range} deg", p.x + p.width - 12f, y);
+            Util.ValueLabel($"{range} deg", p.x + p.width - 12f, y);
             float rangeValue = Mathf.InverseLerp(180f, 900f, range);
-            float? newRangeValue = _util.Slider("Range", rangeValue, center, y, ref _mouseYLock);
+            float? newRangeValue = Util.Slider("Range", rangeValue, center, y, ref MouseYLock);
             if (newRangeValue.HasValue)
             {
                 int newRange = Mathf.RoundToInt(Mathf.Lerp(180f, 900f, newRangeValue.Value));
@@ -292,9 +257,9 @@ namespace SebLogiWheel
             y += line;
 
             float steerGain = Plugin.GetSteeringGain();
-            _util.ValueLabel($"{steerGain:0.00}x", p.x + p.width - 12f, y);
+            Util.ValueLabel($"{steerGain:0.00}x", p.x + p.width - 12f, y);
             float steerGainNorm = Mathf.InverseLerp(0.5f, 3.0f, steerGain);
-            float? newSteerGainNorm = _util.Slider("Steer Sens", steerGainNorm, center, y, ref _mouseYLock);
+            float? newSteerGainNorm = Util.Slider("Steer Sens", steerGainNorm, center, y, ref MouseYLock);
             if (newSteerGainNorm.HasValue)
             {
                 Plugin.SetSteeringGain(Mathf.Lerp(0.5f, 3.0f, newSteerGainNorm.Value));
@@ -302,9 +267,9 @@ namespace SebLogiWheel
             y += line;
 
             float dz = Plugin.GetSteeringDeadzone();
-            _util.ValueLabel($"{Mathf.RoundToInt(dz * 100f)}%", p.x + p.width - 12f, y);
+            Util.ValueLabel($"{Mathf.RoundToInt(dz * 100f)}%", p.x + p.width - 12f, y);
             float dzNorm = Mathf.InverseLerp(0f, 0.12f, dz);
-            float? newDzNorm = _util.Slider("Deadzone", dzNorm, center, y, ref _mouseYLock);
+            float? newDzNorm = Util.Slider("Deadzone", dzNorm, center, y, ref MouseYLock);
             if (newDzNorm.HasValue)
             {
                 Plugin.SetSteeringDeadzone(Mathf.Lerp(0f, 0.12f, newDzNorm.Value));
@@ -313,13 +278,13 @@ namespace SebLogiWheel
 
         private void DrawBindings(Rect p, float center, ref float y, float line, float sectionGap)
         {
-            _util.Label("Axis Mapping", p.x + p.width / 2f, y);
+            Util.Label("Axis Mapping", p.x + p.width / 2f, y);
             y += line;
 
             float cx = p.x + p.width / 2f;
             float navY = p.y + p.height - 18f;
 
-            if (_util.SimpleButton("Back", cx, navY))
+            if (Util.SimpleButton("Back", cx, navY))
             {
                 _page = Page.Main;
                 return;
@@ -337,11 +302,11 @@ namespace SebLogiWheel
                 string status = Plugin.GetLogitechStatus();
                 if (status == "No wheel")
                 {
-                    _util.Label("No wheel detected.", p.x + p.width / 2f, y);
+                    Util.Label("No wheel detected.", p.x + p.width / 2f, y);
                 }
                 else
                 {
-                    _util.Label("Logitech SDK: " + status, p.x + p.width / 2f, y);
+                    Util.Label("Logitech SDK: " + status, p.x + p.width / 2f, y);
                 }
                 return;
             }
@@ -351,7 +316,7 @@ namespace SebLogiWheel
             Plugin.AxisId brakeAxis = Plugin.GetBrakeAxis();
             Plugin.AxisId clutchAxis = Plugin.GetClutchAxis();
 
-            if (_util.CycleButtonRaw("Steering", steerAxis.ToString(), center, y))
+            if (Util.CycleButtonRaw("Steering", steerAxis.ToString(), center, y))
             {
                 Plugin.SetSteeringAxis(NextAxis(steerAxis));
                 _calStep = CalStep.None;
@@ -359,9 +324,9 @@ namespace SebLogiWheel
 
             int rawSteer0 = Plugin.GetAxisValue(state, steerAxis);
             float steerNorm0 = Plugin.NormalizeSteering(rawSteer0);
-            _util.ValueLabel($"{steerNorm0:+0.00;-0.00;0.00}", p.x + p.width - 12f, y);
+            Util.ValueLabel($"{steerNorm0:+0.00;-0.00;0.00}", p.x + p.width - 12f, y);
             y += line;
-            if (_util.CycleButtonRaw("Throttle", throttleAxis.ToString(), center, y))
+            if (Util.CycleButtonRaw("Throttle", throttleAxis.ToString(), center, y))
             {
                 Plugin.SetThrottleAxis(NextAxis(throttleAxis));
                 _calStep = CalStep.None;
@@ -369,9 +334,9 @@ namespace SebLogiWheel
 
             int rawThr0 = Plugin.GetAxisValue(state, throttleAxis);
             float thrNorm0 = Plugin.NormalizePedal(rawThr0, Plugin.PedalKind.Throttle);
-            _util.ValueLabel($"{thrNorm0:0.00}", p.x + p.width - 12f, y);
+            Util.ValueLabel($"{thrNorm0:0.00}", p.x + p.width - 12f, y);
             y += line;
-            if (_util.CycleButtonRaw("Brake", brakeAxis.ToString(), center, y))
+            if (Util.CycleButtonRaw("Brake", brakeAxis.ToString(), center, y))
             {
                 Plugin.SetBrakeAxis(NextAxis(brakeAxis));
                 _calStep = CalStep.None;
@@ -379,10 +344,10 @@ namespace SebLogiWheel
 
             int rawBrk0 = Plugin.GetAxisValue(state, brakeAxis);
             float brkNorm0 = Plugin.NormalizePedal(rawBrk0, Plugin.PedalKind.Brake);
-            _util.ValueLabel($"{brkNorm0:0.00}", p.x + p.width - 12f, y);
+            Util.ValueLabel($"{brkNorm0:0.00}", p.x + p.width - 12f, y);
 
             y += line;
-            if (_util.CycleButtonRaw("Clutch", clutchAxis.ToString(), center, y))
+            if (Util.CycleButtonRaw("Clutch", clutchAxis.ToString(), center, y))
             {
                 Plugin.SetClutchAxis(NextAxis(clutchAxis));
                 _calStep = CalStep.None;
@@ -390,11 +355,11 @@ namespace SebLogiWheel
 
             int rawClu0 = Plugin.GetAxisValue(state, clutchAxis);
             float cluNorm0 = Plugin.NormalizePedal(rawClu0, Plugin.PedalKind.Clutch);
-            _util.ValueLabel($"{cluNorm0:0.00}", p.x + p.width - 12f, y);
+            Util.ValueLabel($"{cluNorm0:0.00}", p.x + p.width - 12f, y);
 
             y += line + sectionGap;
 
-            _util.Label("Live Axes", p.x + p.width / 2f, y);
+            Util.Label("Live Axes", p.x + p.width / 2f, y);
             y += line;
 
             string axes1 = $"lX={state.lX} lY={state.lY} lZ={state.lZ}";
@@ -402,24 +367,24 @@ namespace SebLogiWheel
             int s0 = state.rglSlider != null && state.rglSlider.Length > 0 ? state.rglSlider[0] : 0;
             int s1 = state.rglSlider != null && state.rglSlider.Length > 1 ? state.rglSlider[1] : 0;
             string axes3 = $"slider0={s0} slider1={s1}";
-            _util.Label(axes1, p.x + p.width / 2f, y);
+            Util.Label(axes1, p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label(axes2, p.x + p.width / 2f, y);
+            Util.Label(axes2, p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label(axes3, p.x + p.width / 2f, y);
+            Util.Label(axes3, p.x + p.width / 2f, y);
             y += line - 2f;
 
-            _util.Label(GetHeldButtonsLabel(state), p.x + p.width / 2f, y);
+            Util.Label(GetHeldButtonsLabel(state), p.x + p.width / 2f, y);
             y += line;
 
-            _util.Label($"steer={steerNorm0:+0.00;-0.00;0.00} thr={thrNorm0:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"steer={steerNorm0:+0.00;-0.00;0.00} thr={thrNorm0:0.00}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"brk={brkNorm0:0.00} clu={cluNorm0:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"brk={brkNorm0:0.00} clu={cluNorm0:0.00}", p.x + p.width / 2f, y);
         }
 
         private void DrawCalibration(Rect p, float center, ref float y, float line, float sectionGap)
         {
-            _util.Label("Calibration", p.x + p.width / 2f, y);
+            Util.Label("Calibration", p.x + p.width / 2f, y);
             y += line;
 
             float cx = p.x + p.width / 2f;
@@ -427,17 +392,17 @@ namespace SebLogiWheel
             float clearY = p.y + p.height - 30f;
             float wizardY = p.y + p.height - 72f;
 
-            if (_util.FancyButton("Calibrate", cx, wizardY))
+            if (Util.FancyButton("Calibrate", cx, wizardY))
             {
                 _calStep = CalStep.SteeringCenter;
                 _page = Page.CalibrationWizard;
             }
-            if (_util.SimpleButton("Clear Calibration", cx, clearY))
+            if (Util.SimpleButton("Clear Calibration", cx, clearY))
             {
                 Plugin.ClearCalibration();
                 _calStep = CalStep.None;
             }
-            if (_util.SimpleButton("Back", cx, backY))
+            if (Util.SimpleButton("Back", cx, backY))
             {
                 _calStep = CalStep.None;
                 _page = Page.Main;
@@ -450,16 +415,16 @@ namespace SebLogiWheel
                 string status = Plugin.GetLogitechStatus();
                 if (status == "No wheel")
                 {
-                    _util.Label("No wheel detected.", p.x + p.width / 2f, y);
+                    Util.Label("No wheel detected.", p.x + p.width / 2f, y);
                 }
                 else
                 {
-                    _util.Label("Logitech SDK: " + status, p.x + p.width / 2f, y);
+                    Util.Label("Logitech SDK: " + status, p.x + p.width / 2f, y);
                 }
                 return;
             }
 
-            _util.Label("Live Axes", p.x + p.width / 2f, y);
+            Util.Label("Live Axes", p.x + p.width / 2f, y);
             y += line;
 
             // show a few common axes so it's easy to find where the throttle lives
@@ -468,13 +433,13 @@ namespace SebLogiWheel
             int s0 = state.rglSlider != null && state.rglSlider.Length > 0 ? state.rglSlider[0] : 0;
             int s1 = state.rglSlider != null && state.rglSlider.Length > 1 ? state.rglSlider[1] : 0;
             string axes3 = $"slider0={s0} slider1={s1}";
-            _util.Label(axes1, p.x + p.width / 2f, y);
+            Util.Label(axes1, p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label(axes2, p.x + p.width / 2f, y);
+            Util.Label(axes2, p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label(axes3, p.x + p.width / 2f, y);
+            Util.Label(axes3, p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label(GetHeldButtonsLabel(state), p.x + p.width / 2f, y);
+            Util.Label(GetHeldButtonsLabel(state), p.x + p.width / 2f, y);
             y += line + sectionGap;
 
             // axis selection
@@ -486,23 +451,23 @@ namespace SebLogiWheel
             float brk = Plugin.NormalizePedal(rawBrk, Plugin.PedalKind.Brake);
             int rawClu = Plugin.GetAxisValue(state, Plugin.GetClutchAxis());
             float clu = Plugin.NormalizePedal(rawClu, Plugin.PedalKind.Clutch);
-            _util.Label($"Current throttle: {thr:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"Current throttle: {thr:0.00}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"Current brake: {brk:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"Current brake: {brk:0.00}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"Current clutch: {clu:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"Current clutch: {clu:0.00}", p.x + p.width / 2f, y);
             y += line;
         }
 
         private void DrawCalibrationWizard(Rect p, float center, ref float y, float line, float sectionGap)
         {
-            _util.Label("Calibration Wizard", p.x + p.width / 2f, y);
+            Util.Label("Calibration Wizard", p.x + p.width / 2f, y);
             y += line;
 
             float cx = p.x + p.width / 2f;
             float cancelY = p.y + p.height - 18f;
 
-            if (_util.SimpleButton("Cancel", cx, cancelY))
+            if (Util.SimpleButton("Cancel", cx, cancelY))
             {
                 _calStep = CalStep.None;
                 _page = Page.Calibration;
@@ -516,47 +481,47 @@ namespace SebLogiWheel
                 string status = Plugin.GetLogitechStatus();
                 if (status == "No wheel")
                 {
-                    _util.Label("No wheel detected.", p.x + p.width / 2f, y);
+                    Util.Label("No wheel detected.", p.x + p.width / 2f, y);
                 }
                 else
                 {
-                    _util.Label("Logitech SDK: " + status, p.x + p.width / 2f, y);
+                    Util.Label("Logitech SDK: " + status, p.x + p.width / 2f, y);
                 }
                 return;
             }
 
             string prompt = GetCalPrompt(_calStep);
-            _util.Label(prompt, p.x + p.width / 2f, y);
+            Util.Label(prompt, p.x + p.width / 2f, y);
             y += line + sectionGap;
 
             int rawSteer = Plugin.GetAxisValue(state, Plugin.GetSteeringAxis());
             int rawThr = Plugin.GetAxisValue(state, Plugin.GetThrottleAxis());
             int rawBrk = Plugin.GetAxisValue(state, Plugin.GetBrakeAxis());
             int rawClu = Plugin.GetAxisValue(state, Plugin.GetClutchAxis());
-            _util.Label($"steer={rawSteer}", p.x + p.width / 2f, y);
+            Util.Label($"steer={rawSteer}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"thr={rawThr}", p.x + p.width / 2f, y);
+            Util.Label($"thr={rawThr}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"brk={rawBrk}", p.x + p.width / 2f, y);
+            Util.Label($"brk={rawBrk}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"clu={rawClu}", p.x + p.width / 2f, y);
+            Util.Label($"clu={rawClu}", p.x + p.width / 2f, y);
             y += line + sectionGap;
 
             float steerNorm = Plugin.NormalizeSteering(rawSteer);
             float thrNorm = Plugin.NormalizePedal(rawThr, Plugin.PedalKind.Throttle);
             float brkNorm = Plugin.NormalizePedal(rawBrk, Plugin.PedalKind.Brake);
             float cluNorm = Plugin.NormalizePedal(rawClu, Plugin.PedalKind.Clutch);
-            _util.Label($"steer norm={steerNorm:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"steer norm={steerNorm:0.00}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"thr norm={thrNorm:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"thr norm={thrNorm:0.00}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"brk norm={brkNorm:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"brk norm={brkNorm:0.00}", p.x + p.width / 2f, y);
             y += line - 2f;
-            _util.Label($"clu norm={cluNorm:0.00}", p.x + p.width / 2f, y);
+            Util.Label($"clu norm={cluNorm:0.00}", p.x + p.width / 2f, y);
 
             y += line + sectionGap;
             float captureY = Mathf.Min(y, cancelY - 34f);
-            if (_util.FancyButton("Capture", cx, captureY))
+            if (Util.FancyButton("Capture", cx, captureY))
             {
                 if (Plugin.TryGetLogiState(out var captureState))
                 {

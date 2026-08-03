@@ -15,6 +15,16 @@ namespace SebCore
             R.fput(name, x, y);
         }
 
+        public void LabelOk(string name, float x, float y)
+        {
+            Label("+ " + name, x, y);
+        }
+
+        public void LabelErr(string name, float x, float y)
+        {
+            Label("! " + name, x, y);
+        }
+
         public void ValueLabel(string value, float x, float y)
         {
             R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
@@ -193,6 +203,12 @@ namespace SebCore
             R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
             R.fput(name, x - 4f, y);
             return false;
+        }
+
+        public bool CycleButton(string name, string value, float x, float y)
+        {
+            name = LocalizationDictionary.Translate(name);
+            return CycleButtonRaw(name, value, x, y);
         }
 
         public float? Slider(string name, float value, float x, float y, ref float mouseYLock)

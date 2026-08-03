@@ -8,6 +8,6 @@ namespace SebUltrawide
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebultrawide";
         public const string PluginName = "SebUltrawide";
-        public const string PluginVersion = "1.1.0";
+        public const string PluginVersion = "1.1.1";
     }
 }

@@ -225,5 +225,15 @@ namespace SebCore
             go.AddComponent(t);
             return true;
         }
+
+        public static bool TryOpen(DesktopDotExe desktop, MiniRenderer renderer, App app)
+        {
+            if (!EnsureListener(desktop, app))
+            {
+                return false;
+            }
+
+            return DesktopAppLauncher.TryOpenProgramListener(desktop, renderer, app.FileName, app.ListenerData);
+        }
     }
 }
