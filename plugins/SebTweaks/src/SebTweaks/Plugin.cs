@@ -11,7 +11,7 @@ namespace SebTweaks
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtweaks";
         public const string PluginName = "SebTweaks";
-        public const string PluginVersion = "1.1.1";
+        public const string PluginVersion = "1.1.2";
 
         private void Awake()
         {
@@ -44,7 +44,12 @@ namespace SebTweaks
 
             try
             {
-                new Harmony(PluginGuid).PatchAll();
+                var harmony = new Harmony(PluginGuid);
+                harmony.PatchAll();
+                PatchByName(harmony, "sFreeCam", "Start", postfix: nameof(SFreeCam_Start_Postfix_Graphics));
+                PatchByName(harmony, "ScreenSystem", "Init", postfix: nameof(ScreenSystem_Init_Postfix_Graphics));
+                PatchByName(harmony, "ScreenSystem", "DoTransition", postfix: nameof(ScreenSystem_DoTransition_Postfix_Graphics));
+                PatchByName(harmony, "sTeleporter", "Teleport", postfix: nameof(STeleporter_Teleport_Postfix_Graphics));
             }
             catch (System.Exception e)
             {
@@ -53,6 +58,11 @@ namespace SebTweaks
         }
 
         internal static BepInEx.Logging.ManualLogSource Log;
+
+        private static void PatchByName(Harmony harmony, string typeName, string methodName, string prefix = null, string postfix = null)
+        {
+            SebCore.HarmonyUtil.PatchByName(harmony, typeof(Plugin), typeName, methodName, prefix, postfix);
+        }
 
         private static readonly string[] MenuScenes =
         {

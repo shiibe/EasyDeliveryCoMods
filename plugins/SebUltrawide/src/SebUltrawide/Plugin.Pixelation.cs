@@ -21,6 +21,10 @@ namespace SebUltrawide
         private static int _pixelLastH;
         private static int _pixelLastRearW;
         private static int _pixelLastRearH;
+        private static int _pixelBaseW;
+        private static int _pixelBaseH;
+        private static int _pixelRearBaseW;
+        private static int _pixelRearBaseH;
 
         internal static void RefreshPixelation()
         {
@@ -136,15 +140,27 @@ namespace SebUltrawide
                 }
             }
 
-            if (_pixelDefaultRt == null && _pixelMainCamera != null && _pixelMainCamera.targetTexture != null)
+            if (_pixelDefaultRt == null && _pixelMainCamera != null && _pixelMainCamera.targetTexture != null && _pixelMainCamera.targetTexture != _pixelCustomRt)
             {
                 _pixelDefaultRt = _pixelMainCamera.targetTexture;
             }
 
-            if (_pixelDefaultRearRt == null && _pixelRearCamera != null && _pixelRearCamera.targetTexture != null)
+            if (_pixelDefaultRt == null && TryGetStableRenderTexture(_pixelScreenRenderer != null ? _pixelScreenRenderer.material.mainTexture : null, _pixelCustomRt, out RenderTexture screenRt))
+            {
+                _pixelDefaultRt = screenRt;
+            }
+
+            if (_pixelDefaultRearRt == null && _pixelRearCamera != null && _pixelRearCamera.targetTexture != null && _pixelRearCamera.targetTexture != _pixelCustomRearRt)
             {
                 _pixelDefaultRearRt = _pixelRearCamera.targetTexture;
             }
+
+            if (_pixelDefaultRearRt == null && TryGetStableRenderTexture(_pixelRearRenderer != null ? _pixelRearRenderer.material.mainTexture : null, _pixelCustomRearRt, out RenderTexture rearRt))
+            {
+                _pixelDefaultRearRt = rearRt;
+            }
+
+            CapturePixelationBaseDimensions();
         }
 
         private static bool TryGetActiveFreeCam(out Camera camera)
@@ -207,13 +223,107 @@ namespace SebUltrawide
                 return;
             }
 
+            RenderTexture oldCustom = _pixelCustomRt;
+            RestoreMainPixelTarget();
             ReleaseCustomRt(ref _pixelCustomRt, _pixelDefaultRt);
             _pixelMainCamera = camera;
-            _pixelDefaultRt = camera.targetTexture;
+            if (camera.targetTexture != null && camera.targetTexture != oldCustom)
+            {
+                _pixelDefaultRt = camera.targetTexture;
+            }
             _pixelLastMode = -1;
             _pixelLastW = 0;
             _pixelLastH = 0;
+            CapturePixelationBaseDimensions();
             LogDebug($"Switched pixelation source camera to {camera.name} ({camera.GetInstanceID()}).");
+        }
+
+        private static void RestoreMainPixelTarget()
+        {
+            if (_pixelMainCamera != null && _pixelCustomRt != null && _pixelMainCamera.targetTexture == _pixelCustomRt && _pixelDefaultRt != null)
+            {
+                _pixelMainCamera.targetTexture = _pixelDefaultRt;
+                if (_pixelScreenRenderer != null)
+                {
+                    SetMainTexture(_pixelScreenRenderer, _pixelDefaultRt);
+                }
+            }
+        }
+
+        private static void CapturePixelationBaseDimensions()
+        {
+            CaptureMainPixelationBaseDimensions();
+            CaptureRearPixelationBaseDimensions();
+        }
+
+        private static void CaptureMainPixelationBaseDimensions()
+        {
+            if (_pixelBaseW > 0 && _pixelBaseH > 0)
+            {
+                return;
+            }
+
+            if (TryGetTextureSize(_pixelScreenRenderer != null ? _pixelScreenRenderer.material.mainTexture : null, out int w, out int h))
+            {
+                _pixelBaseW = w;
+                _pixelBaseH = h;
+                return;
+            }
+
+            if (_pixelDefaultRt != null && _pixelDefaultRt != _pixelCustomRt)
+            {
+                _pixelBaseW = _pixelDefaultRt.width;
+                _pixelBaseH = _pixelDefaultRt.height;
+                return;
+            }
+
+            _pixelBaseW = 456;
+            _pixelBaseH = 256;
+        }
+
+        private static void CaptureRearPixelationBaseDimensions()
+        {
+            if (_pixelRearBaseW > 0 && _pixelRearBaseH > 0)
+            {
+                return;
+            }
+
+            if (TryGetTextureSize(_pixelRearRenderer != null ? _pixelRearRenderer.material.mainTexture : null, out int w, out int h))
+            {
+                _pixelRearBaseW = w;
+                _pixelRearBaseH = h;
+                return;
+            }
+
+            if (_pixelDefaultRearRt != null && _pixelDefaultRearRt != _pixelCustomRearRt)
+            {
+                _pixelRearBaseW = _pixelDefaultRearRt.width;
+                _pixelRearBaseH = _pixelDefaultRearRt.height;
+                return;
+            }
+
+            _pixelRearBaseW = 110;
+            _pixelRearBaseH = 32;
+        }
+
+        private static bool TryGetTextureSize(Texture texture, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
+            if (texture == null || texture == _pixelCustomRt || texture == _pixelCustomRearRt || texture.width <= 0 || texture.height <= 0)
+            {
+                return false;
+            }
+
+            width = texture.width;
+            height = texture.height;
+            return true;
+        }
+
+        private static bool TryGetStableRenderTexture(Texture texture, RenderTexture custom, out RenderTexture rt)
+        {
+            rt = texture as RenderTexture;
+            return rt != null && rt != custom && rt.width > 0 && rt.height > 0;
         }
 
         private static void ApplyPixelation()
@@ -230,6 +340,10 @@ namespace SebUltrawide
             {
                 return;
             }
+
+            CaptureMainPixelationBaseDimensions();
+            int baseW = _pixelBaseW > 0 ? _pixelBaseW : _pixelDefaultRt.width;
+            int baseH = _pixelBaseH > 0 ? _pixelBaseH : _pixelDefaultRt.height;
 
             if (mode == 3)
             {
@@ -250,20 +364,20 @@ namespace SebUltrawide
                     targetH = fullH;
                     break;
                 case 1:
-                    targetW = Mathf.Min(fullW, Mathf.Max(1, Mathf.RoundToInt(_pixelDefaultRt.width * 2.25f)));
-                    targetH = Mathf.Min(fullH, Mathf.Max(1, Mathf.RoundToInt(_pixelDefaultRt.height * 2.25f)));
+                    targetW = Mathf.Min(fullW, Mathf.Max(1, Mathf.RoundToInt(baseW * 2.25f)));
+                    targetH = Mathf.Min(fullH, Mathf.Max(1, Mathf.RoundToInt(baseH * 2.25f)));
                     break;
                 case 2:
-                    targetW = Mathf.Min(fullW, Mathf.Max(1, Mathf.RoundToInt(_pixelDefaultRt.width * 1.5f)));
-                    targetH = Mathf.Min(fullH, Mathf.Max(1, Mathf.RoundToInt(_pixelDefaultRt.height * 1.5f)));
+                    targetW = Mathf.Min(fullW, Mathf.Max(1, Mathf.RoundToInt(baseW * 1.5f)));
+                    targetH = Mathf.Min(fullH, Mathf.Max(1, Mathf.RoundToInt(baseH * 1.5f)));
                     break;
                 case 4:
-                    targetW = Mathf.Max(1, Mathf.RoundToInt(_pixelDefaultRt.width * 0.75f));
-                    targetH = Mathf.Max(1, Mathf.RoundToInt(_pixelDefaultRt.height * 0.75f));
+                    targetW = Mathf.Max(1, Mathf.RoundToInt(baseW * 0.75f));
+                    targetH = Mathf.Max(1, Mathf.RoundToInt(baseH * 0.75f));
                     break;
                 default:
-                    targetW = _pixelDefaultRt.width;
-                    targetH = _pixelDefaultRt.height;
+                    targetW = baseW;
+                    targetH = baseH;
                     break;
             }
 
@@ -294,6 +408,8 @@ namespace SebUltrawide
                 return;
             }
 
+            CaptureRearPixelationBaseDimensions();
+
             if (mode == 3)
             {
                 ReleaseCustomRt(ref _pixelCustomRearRt, _pixelDefaultRearRt);
@@ -305,8 +421,8 @@ namespace SebUltrawide
             int fullW = GetFullWidth(_pixelRearCamera, _pixelDefaultRearRt);
             int fullH = GetFullHeight(_pixelRearCamera, _pixelDefaultRearRt);
 
-            int baseW = _pixelDefaultRearRt.width;
-            int baseH = _pixelDefaultRearRt.height;
+            int baseW = _pixelRearBaseW > 0 ? _pixelRearBaseW : _pixelDefaultRearRt.width;
+            int baseH = _pixelRearBaseH > 0 ? _pixelRearBaseH : _pixelDefaultRearRt.height;
 
             int targetW;
             int targetH;

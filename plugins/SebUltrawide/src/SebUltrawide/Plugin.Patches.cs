@@ -41,6 +41,7 @@ namespace SebUltrawide
             PatchByName(harmony, "sOptionsMenu", "FrameUpdate", postfix: nameof(PresentationChange_Postfix));
             PatchByName(harmony, "sEasyRally", "Update", postfix: nameof(PresentationChange_Postfix));
             PatchByName(harmony, "sEasyCinema", "Update", postfix: nameof(SEasyCinema_Update_Postfix));
+            PatchByName(harmony, "sFreeCam", "Start", postfix: nameof(SFreeCam_Start_Postfix));
             PatchByName(harmony, "sFreeCam", "ToggleFreeCam", postfix: nameof(SFreeCam_ToggleFreeCam_Postfix));
             PatchByName(harmony, "sCameraController", "Update", postfix: nameof(SCameraController_Update_Postfix));
             PatchByName(harmony, "sCameraController", "LateUpdate", postfix: nameof(SCameraController_LateUpdate_Postfix));
@@ -204,7 +205,13 @@ namespace SebUltrawide
 
         private static void SFreeCam_ToggleFreeCam_Postfix()
         {
-            RefreshPixelation();
+            ApplySavedMenuSettings();
+            ApplyAllCameras();
+        }
+
+        private static void SFreeCam_Start_Postfix()
+        {
+            ApplySavedMenuSettings();
             ApplyAllCameras();
         }
 
@@ -283,7 +290,7 @@ namespace SebUltrawide
             menuCamera = ResolveMenuCamera(menuCamera);
             ScaleBackdropFromField(__instance, "backdrop", menuCamera, "ScreenSystem");
             ScaleOverlaySprites(__instance as Component, menuCamera, "ScreenSystem");
-            RefreshPixelation();
+            ApplySavedMenuSettings();
         }
 
         private static void ScreenSystem_DoTransition_Postfix(object __instance)
@@ -298,7 +305,7 @@ namespace SebUltrawide
             menuCamera = ResolveMenuCamera(menuCamera);
             ScaleBackdropFromField(__instance, "backdrop", menuCamera, "ScreenSystem");
             ScaleOverlaySprites(__instance as Component, menuCamera, "ScreenSystem");
-            RefreshPixelation();
+            ApplySavedMenuSettings();
         }
 
         private static void IntroDotExe_Setup_Postfix(object __instance)

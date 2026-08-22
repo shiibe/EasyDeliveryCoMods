@@ -10,6 +10,9 @@ namespace SebUltrawide
     {
         private static readonly Dictionary<int, Transform> HudDisplayTransforms = new Dictionary<int, Transform>();
         private static readonly Dictionary<int, int> HudMiniRendererOriginalWidths = new Dictionary<int, int>();
+        private static Type _mirrorModeType;
+        private static FieldInfo _mirrorModeMirroredField;
+        private static bool _mirrorModeLookupDone;
 
         internal static void RefreshHudDisplayScale()
         {
@@ -203,51 +206,37 @@ namespace SebUltrawide
                     return false;
                 }
 
-                Vector3 p = cam.WorldToScreenPoint(worldPoint);
-                p.z = 0f;
-
-                float srcW = GetCameraPixelWidth(cam);
-                float srcH = GetCameraPixelHeight(cam);
-                if (srcW <= 0.01f || srcH <= 0.01f)
+                float camWidth = GetCameraPixelWidth(cam);
+                float camHeight = GetCameraPixelHeight(cam);
+                if (camWidth <= 0.01f || camHeight <= 0.01f)
                 {
                     return true;
                 }
-
-                float refW = srcW;
-                float refH = srcH;
-
-                if (_pixelDefaultRt != null && _pixelDefaultRt.width > 0 && _pixelDefaultRt.height > 0)
-                {
-                    refW = _pixelDefaultRt.width;
-                    refH = _pixelDefaultRt.height;
-                }
-                else
-                {
-                    refW = 456f;
-                    refH = 256f;
-                }
-
-                if (Mathf.Abs(srcW - refW) < 0.5f && Mathf.Abs(srcH - refH) < 0.5f)
-                {
-                    return true;
-                }
-
-                float x = p.x * (refW / srcW);
-                float y = p.y * (refH / srcH);
-                y = refH - y;
-                x -= refW * 0.5f;
-                y -= refH * 0.5f;
 
                 if (!TryGetHudMiniRendererSize(__instance, out float hudW, out float hudH))
                 {
-                    hudW = srcW;
-                    hudH = srcH;
+                    return true;
                 }
 
-                float outX = x + hudW * 0.5f;
-                float outY = y + hudH * 0.5f;
+                Vector3 screenPoint = cam.WorldToScreenPoint(worldPoint);
+                screenPoint.y = camHeight - screenPoint.y;
 
-                __result = new Vector2(Mathf.Round(outX), Mathf.Round(outY));
+                screenPoint.x -= camWidth * 0.5f;
+                screenPoint.y -= camHeight * 0.5f;
+
+                float scaleX = hudW / camWidth;
+                float scaleY = hudH / camHeight;
+
+                __result = new Vector2(
+                    screenPoint.x * scaleX + hudW * 0.5f,
+                    screenPoint.y * scaleY + hudH * 0.5f
+                );
+
+                if (IsMirrorModeMirrored())
+                {
+                    __result.x = hudW - __result.x;
+                }
+
                 return false;
             }
             catch
@@ -376,6 +365,25 @@ namespace SebUltrawide
             width = Convert.ToSingle(fields.Width.GetValue(miniRenderer));
             height = Convert.ToSingle(fields.Height.GetValue(miniRenderer));
             return width > 0.01f && height > 0.01f;
+        }
+
+        private static bool IsMirrorModeMirrored()
+        {
+            try
+            {
+                if (!_mirrorModeLookupDone)
+                {
+                    _mirrorModeLookupDone = true;
+                    _mirrorModeType = AccessTools.TypeByName("MirrorMode");
+                    _mirrorModeMirroredField = _mirrorModeType != null ? AccessTools.Field(_mirrorModeType, "mirrored") : null;
+                }
+
+                return _mirrorModeMirroredField != null && Convert.ToBoolean(_mirrorModeMirroredField.GetValue(null));
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static float GetCameraPixelWidth(Camera cam)
