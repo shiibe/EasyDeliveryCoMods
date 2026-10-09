@@ -28,7 +28,7 @@ namespace SebUltrawide
                 MouseYLock = 0f;
             }
 
-            if (Util.SimpleButtonRaw("Back", cx, navY))
+            if (Util.NavigationFooter(p, paging: false) == UIUtil.NavigationAction.Back)
             {
                 BackButtonPressed();
                 return;
@@ -47,12 +47,10 @@ namespace SebUltrawide
             float currentFov = GetCurrentCameraFov();
 
             float thirdFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: false, fallback: currentFov), fovMin, fovMax);
-            float thirdValue = Mathf.InverseLerp(fovMin, fovMax, thirdFov);
-            Util.ValueLabel($"{thirdFov:0}", p.x + p.width - 12f, y);
-            float? newThirdValue = Util.Slider("3rd Person", thirdValue, center, y, ref MouseYLock);
+            float? newThirdValue = Util.SliderRow("3rd Person", thirdFov, fovMin, fovMax, $"{thirdFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newThirdValue.HasValue)
             {
-                float newFov = Mathf.Lerp(fovMin, fovMax, newThirdValue.Value);
+                float newFov = newThirdValue.Value;
                 Plugin.SaveFovOverride(firstPerson: false, fov: newFov);
             }
 
@@ -60,12 +58,10 @@ namespace SebUltrawide
 
             // The game's default 1st-person FOV is higher than the menu camera's.
             float firstFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
-            float firstValue = Mathf.InverseLerp(fovMin, fovMax, firstFov);
-            Util.ValueLabel($"{firstFov:0}", p.x + p.width - 12f, y);
-            float? newFirstValue = Util.Slider("1st Person", firstValue, center, y, ref MouseYLock);
+            float? newFirstValue = Util.SliderRow("1st Person", firstFov, fovMin, fovMax, $"{firstFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newFirstValue.HasValue)
             {
-                float newFov = Mathf.Lerp(fovMin, fovMax, newFirstValue.Value);
+                float newFov = newFirstValue.Value;
                 Plugin.SaveFovOverride(firstPerson: true, fov: newFov);
             }
 
@@ -84,13 +80,10 @@ namespace SebUltrawide
                 4 => "Large",
                 _ => "Default"
             };
-            Util.ValueLabel(pixelLabel, p.x + p.width - 12f, y);
-
-            float pixelValue = Mathf.Clamp01(pixelMode / 4f);
-            float? newPixelValue = Util.Slider("Pixelation", pixelValue, center, y, ref MouseYLock);
+            int? newPixelValue = Util.ChoiceSliderRow("Pixelation", pixelMode, 4, pixelLabel, center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newPixelValue.HasValue)
             {
-                int newMode = Mathf.Clamp(Mathf.RoundToInt(newPixelValue.Value * 4f), 0, 4);
+                int newMode = newPixelValue.Value;
                 if (newMode != pixelMode)
                 {
                     Plugin.SavePixelationMode(newMode);
@@ -108,13 +101,10 @@ namespace SebUltrawide
                 3 => "Max",
                 _ => "Default"
             };
-            Util.ValueLabel(viewLabel, p.x + p.width - 12f, y);
-
-            float viewValue = Mathf.Clamp01(viewMode / 3f);
-            float? newViewValue = Util.Slider("View Distance", viewValue, center, y, ref MouseYLock);
+            int? newViewValue = Util.ChoiceSliderRow("View Distance", viewMode, 3, viewLabel, center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newViewValue.HasValue)
             {
-                int newMode = Mathf.Clamp(Mathf.RoundToInt(newViewValue.Value * 3f), 0, 3);
+                int newMode = newViewValue.Value;
                 if (newMode != viewMode)
                 {
                     Plugin.SaveViewDistanceMode(newMode);
@@ -125,8 +115,7 @@ namespace SebUltrawide
 
             int vsMode = Plugin.GetVsyncMode();
             string vsLabel = vsMode == 1 ? "On" : "Off";
-            Util.ValueLabel(vsLabel, p.x + p.width - 12f, y);
-            float? newVsyncValue = Util.Slider("VSync", vsMode == 1 ? 1f : 0f, center, y, ref MouseYLock);
+            float? newVsyncValue = Util.SliderRow("VSync", vsMode == 1 ? 1f : 0f, 0f, 1f, vsLabel, center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newVsyncValue.HasValue)
             {
                 Plugin.SetVsyncMode(newVsyncValue.Value >= 0.5f ? 1 : 0);

@@ -1,4 +1,5 @@
 ## 1.1.4
+- Use SebCore's shared slider rows for steering and force-feedback settings.
 - Require the native Logitech wrapper DLL when packaging releases.
 - Update dependencies for the binding and preference reset fixes.
 

@@ -1,3 +1,4 @@
+using static SebCore.ModPrefs;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
@@ -160,30 +161,6 @@ namespace SebTweaks
         // PrefKeyGfxFpsCap: 0=Default, -1=Uncapped, >0=cap
         internal const string PrefKeyGfxFpsMode = "SebTweaks_Gfx_FpsMode"; // Legacy
         internal const string PrefKeyGfxFpsCap = "SebTweaks_Gfx_FpsCap";
-
-        internal static float GetFloat(string key, float def)
-        {
-            try { return PlayerPrefs.GetFloat(key, def); }
-            catch { return def; }
-        }
-
-        internal static void SetFloat(string key, float value)
-        {
-            try { PlayerPrefs.SetFloat(key, value); }
-            catch { }
-        }
-
-        internal static int GetInt(string key, int def)
-        {
-            try { return PlayerPrefs.GetInt(key, def); }
-            catch { return def; }
-        }
-
-        internal static void SetInt(string key, int value)
-        {
-            try { PlayerPrefs.SetInt(key, value); }
-            catch { }
-        }
 
         internal static float TimeUserUntil;
 

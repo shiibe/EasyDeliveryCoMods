@@ -1224,6 +1224,7 @@ namespace SebTruck
 
         internal static void ResetVehicleDefaults()
         {
+            SetMirrorQuality(0);
             SetManualTransmissionEnabled(false);
             SetRallyManualTransmissionEnabled(false);
             SetManualGearCount(5);
@@ -1280,6 +1281,7 @@ namespace SebTruck
 
         internal static void ResetTweaksDefaults()
         {
+            SetMirrorQuality(0);
             SetManualSpeedMultForward(1.0f);
             SetManualSpeedMultReverse(1.0f);
             SetHeadlightIntensityMult(1.0f);

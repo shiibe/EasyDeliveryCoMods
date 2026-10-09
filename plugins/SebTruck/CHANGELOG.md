@@ -1,4 +1,6 @@
 ## 1.1.7
+- Add Original/2x/4x/8x rear-view mirror resolution options in Truck > Tweaks, with original resolution restored on reset or disable.
+- Use SebCore's shared slider rows and page controls without changing settings or page behavior.
 - Reject malformed ignition WAV chunks and validate PCM16 format before loading sound.
 - Update dependencies for the binding and preference reset fixes.
 

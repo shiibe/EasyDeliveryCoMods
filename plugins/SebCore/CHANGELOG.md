@@ -1,4 +1,5 @@
 ## 1.1.1
+- Add shared ranged and discrete slider rows, navigation footers, and page indicators for the mod suite.
 - Fix global preference reset to clear all binding schemes, axes, and runtime caches, then restore defaults.
 - Limit preference reset to this mod suite and validate release packaging before creating archives.
 

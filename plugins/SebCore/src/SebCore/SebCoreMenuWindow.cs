@@ -190,39 +190,23 @@ namespace SebCore
                 return;
             }
 
+            var navigation = _util.NavigationFooter(p, needsPaging, sideInset: 44f);
+            if (navigation == UIUtil.NavigationAction.Previous && _cartridgePageIndex > 0)
+            {
+                _cartridgePageIndex--;
+            }
+            if (navigation == UIUtil.NavigationAction.Back)
+            {
+                CloseWindow();
+                return;
+            }
+            if (navigation == UIUtil.NavigationAction.Next && _cartridgePageIndex < pageCount - 1)
+            {
+                _cartridgePageIndex++;
+            }
             if (needsPaging)
             {
-                float prevX = p.x + 44f;
-                float nextX = p.x + p.width - 44f;
-                if (_util.SimpleButtonRaw("Prev", prevX, navY))
-                {
-                    if (_cartridgePageIndex > 0)
-                    {
-                        _cartridgePageIndex--;
-                    }
-                }
-                if (_util.SimpleButtonRaw("Back", cx, navY))
-                {
-                    CloseWindow();
-                    return;
-                }
-                if (_util.SimpleButtonRaw("Next", nextX, navY))
-                {
-                    if (_cartridgePageIndex < pageCount - 1)
-                    {
-                        _cartridgePageIndex++;
-                    }
-                }
-
-                _util.Label((_cartridgePageIndex + 1) + "/" + pageCount, p.x + p.width - 18f, p.y + 10f);
-            }
-            else
-            {
-                if (_util.SimpleButtonRaw("Back", cx, navY))
-                {
-                    CloseWindow();
-                    return;
-                }
+                _util.PageIndicator(p, _cartridgePageIndex, pageCount);
             }
         }
 

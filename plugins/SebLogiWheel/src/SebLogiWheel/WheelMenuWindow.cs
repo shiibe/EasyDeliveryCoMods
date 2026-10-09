@@ -198,8 +198,7 @@ namespace SebLogiWheel
             y += line;
 
             float overall = Plugin.GetFfbOverallGain();
-            Util.ValueLabel($"{Mathf.RoundToInt(overall * 100f)}%", p.x + p.width - 12f, y);
-            float? newOverall = Util.Slider("Strength", overall, center, y, ref MouseYLock);
+            float? newOverall = Util.SliderRow("Strength", overall, 0f, 1f, $"{Mathf.RoundToInt(overall * 100f)}%", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newOverall.HasValue)
             {
                 Plugin.SetFfbOverallGain(newOverall.Value);
@@ -207,8 +206,7 @@ namespace SebLogiWheel
             y += line;
 
             float spring = Plugin.GetFfbSpringGain();
-            Util.ValueLabel($"{Mathf.RoundToInt(spring * 100f)}%", p.x + p.width - 12f, y);
-            float? newSpring = Util.Slider("Spring", spring, center, y, ref MouseYLock);
+            float? newSpring = Util.SliderRow("Spring", spring, 0f, 1f, $"{Mathf.RoundToInt(spring * 100f)}%", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newSpring.HasValue)
             {
                 Plugin.SetFfbSpringGain(newSpring.Value);
@@ -216,8 +214,7 @@ namespace SebLogiWheel
             y += line;
 
             float damper = Plugin.GetFfbDamperGain();
-            Util.ValueLabel($"{Mathf.RoundToInt(damper * 100f)}%", p.x + p.width - 12f, y);
-            float? newDamper = Util.Slider("Damper", damper, center, y, ref MouseYLock);
+            float? newDamper = Util.SliderRow("Damper", damper, 0f, 1f, $"{Mathf.RoundToInt(damper * 100f)}%", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newDamper.HasValue)
             {
                 Plugin.SetFfbDamperGain(newDamper.Value);
@@ -245,34 +242,28 @@ namespace SebLogiWheel
             y += sectionGap;
 
             int range = Plugin.GetWheelRange();
-            Util.ValueLabel($"{range} deg", p.x + p.width - 12f, y);
-            float rangeValue = Mathf.InverseLerp(180f, 900f, range);
-            float? newRangeValue = Util.Slider("Range", rangeValue, center, y, ref MouseYLock);
+            float? newRangeValue = Util.SliderRow("Range", range, 180f, 900f, $"{range} deg", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newRangeValue.HasValue)
             {
-                int newRange = Mathf.RoundToInt(Mathf.Lerp(180f, 900f, newRangeValue.Value));
+                int newRange = Mathf.RoundToInt(newRangeValue.Value);
                 newRange = Mathf.Clamp(newRange, 180, 900);
                 Plugin.SetWheelRange(newRange);
             }
             y += line;
 
             float steerGain = Plugin.GetSteeringGain();
-            Util.ValueLabel($"{steerGain:0.00}x", p.x + p.width - 12f, y);
-            float steerGainNorm = Mathf.InverseLerp(0.5f, 3.0f, steerGain);
-            float? newSteerGainNorm = Util.Slider("Steer Sens", steerGainNorm, center, y, ref MouseYLock);
-            if (newSteerGainNorm.HasValue)
+            float? newSteerGain = Util.SliderRow("Steer Sens", steerGain, 0.5f, 3.0f, $"{steerGain:0.00}x", center, p.x + p.width - 12f, y, ref MouseYLock);
+            if (newSteerGain.HasValue)
             {
-                Plugin.SetSteeringGain(Mathf.Lerp(0.5f, 3.0f, newSteerGainNorm.Value));
+                Plugin.SetSteeringGain(newSteerGain.Value);
             }
             y += line;
 
             float dz = Plugin.GetSteeringDeadzone();
-            Util.ValueLabel($"{Mathf.RoundToInt(dz * 100f)}%", p.x + p.width - 12f, y);
-            float dzNorm = Mathf.InverseLerp(0f, 0.12f, dz);
-            float? newDzNorm = Util.Slider("Deadzone", dzNorm, center, y, ref MouseYLock);
-            if (newDzNorm.HasValue)
+            float? newDz = Util.SliderRow("Deadzone", dz, 0f, 0.12f, $"{Mathf.RoundToInt(dz * 100f)}%", center, p.x + p.width - 12f, y, ref MouseYLock);
+            if (newDz.HasValue)
             {
-                Plugin.SetSteeringDeadzone(Mathf.Lerp(0f, 0.12f, newDzNorm.Value));
+                Plugin.SetSteeringDeadzone(newDz.Value);
             }
         }
 

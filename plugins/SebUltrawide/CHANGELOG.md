@@ -1,4 +1,6 @@
 ## 1.1.3
+- Respect SebTruck's mirror-quality setting independently of main-view pixelation.
+- Use SebCore's shared graphics slider rows and Back footer.
 - Update SebCore dependency for the preference reset fixes.
 - Keep assembly and package versions consistent and allow builds without deploying to the game profile.
 

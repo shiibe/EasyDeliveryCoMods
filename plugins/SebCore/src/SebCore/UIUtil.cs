@@ -4,6 +4,36 @@ namespace SebCore
 {
     public class UIUtil
     {
+        public enum NavigationAction { None, Previous, Back, Next }
+
+        public NavigationAction NavigationFooter(Rect p, bool paging = true, float sideInset = 40f)
+        {
+            float y = p.y + p.height - 18f;
+            // Draw the full footer before returning the clicked action.
+            bool previous = paging && SimpleButtonRaw("Prev", p.x + sideInset, y);
+            bool back = SimpleButtonRaw("Back", p.x + p.width / 2f, y);
+            bool next = paging && !back && SimpleButtonRaw("Next", p.x + p.width - sideInset, y);
+            return back ? NavigationAction.Back : previous ? NavigationAction.Previous : next ? NavigationAction.Next : NavigationAction.None;
+        }
+
+        public void PageIndicator(Rect p, int index, int count)
+        {
+            Label((index + 1) + "/" + count, p.x + p.width - 18f, p.y + 10f);
+        }
+
+        public float? SliderRow(string name, float value, float min, float max, string display, float x, float valueX, float y, ref float mouseYLock)
+        {
+            ValueLabel(display, valueX, y);
+            float? changed = Slider(name, Mathf.InverseLerp(min, max, value), x, y, ref mouseYLock);
+            return changed.HasValue ? Mathf.Lerp(min, max, changed.Value) : (float?)null;
+        }
+
+        public int? ChoiceSliderRow(string name, int value, int max, string display, float x, float valueX, float y, ref float mouseYLock)
+        {
+            float? changed = SliderRow(name, value, 0f, max, display, x, valueX, y, ref mouseYLock);
+            return changed.HasValue ? Mathf.Clamp(Mathf.RoundToInt(changed.Value), 0, Mathf.Max(0, max)) : (int?)null;
+        }
+
         public DesktopDotExe M;
         public GamepadNavigation Nav;
         public MiniRenderer R;

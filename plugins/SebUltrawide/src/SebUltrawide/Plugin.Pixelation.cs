@@ -410,7 +410,11 @@ namespace SebUltrawide
 
             CaptureRearPixelationBaseDimensions();
 
-            if (mode == 3)
+            int mirrorQuality = BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue("shibe.easydeliveryco.sebtruck", out var truck) &&
+                truck.Instance != null && truck.Instance.isActiveAndEnabled
+                ? Mathf.Clamp(SebCore.ModPrefs.GetInt("SebTruck_MirrorQuality", 0), 0, 3) : 0;
+
+            if (mode == 3 && mirrorQuality == 0)
             {
                 ReleaseCustomRt(ref _pixelCustomRearRt, _pixelDefaultRearRt);
                 _pixelRearCamera.targetTexture = _pixelDefaultRearRt;
@@ -448,6 +452,12 @@ namespace SebUltrawide
                     targetW = baseW;
                     targetH = baseH;
                     break;
+            }
+
+            if (mirrorQuality > 0)
+            {
+                targetW = baseW * (1 << mirrorQuality);
+                targetH = baseH * (1 << mirrorQuality);
             }
 
             if (_pixelCustomRearRt != null && _pixelCustomRearRt.width == targetW && _pixelCustomRearRt.height == targetH && _pixelLastMode == mode)

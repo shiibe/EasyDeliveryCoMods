@@ -1,4 +1,5 @@
 ## 1.1.5
+- Use SebCore's shared window lifecycle and page controls while preserving capture and Back behavior.
 - Fix rebound Rally clutch travel and preserve explicitly cleared bindings across restarts.
 - Share binding serialization and add regression checks for input persistence and reset behavior.
 

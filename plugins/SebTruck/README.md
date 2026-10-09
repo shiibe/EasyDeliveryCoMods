@@ -35,6 +35,7 @@ SebTruck adds driving upgrades like manual transmission, Rally transmission sett
 - Synthesized backup alarm with volume, beep rate, and tone controls.
 - Ignition toggle with hold-to-start behavior and sound effect.
 - Change selected Bobblehead and Truck Paint in the menu (if you have them unlocked).
+- Rear-view mirror quality: Original, 2x, 4x, or 8x resolution, available under Truck > Tweaks.
 
 ## Screenshots
 <table>
@@ -99,6 +100,11 @@ Backup Alarm page:
 - `Beep Rate`: beep length and matching pause length while reverse is active
 - `Tone`: synthesized beep frequency
 
+Mirror quality (Truck > Tweaks):
+
+Mirror quality multiplies both dimensions of the game's rear-view texture (110 x 32 in the Story truck), preserving its aspect ratio. Original is the default and follows the game's existing behavior, including Tweaks/Ultrawide pixelation settings. Higher mirror settings override mirror pixelation only and may cost performance. Reset Defaults on the Tweaks page restores Original. Update Tweaks/Ultrawide alongside SebTruck when using them together.
+
 ## Build
+
 - Build: `dotnet build EasyDeliveryCoMods.sln -c Release`
 - Package all: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-all.ps1`

@@ -1,4 +1,6 @@
 ## 1.1.3
+- Respect SebTruck's mirror-quality setting independently of main-view pixelation.
+- Use SebCore's shared sliders, page controls, and safe preference helpers.
 - Support patch version bumps through the shared release scripts.
 - Update SebCore dependency and keep assembly and package versions consistent.
 

@@ -117,6 +117,14 @@ namespace MyCart
 }
 ```
 
+## Shared UI rows and navigation
+
+`UIUtil.SliderRow(name, value, min, max, display, x, valueX, y, ref mouseYLock)` draws a right-aligned value label and a slider. It returns the changed value in the supplied range, or `null` when idle. Reversed ranges are supported. Callers retain formatting, rounding, and preference writes.
+
+`UIUtil.ChoiceSliderRow(name, value, max, display, x, valueX, y, ref mouseYLock)` returns a rounded, clamped integer from zero through `max`, or `null` when idle. Labels and saving remain with the caller.
+
+`UIUtil.NavigationFooter(rect, paging: true, sideInset: 40f)` draws Prev/Back/Next and returns a `NavigationAction`. Set `paging: false` for Back alone; use `sideInset: 44f` for the launcher/Tweaks layout. Callers handle page wrapping, clamping, and Back transitions. After updating the page, call `UIUtil.PageIndicator(rect, index, count)` with a zero-based index.
+
 ## Launch Helpers
 
 `SebCore.DesktopAppLauncher` helps you open launcher programs from code:

@@ -6,16 +6,11 @@ using UnityEngine.InputSystem;
 
 namespace SebBinds
 {
-    public class BindsMenuWindow : MonoBehaviour
+    public class BindsMenuWindow : CartridgeWindowBase
     {
         public const string FileName = "binds";
         public const string ListenerName = "SebBindsMenu";
         public const string ListenerData = "listener_SebBindsMenu";
-
-        private float _mouseYLock;
-        private UIUtil _util;
-
-        private DesktopDotExe.WindowView _view;
 
         private Page _page = Page.SchemeSelect;
         private int _bindingsPageIndex;
@@ -137,7 +132,7 @@ namespace SebBinds
             }
         }
 
-        public void FrameUpdate(DesktopDotExe.WindowView view)
+        public override void FrameUpdate(DesktopDotExe.WindowView view)
         {
             LastMenuActiveFrame = Time.frameCount;
             if (_page == Page.BindingCapture)
@@ -145,34 +140,10 @@ namespace SebBinds
                 LastBindingCaptureFrame = Time.frameCount;
             }
 
-            if (view == null)
-            {
-                return;
-            }
-
-            _view = view;
-
-            _util ??= new UIUtil();
-            _util.M = view.M;
-            _util.R = view.R;
-            _util.Nav = view.M.nav;
-
-            Rect p = new Rect(view.position * 8f, view.size * 8f);
-            p.position += new Vector2(8f, 8f);
-
-            if (_util.M.mouseButtonUp)
-            {
-                _mouseYLock = 0f;
-            }
-            if (_mouseYLock > 0f)
-            {
-                _util.M.mouse.y = _mouseYLock;
-            }
-
-            DrawMenu(p);
+            base.FrameUpdate(view);
         }
 
-        public void BackButtonPressed()
+        public override void BackButtonPressed()
         {
             if (_page == Page.BindingCapture)
             {
@@ -193,11 +164,10 @@ namespace SebBinds
                 return;
             }
 
-            SebCore.DesktopAppLauncher.TryOpenProgramListener(_util?.M, _util?.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
-            _view?.Kill();
+            ReturnToSebCoreAndClose();
         }
 
-        private void DrawMenu(Rect p)
+        protected override void DrawWindow(Rect p)
         {
             float center = p.x + p.width / 2f - 16f;
             float y = p.y + 10f;
@@ -238,10 +208,10 @@ namespace SebBinds
                 midY -= 12f;
             }
 
-            _util.Label("Binds", cx, p.y + 10f);
-            _util.Label("Choose Input", cx, p.y + 22f);
+            Util.Label("Binds", cx, p.y + 10f);
+            Util.Label("Choose Input", cx, p.y + 22f);
 
-            if (_util.FancyButton("Controller", cx, midY))
+            if (Util.FancyButton("Controller", cx, midY))
             {
                 _scheme = BindingScheme.Controller;
                 _bindingsPageIndex = 0;
@@ -249,7 +219,7 @@ namespace SebBinds
                 return;
             }
 
-            if (_util.FancyButton("Keyboard", cx, midY + 24f))
+            if (Util.FancyButton("Keyboard", cx, midY + 24f))
             {
                 _scheme = BindingScheme.Keyboard;
                 _bindingsPageIndex = 0;
@@ -257,7 +227,7 @@ namespace SebBinds
                 return;
             }
 
-            if (hasWheel && _util.FancyButton("Wheel", cx, midY + 48f))
+            if (hasWheel && Util.FancyButton("Wheel", cx, midY + 48f))
             {
                 _scheme = BindingScheme.Wheel;
                 _bindingsPageIndex = 0;
@@ -266,22 +236,21 @@ namespace SebBinds
             }
 
             float navY = p.y + p.height - 18f;
-            if (_util.SimpleButtonRaw("Back", cx, navY))
+            if (Util.SimpleButtonRaw("Back", cx, navY))
             {
-                SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, SebCore.SebCoreMenuWindow.FileName, SebCore.SebCoreMenuWindow.ListenerData);
-                _view?.Kill();
+                ReturnToSebCoreAndClose();
             }
         }
 
         private void DrawBindings(Rect p, float center, ref float y, float line, float sectionGap)
         {
-            _util.Label("Binds", p.x + p.width / 2f, y);
+            Util.Label("Binds", p.x + p.width / 2f, y);
             y += line;
 
             string schemeLabel = _scheme == BindingScheme.Keyboard
                 ? "Keyboard"
                 : (_scheme == BindingScheme.Wheel ? "Wheel" : "Controller");
-            _util.Label(schemeLabel, p.x + p.width / 2f, y);
+            Util.Label(schemeLabel, p.x + p.width / 2f, y);
             y += line;
 
             if (_scheme == BindingScheme.Wheel && !WheelInterop.HasCalibration())
@@ -290,23 +259,17 @@ namespace SebBinds
                 return;
             }
 
-            float cx = p.x + p.width / 2f;
-            float navY = p.y + p.height - 18f;
-
-            float prevX = p.x + 40f;
-            float nextX = p.x + p.width - 40f;
-
             var pages = GetPagesForScheme();
-
-            if (_util.SimpleButtonRaw("Prev", prevX, navY))
+            var navigation = Util.NavigationFooter(p);
+            if (navigation == UIUtil.NavigationAction.Previous)
             {
                 _bindingsPageIndex = PrevPageIndex(_bindingsPageIndex, pages.Count);
             }
-            if (_util.SimpleButtonRaw("Back", cx, navY))
+            if (navigation == UIUtil.NavigationAction.Back)
             {
                 _page = Page.SchemeSelect;
-             }
-            if (_util.SimpleButtonRaw("Next", nextX, navY))
+            }
+            if (navigation == UIUtil.NavigationAction.Next)
             {
                 _bindingsPageIndex = NextPageIndex(_bindingsPageIndex, pages.Count);
             }
@@ -315,7 +278,7 @@ namespace SebBinds
 
             if (pages.Count == 0)
             {
-                _util.Label("(no pages)", p.x + p.width / 2f, y);
+                Util.Label("(no pages)", p.x + p.width / 2f, y);
                 return;
             }
 
@@ -325,10 +288,10 @@ namespace SebBinds
             }
 
             var page = pages[_bindingsPageIndex];
-            _util.Label(page.Title, p.x + p.width / 2f, y);
+            Util.Label(page.Title, p.x + p.width / 2f, y);
             y += line + sectionGap;
 
-            _util.Label((_bindingsPageIndex + 1) + "/" + pages.Count, p.x + p.width - 18f, p.y + 10f);
+            Util.PageIndicator(p, _bindingsPageIndex, pages.Count);
             if (page.Actions == null)
             {
                 DrawAxesPage(p, center, ref y, line, sectionGap);
@@ -344,18 +307,18 @@ namespace SebBinds
             float cx = p.x + p.width / 2f;
 
             float promptY = p.y + p.height / 2f - 18f;
-            _util.Label("Wheel Not Calibrated", cx, promptY);
-            _util.Label("Run the Calibration Wizard", cx, promptY + line);
-            _util.Label("before binding wheel inputs.", cx, promptY + line * 2f);
+            Util.Label("Wheel Not Calibrated", cx, promptY);
+            Util.Label("Run the Calibration Wizard", cx, promptY + line);
+            Util.Label("before binding wheel inputs.", cx, promptY + line * 2f);
 
             float navY = p.y + p.height - 18f;
             float prevY = navY - 12f;
-            if (_util.SimpleButtonRaw("Calibrate", cx, prevY))
+            if (Util.SimpleButtonRaw("Calibrate", cx, prevY))
             {
                 WheelInterop.RequestOpenCalibrationWizard();
                 TryOpenWheelMenuAndFocus();
             }
-            if (_util.SimpleButtonRaw("Back", cx, navY))
+            if (Util.SimpleButtonRaw("Back", cx, navY))
             {
                 _page = Page.SchemeSelect;
             }
@@ -363,7 +326,7 @@ namespace SebBinds
 
         private bool TryOpenWheelMenuAndFocus()
         {
-            return SebCore.CartridgeApps.TryOpen(_util?.M, _util?.R, SebCore.CartridgeApps.Wheel);
+            return SebCore.CartridgeApps.TryOpen(Util?.M, Util?.R, SebCore.CartridgeApps.Wheel);
         }
 
         private sealed class PageDef
@@ -629,7 +592,7 @@ namespace SebBinds
         {
             float cx = p.x + p.width / 2f;
 
-            if (_util.CycleButtonRaw("Modifier", BindingStore.GetBindingLabel(BindingStore.GetModifierBinding(_scheme)), center, y))
+            if (Util.CycleButtonRaw("Modifier", BindingStore.GetBindingLabel(BindingStore.GetModifierBinding(_scheme)), center, y))
             {
                 _bindingCaptureAction = BindAction.InteractOk;
                 _bindingCaptureLayer = BindingLayer.Normal;
@@ -645,7 +608,7 @@ namespace SebBinds
             if (string.Equals(title, "Rally", StringComparison.OrdinalIgnoreCase))
             {
                 var shiftMode = SebBindsApi.GetShiftMode();
-                if (_util.CycleButtonRaw("Shift Mode", SebBindsApi.GetShiftModeLabel(shiftMode), center, y))
+                if (Util.CycleButtonRaw("Shift Mode", SebBindsApi.GetShiftModeLabel(shiftMode), center, y))
                 {
                     SebBindsApi.SetShiftMode(SebBindsApi.NextShiftMode(shiftMode));
                 }
@@ -659,7 +622,7 @@ namespace SebBinds
             }
 
             float resetY = p.y + p.height - 30f;
-            if (_util.SimpleButtonRaw("Reset Defaults", cx, resetY))
+            if (Util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
                 BindingStore.ClearScheme(_scheme);
                 AxisBindingStore.ClearScheme(_scheme);
@@ -689,10 +652,10 @@ namespace SebBinds
             float labelX = p.x + 12f;
             float bindRight = p.x + p.width - 12f;
 
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-            _util.R.fput("Axis", labelX, y);
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
-            _util.R.fput("Binding", bindRight, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+            Util.R.fput("Axis", labelX, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
+            Util.R.fput("Binding", bindRight, y);
             y += line;
 
             DrawAxisRow(AxisAction.MoveY, "Move Up/Down", labelX, bindRight, y);
@@ -719,25 +682,25 @@ namespace SebBinds
             float cx = p.x + p.width / 2f;
 
             float promptY = p.y + p.height / 2f - 18f;
-            _util.Label("Wheel Axes need to be set", cx, promptY);
-            _util.Label("in the Wheel menu.", cx, promptY + line);
+            Util.Label("Wheel Axes need to be set", cx, promptY);
+            Util.Label("in the Wheel menu.", cx, promptY + line);
 
             float navY = p.y + p.height - 18f;
             float openY = promptY + line * 2f + 8f;
-            if (_util.FancyButton("Open Wheel Menu", cx, openY))
+            if (Util.FancyButton("Open Wheel Menu", cx, openY))
             {
                 WheelInterop.RequestOpenAxisMapping();
-                if (SebCore.CartridgeApps.EnsureListener(_util.M, SebCore.CartridgeApps.Wheel))
+                if (SebCore.CartridgeApps.EnsureListener(Util.M, SebCore.CartridgeApps.Wheel))
                 {
-                    SebCore.DesktopAppLauncher.TryOpenProgramListener(_util.M, _util.R, "wheel", "listener_G920Menu");
+                    SebCore.DesktopAppLauncher.TryOpenProgramListener(Util.M, Util.R, "wheel", "listener_G920Menu");
                 }
             }
         }
 
         private void DrawAxisRow(AxisAction axis, string label, float labelX, float bindRight, float y)
         {
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-            _util.R.fput(label, labelX, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+            Util.R.fput(label, labelX, y);
 
             var bind = AxisBindingStore.GetAxisBinding(_scheme, axis);
             string value = bind.Kind == BindingKind.None ? "[none]" : ("[" + BindingStore.GetBindingLabel(bind) + "]");
@@ -749,14 +712,14 @@ namespace SebBinds
             int w = 96;
             int x = (int)(bindRight - w);
             int yy = (int)y;
-            if (_util.M.MouseOver(x, yy, w, 8))
+            if (Util.M.MouseOver(x, yy, w, 8))
             {
-                _util.M.mouseIcon = 128;
-                if (_util.M.mouseButton)
+                Util.M.mouseIcon = 128;
+                if (Util.M.mouseButton)
                 {
-                    _util.M.mouseIcon = 160;
+                    Util.M.mouseIcon = 160;
                 }
-                if (_util.M.mouseButtonUp)
+                if (Util.M.mouseButtonUp)
                 {
                     _axisCaptureAction = axis;
                     _page = Page.AxisCapture;
@@ -766,8 +729,8 @@ namespace SebBinds
                 }
             }
 
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
-            _util.R.fput(value, bindRight, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
+            Util.R.fput(value, bindRight, y);
         }
 
         private bool HasAxisConflictMark(AxisAction axis, BindingInput input)
@@ -803,11 +766,11 @@ namespace SebBinds
             float pressRight = p.x + p.width - 84f;
             float holdRight = p.x + p.width - 12f;
 
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-            _util.R.fput("Action", labelX, y);
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
-            _util.R.fput("Press", pressRight, y);
-            _util.R.fput("Modif.", holdRight, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+            Util.R.fput("Action", labelX, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
+            Util.R.fput("Press", pressRight, y);
+            Util.R.fput("Modif.", holdRight, y);
             y += line;
 
             int maxVisible = 11;
@@ -821,8 +784,8 @@ namespace SebBinds
 
         private void DrawBindingRow(Rect p, BindAction action, float labelX, float pressRight, float holdRight, float y)
         {
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-            _util.R.fput(BindingStore.GetActionLabel(action), labelX, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+            Util.R.fput(BindingStore.GetActionLabel(action), labelX, y);
 
             DrawBindingCell(action, BindingLayer.Normal, pressRight, y);
             DrawBindingCell(action, BindingLayer.Modified, holdRight, y);
@@ -832,8 +795,8 @@ namespace SebBinds
         {
             if (!IsLayerSupported(action, layer))
             {
-                _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
-                _util.R.fput("n/a", rightX, y);
+                Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
+                Util.R.fput("n/a", rightX, y);
                 return;
             }
 
@@ -843,14 +806,14 @@ namespace SebBinds
             int w = 72;
             int x = (int)(rightX - w);
             int yy = (int)y;
-            if (_util.M.MouseOver(x, yy, w, 8))
+            if (Util.M.MouseOver(x, yy, w, 8))
             {
-                _util.M.mouseIcon = 128;
-                if (_util.M.mouseButton)
+                Util.M.mouseIcon = 128;
+                if (Util.M.mouseButton)
                 {
-                    _util.M.mouseIcon = 160;
+                    Util.M.mouseIcon = 160;
                 }
-                if (_util.M.mouseButtonUp)
+                if (Util.M.mouseButtonUp)
                 {
                     _bindingCaptureAction = action;
                     _bindingCaptureLayer = layer;
@@ -864,15 +827,15 @@ namespace SebBinds
                 }
             }
 
-            _util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
-            _util.R.fput(value, rightX, y);
+            Util.R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
+            Util.R.fput(value, rightX, y);
         }
 
         private void DrawBindingCapture(Rect p, float center, ref float y, float line, float sectionGap)
         {
             BindingCaptureHeartbeatTime = Time.unscaledTime;
 
-            _util.Label("Binds", p.x + p.width / 2f, y);
+            Util.Label("Binds", p.x + p.width / 2f, y);
             y += line;
 
             string secondLine = _isCapturingModifier
@@ -893,10 +856,10 @@ namespace SebBinds
 
             if (_bindingCaptureMissingModifier)
             {
-                _util.Label("Please set a", cx, promptY);
-                _util.Label("modifier button first!", cx, promptY + line);
+                Util.Label("Please set a", cx, promptY);
+                Util.Label("modifier button first!", cx, promptY + line);
 
-                if (allowUiClicks && _util.SimpleButtonRaw("Back", cx, cancelY))
+                if (allowUiClicks && Util.SimpleButtonRaw("Back", cx, cancelY))
                 {
                     _bindingDupConfirmActive = false;
                     _isCapturingModifier = false;
@@ -912,14 +875,14 @@ namespace SebBinds
 
             if (requireModifierHeld && !modifierHeld)
             {
-                _util.Label("Hold modifier to bind:", cx, promptY);
-                _util.Label(secondLine, cx, promptY + line);
-                _util.Label("Then press button.", cx, promptY + line * 2f);
+                Util.Label("Hold modifier to bind:", cx, promptY);
+                Util.Label(secondLine, cx, promptY + line);
+                Util.Label("Then press button.", cx, promptY + line * 2f);
             }
             else
             {
-                _util.Label("Press a button for:", cx, promptY);
-                _util.Label(secondLine, cx, promptY + line);
+                Util.Label("Press a button for:", cx, promptY);
+                Util.Label(secondLine, cx, promptY + line);
             }
 
             if (_bindingDupConfirmActive)
@@ -927,7 +890,7 @@ namespace SebBinds
                 bool hasDupConflicts = _bindingDupConflicts != null && _bindingDupConflicts.Count > 0;
                 if (hasDupConflicts)
                 {
-                    _util.Label("Also used by:", p.x + p.width / 2f, promptY + line * 4f);
+                    Util.Label("Also used by:", p.x + p.width / 2f, promptY + line * 4f);
 
                     var lines = GetDupConflictsTextLines(_bindingDupConflicts, maxCharsPerLine: 28);
                     float yy = promptY + line * 5f;
@@ -935,7 +898,7 @@ namespace SebBinds
                     {
                         for (int i = 0; i < lines.Count; i++)
                         {
-                            _util.Label(lines[i], p.x + p.width / 2f, yy + line * i);
+                            Util.Label(lines[i], p.x + p.width / 2f, yy + line * i);
                         }
                         yy += line * Mathf.Max(1, lines.Count);
                     }
@@ -949,12 +912,12 @@ namespace SebBinds
                         var lines = GetDupConflictsTextLines(_bindingDupConflicts, maxCharsPerLine: 28);
                         axisY = promptY + line * (5f + Mathf.Max(1, (lines?.Count ?? 1)));
                     }
-                    _util.Label(_bindingDupAxisConflict, p.x + p.width / 2f, axisY);
+                    Util.Label(_bindingDupAxisConflict, p.x + p.width / 2f, axisY);
                 }
 
                 if (hasDupConflicts)
                 {
-                    _util.Label("Enter=Keep  Esc=Try", p.x + p.width / 2f, promptY + line * 7f);
+                    Util.Label("Enter=Keep  Esc=Try", p.x + p.width / 2f, promptY + line * 7f);
                 }
 
                 if (_scheme == BindingScheme.Keyboard)
@@ -981,19 +944,19 @@ namespace SebBinds
                 float replaceY = clearY;
                 float tryY = cancelY;
 
-                if (allowUiClicks && _util.SimpleButtonRaw("Keep Both", cx, keepY))
+                if (allowUiClicks && Util.SimpleButtonRaw("Keep Both", cx, keepY))
                 {
                     ApplyPendingBinding(replaceDuplicates: false);
                     return;
                 }
 
-                if (allowUiClicks && _util.SimpleButtonRaw("Replace", cx, replaceY))
+                if (allowUiClicks && Util.SimpleButtonRaw("Replace", cx, replaceY))
                 {
                     ApplyPendingBinding(replaceDuplicates: true);
                     return;
                 }
 
-                if (allowUiClicks && _util.SimpleButtonRaw("Try Another", cx, tryY))
+                if (allowUiClicks && Util.SimpleButtonRaw("Try Another", cx, tryY))
                 {
                     _bindingDupConfirmActive = false;
                     _bindingDupAxisConflict = null;
@@ -1006,7 +969,7 @@ namespace SebBinds
 
             if (!_bindingDupConfirmActive)
             {
-                if (allowUiClicks && _util.SimpleButtonRaw("Clear", cx, clearY))
+                if (allowUiClicks && Util.SimpleButtonRaw("Clear", cx, clearY))
                 {
                     if (_isCapturingModifier)
                     {
@@ -1024,7 +987,7 @@ namespace SebBinds
                     return;
                 }
 
-                if (allowUiClicks && _util.SimpleButtonRaw("Cancel", cx, cancelY))
+                if (allowUiClicks && Util.SimpleButtonRaw("Cancel", cx, cancelY))
                 {
                     _bindingDupConfirmActive = false;
                     _isCapturingModifier = false;
@@ -1039,9 +1002,9 @@ namespace SebBinds
                 return;
             }
 
-            if (allowUiClicks && _util.M != null && _util.M.mouseButton)
+            if (allowUiClicks && Util.M != null && Util.M.mouseButton)
             {
-                if (_util.M.MouseOver((int)cx - 32, (int)clearY, 64, 8) || _util.M.MouseOver((int)cx - 32, (int)cancelY, 64, 8))
+                if (Util.M.MouseOver((int)cx - 32, (int)clearY, 64, 8) || Util.M.MouseOver((int)cx - 32, (int)cancelY, 64, 8))
                 {
                     return;
                 }
@@ -1093,12 +1056,12 @@ namespace SebBinds
         {
             BindingCaptureHeartbeatTime = Time.unscaledTime;
 
-            _util.Label("Binds", p.x + p.width / 2f, y);
+            Util.Label("Binds", p.x + p.width / 2f, y);
             y += line;
 
             float promptY = p.y + p.height / 2f - 18f;
-            _util.Label("Move an axis for:", p.x + p.width / 2f, promptY);
-            _util.Label(_axisCaptureAction.ToString(), p.x + p.width / 2f, promptY + line);
+            Util.Label("Move an axis for:", p.x + p.width / 2f, promptY);
+            Util.Label(_axisCaptureAction.ToString(), p.x + p.width / 2f, promptY + line);
 
             float cx = p.x + p.width / 2f;
             float clearY = p.y + p.height - 30f;
@@ -1106,14 +1069,14 @@ namespace SebBinds
 
             bool allowUiClicks = Time.unscaledTime - _axisCaptureEnterTime > 0.25f;
 
-            if (allowUiClicks && _util.SimpleButtonRaw("Clear", cx, clearY))
+            if (allowUiClicks && Util.SimpleButtonRaw("Clear", cx, clearY))
             {
                 AxisBindingStore.ClearAxisBinding(_scheme, _axisCaptureAction);
                 _page = Page.Bindings;
                 return;
             }
 
-            if (allowUiClicks && _util.SimpleButtonRaw("Cancel", cx, cancelY))
+            if (allowUiClicks && Util.SimpleButtonRaw("Cancel", cx, cancelY))
             {
                 _page = Page.Bindings;
                 return;

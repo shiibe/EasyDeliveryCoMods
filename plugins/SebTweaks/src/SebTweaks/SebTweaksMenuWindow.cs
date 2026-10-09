@@ -45,8 +45,6 @@ namespace SebTweaks
 
             // Bottom nav.
             float navY = GetNavY(p);
-            float prevX = p.x + 44f;
-            float nextX = p.x + p.width - 44f;
 
             if (_page == Page.Gameplay || _page == Page.World || _page == Page.Graphics || _page == Page.TimeWeather || _page == Page.Rally)
             {
@@ -79,26 +77,26 @@ namespace SebTweaks
                 }
             }
 
-            if (Util.SimpleButtonRaw("Prev", prevX, navY))
+            var navigation = Util.NavigationFooter(p, sideInset: 44f);
+            if (navigation == UIUtil.NavigationAction.Previous)
             {
                 int pageCount = (int)Page.Rally + 1;
                 _page = (Page)(((int)_page + pageCount - 1) % pageCount);
             }
-            if (Util.SimpleButtonRaw("Back", cx, navY))
+            if (navigation == UIUtil.NavigationAction.Back)
             {
                 BackButtonPressed();
                 return;
             }
-            if (Util.SimpleButtonRaw("Next", nextX, navY))
+            if (navigation == UIUtil.NavigationAction.Next)
             {
                 int pageCount = (int)Page.Rally + 1;
                 _page = (Page)(((int)_page + 1) % pageCount);
             }
 
             // Page indicator.
-            int pageNum = (int)_page + 1;
             int pageTotal = (int)Page.Rally + 1;
-            Util.Label(pageNum + "/" + pageTotal, p.x + p.width - 18f, p.y + 10f);
+            Util.PageIndicator(p, (int)_page, pageTotal);
 
             Util.Label("Tweaks", cx, y);
             y += line;
@@ -138,41 +136,41 @@ namespace SebTweaks
 
         private static void ResetGameplayDefaults()
         {
-            Plugin.SetFloat(Plugin.PrefKeyJobPayoutMult, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyGasPriceMult, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyGasConsumptionMult, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyEnergyLossMult, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyTempLossMult, 1f);
-            Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, 1);
+            ModPrefs.SetFloat(Plugin.PrefKeyJobPayoutMult, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyGasPriceMult, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyGasConsumptionMult, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyEnergyLossMult, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyTempLossMult, 1f);
+            ModPrefs.SetInt(Plugin.PrefKeyIceCrackEnabled, 1);
         }
 
         private static void ResetWorldDefaults()
         {
-            Plugin.SetFloat(Plugin.PrefKeyGravityMult, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyGravityMult, 1f);
             ResetAtmosphereDefaults();
         }
 
         private static void ResetAtmosphereDefaults()
         {
-            Plugin.SetFloat(Plugin.PrefKeyFogMult, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyWorldLightMult, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyWorldLightColorR, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyWorldLightColorG, 1f);
-            Plugin.SetFloat(Plugin.PrefKeyWorldLightColorB, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyFogMult, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyWorldLightMult, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyWorldLightColorR, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyWorldLightColorG, 1f);
+            ModPrefs.SetFloat(Plugin.PrefKeyWorldLightColorB, 1f);
         }
 
         private static void ResetTimeWeatherDefaults()
         {
-            Plugin.SetFloat(Plugin.PrefKeyTimeOfDay, 0.25f);
-            Plugin.SetInt(Plugin.PrefKeyFreezeTime, 0);
-            Plugin.SetInt(Plugin.PrefKeyWeatherMode, 0);
-            Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f);
+            ModPrefs.SetFloat(Plugin.PrefKeyTimeOfDay, 0.25f);
+            ModPrefs.SetInt(Plugin.PrefKeyFreezeTime, 0);
+            ModPrefs.SetInt(Plugin.PrefKeyWeatherMode, 0);
+            ModPrefs.SetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f);
         }
 
         private static void ResetRallyDefaults()
         {
-            Plugin.SetInt(Plugin.PrefKeyRallyManualTransmission, 0);
-            Plugin.SetInt(Plugin.PrefKeyRallyDebugInfo, 0);
+            ModPrefs.SetInt(Plugin.PrefKeyRallyManualTransmission, 0);
+            ModPrefs.SetInt(Plugin.PrefKeyRallyDebugInfo, 0);
         }
 
         private static string PageLabel(Page p)
@@ -199,23 +197,19 @@ namespace SebTweaks
             float currentFov = GetCurrentCameraFov();
 
             float thirdFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: false, fallback: currentFov), fovMin, fovMax);
-            float thirdValue = Mathf.InverseLerp(fovMin, fovMax, thirdFov);
-            Util.ValueLabel($"{thirdFov:0}", p.x + p.width - 12f, y);
-            float? newThirdValue = Util.Slider("3rd Per. FOV", thirdValue, center, y, ref MouseYLock);
+            float? newThirdValue = Util.SliderRow("3rd Per. FOV", thirdFov, fovMin, fovMax, $"{thirdFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newThirdValue.HasValue)
             {
-                float newFov = Mathf.Lerp(fovMin, fovMax, newThirdValue.Value);
+                float newFov = newThirdValue.Value;
                 Plugin.SaveFovOverride(firstPerson: false, fov: newFov);
             }
             y += line;
 
             float firstFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
-            float firstValue = Mathf.InverseLerp(fovMin, fovMax, firstFov);
-            Util.ValueLabel($"{firstFov:0}", p.x + p.width - 12f, y);
-            float? newFirstValue = Util.Slider("1st Per. FOV", firstValue, center, y, ref MouseYLock);
+            float? newFirstValue = Util.SliderRow("1st Per. FOV", firstFov, fovMin, fovMax, $"{firstFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newFirstValue.HasValue)
             {
-                float newFov = Mathf.Lerp(fovMin, fovMax, newFirstValue.Value);
+                float newFov = newFirstValue.Value;
                 Plugin.SaveFovOverride(firstPerson: true, fov: newFov);
             }
 
@@ -231,12 +225,10 @@ namespace SebTweaks
                 4 => "Large",
                 _ => "Default"
             };
-            Util.ValueLabel(pixelLabel, p.x + p.width - 12f, y);
-            float pixelValue = Mathf.Clamp01(pixelMode / 4f);
-            float? newPixelValue = Util.Slider("Pixelation", pixelValue, center, y, ref MouseYLock);
+            int? newPixelValue = Util.ChoiceSliderRow("Pixelation", pixelMode, 4, pixelLabel, center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newPixelValue.HasValue)
             {
-                int newMode = Mathf.Clamp(Mathf.RoundToInt(newPixelValue.Value * 4f), 0, 4);
+                int newMode = newPixelValue.Value;
                 if (newMode != pixelMode)
                 {
                     Plugin.SavePixelationMode(newMode);
@@ -253,12 +245,10 @@ namespace SebTweaks
                 3 => "Max",
                 _ => "Default"
             };
-            Util.ValueLabel(viewLabel, p.x + p.width - 12f, y);
-            float viewValue = Mathf.Clamp01(viewMode / 3f);
-            float? newViewValue = Util.Slider("View Distance", viewValue, center, y, ref MouseYLock);
+            int? newViewValue = Util.ChoiceSliderRow("View Distance", viewMode, 3, viewLabel, center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newViewValue.HasValue)
             {
-                int newMode = Mathf.Clamp(Mathf.RoundToInt(newViewValue.Value * 3f), 0, 3);
+                int newMode = newViewValue.Value;
                 if (newMode != viewMode)
                 {
                     Plugin.SaveViewDistanceMode(newMode);
@@ -305,11 +295,11 @@ namespace SebTweaks
             DrawMultSlider(p, center, ref y, line, "Energy Loss", Plugin.PrefKeyEnergyLossMult, 0.1f, 3f);
             DrawMultSlider(p, center, ref y, line, "Temp Loss", Plugin.PrefKeyTempLossMult, 0.1f, 3f);
 
-            bool iceCrack = Plugin.GetInt(Plugin.PrefKeyIceCrackEnabled, 1) == 1;
+            bool iceCrack = ModPrefs.GetInt(Plugin.PrefKeyIceCrackEnabled, 1) == 1;
             bool? newIceCrack = Util.Toggle("Ice Cracking", iceCrack, center, y);
             if (newIceCrack.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyIceCrackEnabled, newIceCrack.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyIceCrackEnabled, newIceCrack.Value ? 1 : 0);
             }
             y += line;
         }
@@ -325,37 +315,31 @@ namespace SebTweaks
                 y += line + 2f;
             }
 
-            float gravity = Mathf.Clamp(Plugin.GetFloat(Plugin.PrefKeyGravityMult, 1f), 0f, 5f);
-            float gravity01 = Mathf.InverseLerp(0f, 5f, gravity);
-            Util.ValueLabel($"x{gravity:0.00}", p.x + p.width - 12f, y);
-            float? newGravity01 = Util.Slider("Gravity", gravity01, center, y, ref MouseYLock);
-            if (newGravity01.HasValue)
+            float gravity = Mathf.Clamp(ModPrefs.GetFloat(Plugin.PrefKeyGravityMult, 1f), 0f, 5f);
+            float? newGravity = Util.SliderRow("Gravity", gravity, 0f, 5f, $"x{gravity:0.00}", center, p.x + p.width - 12f, y, ref MouseYLock);
+            if (newGravity.HasValue)
             {
-                Plugin.SetFloat(Plugin.PrefKeyGravityMult, Mathf.Lerp(0f, 5f, newGravity01.Value));
+                ModPrefs.SetFloat(Plugin.PrefKeyGravityMult, newGravity.Value);
             }
             y += line;
 
             y += 2f;
 
             // Fog
-            float fog = Plugin.GetFloat(Plugin.PrefKeyFogMult, 1f);
-            float fog01 = Mathf.InverseLerp(0f, 3f, fog);
-            Util.ValueLabel($"x{fog:0.00}", p.x + p.width - 12f, y);
-            float? newFog01 = Util.Slider("Fog", fog01, center, y, ref MouseYLock);
-            if (newFog01.HasValue)
+            float fog = ModPrefs.GetFloat(Plugin.PrefKeyFogMult, 1f);
+            float? newFog = Util.SliderRow("Fog", fog, 0f, 3f, $"x{fog:0.00}", center, p.x + p.width - 12f, y, ref MouseYLock);
+            if (newFog.HasValue)
             {
-                Plugin.SetFloat(Plugin.PrefKeyFogMult, Mathf.Lerp(0f, 3f, newFog01.Value));
+                ModPrefs.SetFloat(Plugin.PrefKeyFogMult, newFog.Value);
             }
             y += line;
 
             // World light
-            float light = Plugin.GetFloat(Plugin.PrefKeyWorldLightMult, 1f);
-            float light01 = Mathf.InverseLerp(0f, 2f, light);
-            Util.ValueLabel($"x{light:0.00}", p.x + p.width - 12f, y);
-            float? newLight01 = Util.Slider("World Light", light01, center, y, ref MouseYLock);
-            if (newLight01.HasValue)
+            float light = ModPrefs.GetFloat(Plugin.PrefKeyWorldLightMult, 1f);
+            float? newLight = Util.SliderRow("World Light", light, 0f, 2f, $"x{light:0.00}", center, p.x + p.width - 12f, y, ref MouseYLock);
+            if (newLight.HasValue)
             {
-                Plugin.SetFloat(Plugin.PrefKeyWorldLightMult, Mathf.Lerp(0f, 2f, newLight01.Value));
+                ModPrefs.SetFloat(Plugin.PrefKeyWorldLightMult, newLight.Value);
             }
             y += line;
 
@@ -374,19 +358,19 @@ namespace SebTweaks
                 y += line + 2f;
             }
 
-            bool manual = Plugin.GetInt(Plugin.PrefKeyRallyManualTransmission, 0) == 1;
+            bool manual = ModPrefs.GetInt(Plugin.PrefKeyRallyManualTransmission, 0) == 1;
             bool? newManual = Util.Toggle("Manual Trans.", manual, center, y);
             if (newManual.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyRallyManualTransmission, newManual.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyRallyManualTransmission, newManual.Value ? 1 : 0);
             }
             y += line;
 
-            bool debug = Plugin.GetInt(Plugin.PrefKeyRallyDebugInfo, 0) == 1;
+            bool debug = ModPrefs.GetInt(Plugin.PrefKeyRallyDebugInfo, 0) == 1;
             bool? newDebug = Util.Toggle("Debug Info", debug, center, y);
             if (newDebug.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyRallyDebugInfo, newDebug.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyRallyDebugInfo, newDebug.Value ? 1 : 0);
             }
             y += line;
         }
@@ -403,24 +387,23 @@ namespace SebTweaks
             }
 
             // Time
-            bool freezeTime = Plugin.GetInt(Plugin.PrefKeyFreezeTime, 0) == 1;
+            bool freezeTime = ModPrefs.GetInt(Plugin.PrefKeyFreezeTime, 0) == 1;
 
             float t;
             if (!freezeTime)
             {
                 var cycle = Object.FindFirstObjectByType<sDayNightCycle>();
-                t = cycle != null ? Mathf.Repeat(cycle.time, 1f) : Mathf.Repeat(Plugin.GetFloat(Plugin.PrefKeyTimeOfDay, 0.25f), 1f);
+                t = cycle != null ? Mathf.Repeat(cycle.time, 1f) : Mathf.Repeat(ModPrefs.GetFloat(Plugin.PrefKeyTimeOfDay, 0.25f), 1f);
             }
             else
             {
-                t = Mathf.Repeat(Plugin.GetFloat(Plugin.PrefKeyTimeOfDay, 0.25f), 1f);
+                t = Mathf.Repeat(ModPrefs.GetFloat(Plugin.PrefKeyTimeOfDay, 0.25f), 1f);
             }
 
-            Util.ValueLabel(TimeLabel(t), p.x + p.width - 12f, y);
-            float? newT = Util.Slider("Time", t, center, y, ref MouseYLock);
+            float? newT = Util.SliderRow("Time", t, 0f, 1f, TimeLabel(t), center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newT.HasValue)
             {
-                Plugin.SetFloat(Plugin.PrefKeyTimeOfDay, newT.Value);
+                ModPrefs.SetFloat(Plugin.PrefKeyTimeOfDay, newT.Value);
                 Plugin.MarkTimeUser();
             }
             y += line;
@@ -428,7 +411,7 @@ namespace SebTweaks
             bool? newFreeze = Util.Toggle("Freeze Time", freezeTime, center, y);
             if (newFreeze.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyFreezeTime, newFreeze.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyFreezeTime, newFreeze.Value ? 1 : 0);
 
                 // When enabling freeze, seed the stored time from the current world time.
                 if (newFreeze.Value)
@@ -436,7 +419,7 @@ namespace SebTweaks
                     var cycle = Object.FindFirstObjectByType<sDayNightCycle>();
                     if (cycle != null)
                     {
-                        Plugin.SetFloat(Plugin.PrefKeyTimeOfDay, Mathf.Repeat(cycle.time, 1f));
+                        ModPrefs.SetFloat(Plugin.PrefKeyTimeOfDay, Mathf.Repeat(cycle.time, 1f));
                     }
                 }
 
@@ -448,28 +431,27 @@ namespace SebTweaks
             y += line * 2f;
 
             // Weather
-            bool weatherManual = Plugin.GetInt(Plugin.PrefKeyWeatherMode, 0) == 1;
+            bool weatherManual = ModPrefs.GetInt(Plugin.PrefKeyWeatherMode, 0) == 1;
             if (Util.CycleButtonRaw("Weather", weatherManual ? "Manual" : "Auto", center, y))
             {
-                Plugin.SetInt(Plugin.PrefKeyWeatherMode, weatherManual ? 0 : 1);
+                ModPrefs.SetInt(Plugin.PrefKeyWeatherMode, weatherManual ? 0 : 1);
             }
             y += line;
 
-            if (Plugin.GetInt(Plugin.PrefKeyWeatherMode, 0) == 1)
+            if (ModPrefs.GetInt(Plugin.PrefKeyWeatherMode, 0) == 1)
             {
-                float w = Mathf.Clamp01(Plugin.GetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f));
-                Util.ValueLabel($"{Mathf.RoundToInt(w * 100f)}%", p.x + p.width - 12f, y);
-                float? newW = Util.Slider("Intensity", w, center, y, ref MouseYLock);
+                float w = Mathf.Clamp01(ModPrefs.GetFloat(Plugin.PrefKeyWeatherIntensity, 0.4f));
+                float? newW = Util.SliderRow("Intensity", w, 0f, 1f, $"{Mathf.RoundToInt(w * 100f)}%", center, p.x + p.width - 12f, y, ref MouseYLock);
                 if (newW.HasValue)
                 {
-                    Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, newW.Value);
+                    ModPrefs.SetFloat(Plugin.PrefKeyWeatherIntensity, newW.Value);
                 }
                 y += line;
 
                 if (Util.CycleButtonRaw("Preset", WeatherPresetLabel(w), center, y))
                 {
                     float next = NextWeatherPreset(w);
-                    Plugin.SetFloat(Plugin.PrefKeyWeatherIntensity, next);
+                    ModPrefs.SetFloat(Plugin.PrefKeyWeatherIntensity, next);
                 }
                 y += line;
             }
@@ -558,19 +540,19 @@ namespace SebTweaks
             float? newEnergy01 = Util.Slider("Energy", energy01, sliderX, y, ref MouseYLock);
             float energy01Shown = newEnergy01 ?? energy01;
             Util.ValueLabel($"{Mathf.RoundToInt(energy01Shown * 100f)}%", pctX, y);
-            bool freezeEnergy = Plugin.GetInt(Plugin.PrefKeyFreezeRefillEnergy, 0) == 1;
+            bool freezeEnergy = ModPrefs.GetInt(Plugin.PrefKeyFreezeRefillEnergy, 0) == 1;
             bool? newFreezeEnergy = Util.Toggle("", freezeEnergy, toggleX, y);
             if (newEnergy01.HasValue && hud.energyCapacity > 0f)
             {
                 hud.energy = newEnergy01.Value * hud.energyCapacity;
-                Plugin.SetFloat(Plugin.PrefKeyRefillEnergy01, newEnergy01.Value);
+                ModPrefs.SetFloat(Plugin.PrefKeyRefillEnergy01, newEnergy01.Value);
             }
             if (newFreezeEnergy.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyFreezeRefillEnergy, newFreezeEnergy.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyFreezeRefillEnergy, newFreezeEnergy.Value ? 1 : 0);
                 if (newFreezeEnergy.Value)
                 {
-                    Plugin.SetFloat(Plugin.PrefKeyRefillEnergy01, energy01Shown);
+                    ModPrefs.SetFloat(Plugin.PrefKeyRefillEnergy01, energy01Shown);
                 }
             }
             y += line;
@@ -580,19 +562,19 @@ namespace SebTweaks
             float? newFuel01 = Util.Slider("Fuel", fuel01, sliderX, y, ref MouseYLock);
             float fuel01Shown = newFuel01 ?? fuel01;
             Util.ValueLabel($"{Mathf.RoundToInt(fuel01Shown * 100f)}%", pctX, y);
-            bool freezeFuel = Plugin.GetInt(Plugin.PrefKeyFreezeRefillFuel, 0) == 1;
+            bool freezeFuel = ModPrefs.GetInt(Plugin.PrefKeyFreezeRefillFuel, 0) == 1;
             bool? newFreezeFuel = Util.Toggle("", freezeFuel, toggleX, y);
             if (newFuel01.HasValue && hud.fuelCapacity > 0f)
             {
                 hud.fuel = newFuel01.Value * hud.fuelCapacity;
-                Plugin.SetFloat(Plugin.PrefKeyRefillFuel01, newFuel01.Value);
+                ModPrefs.SetFloat(Plugin.PrefKeyRefillFuel01, newFuel01.Value);
             }
             if (newFreezeFuel.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyFreezeRefillFuel, newFreezeFuel.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyFreezeRefillFuel, newFreezeFuel.Value ? 1 : 0);
                 if (newFreezeFuel.Value)
                 {
-                    Plugin.SetFloat(Plugin.PrefKeyRefillFuel01, fuel01Shown);
+                    ModPrefs.SetFloat(Plugin.PrefKeyRefillFuel01, fuel01Shown);
                 }
             }
             y += line;
@@ -603,42 +585,40 @@ namespace SebTweaks
             float? newTemp01 = Util.Slider("Temp", temp01, sliderX, y, ref MouseYLock);
             float temp01Shown = newTemp01 ?? temp01;
             Util.ValueLabel($"{Mathf.RoundToInt(temp01Shown * 100f)}%", pctX, y);
-            bool freezeTemp = Plugin.GetInt(Plugin.PrefKeyFreezeRefillTemp, 0) == 1;
+            bool freezeTemp = ModPrefs.GetInt(Plugin.PrefKeyFreezeRefillTemp, 0) == 1;
             bool? newFreezeTemp = Util.Toggle("", freezeTemp, toggleX, y);
             if (newTemp01.HasValue && limit > 0f)
             {
                 hud.temperature = Mathf.Clamp(newTemp01.Value * limit, 0f, limit);
-                Plugin.SetFloat(Plugin.PrefKeyRefillTemp01, newTemp01.Value);
+                ModPrefs.SetFloat(Plugin.PrefKeyRefillTemp01, newTemp01.Value);
             }
             if (newFreezeTemp.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyFreezeRefillTemp, newFreezeTemp.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyFreezeRefillTemp, newFreezeTemp.Value ? 1 : 0);
                 if (newFreezeTemp.Value)
                 {
-                    Plugin.SetFloat(Plugin.PrefKeyRefillTemp01, temp01Shown);
+                    ModPrefs.SetFloat(Plugin.PrefKeyRefillTemp01, temp01Shown);
                 }
             }
             y += line;
 
             y += line;
 
-            bool invTruck = Plugin.GetInt(Plugin.PrefKeyGodInvincibleTruck, 0) == 1;
+            bool invTruck = ModPrefs.GetInt(Plugin.PrefKeyGodInvincibleTruck, 0) == 1;
             bool? newInvTruck = Util.Toggle("Invincible Truck", invTruck, toggleX, y);
             if (newInvTruck.HasValue)
             {
-                Plugin.SetInt(Plugin.PrefKeyGodInvincibleTruck, newInvTruck.Value ? 1 : 0);
+                ModPrefs.SetInt(Plugin.PrefKeyGodInvincibleTruck, newInvTruck.Value ? 1 : 0);
             }
         }
 
         private void DrawMultSlider(Rect p, float center, ref float y, float line, string label, string key, float min, float max)
         {
-            float v = Mathf.Clamp(Plugin.GetFloat(key, 1f), min, max);
-            float v01 = Mathf.InverseLerp(min, max, v);
-            Util.ValueLabel($"x{v:0.00}", p.x + p.width - 12f, y);
-            float? new01 = Util.Slider(label, v01, center, y, ref MouseYLock);
-            if (new01.HasValue)
+            float v = Mathf.Clamp(ModPrefs.GetFloat(key, 1f), min, max);
+            float? newValue = Util.SliderRow(label, v, min, max, $"x{v:0.00}", center, p.x + p.width - 12f, y, ref MouseYLock);
+            if (newValue.HasValue)
             {
-                Plugin.SetFloat(key, Mathf.Lerp(min, max, new01.Value));
+                ModPrefs.SetFloat(key, newValue.Value);
             }
             y += line;
         }

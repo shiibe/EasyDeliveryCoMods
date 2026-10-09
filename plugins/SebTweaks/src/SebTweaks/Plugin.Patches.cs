@@ -1,3 +1,4 @@
+using static SebCore.ModPrefs;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection;
