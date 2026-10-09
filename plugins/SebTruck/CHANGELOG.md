@@ -1,3 +1,7 @@
+## 1.1.7
+- Reject malformed ignition WAV chunks and validate PCM16 format before loading sound.
+- Update dependencies for the binding and preference reset fixes.
+
 ## 1.1.6
 - Use SebCore's shared cartridge window base and UI wiring for the Truck menu.
 - Update dependency metadata for SebCore 1.1.0 and SebBinds 1.1.4.

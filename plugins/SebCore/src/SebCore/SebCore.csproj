@@ -39,7 +39,7 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
+  <Target Name="CopyToR2ModmanProfile" AfterTargets="Build" Condition="'$(DeployToProfile)' == 'true'">
     <MakeDir Directories="$(ProfileDir)\BepInEx\plugins\SebCore" />
     <Copy
       SourceFiles="$(TargetDir)$(AssemblyName).dll"

@@ -52,9 +52,8 @@ namespace SebBinds
 
         private static void SetIfUnset(BindAction action, BindingInput input)
         {
-            var existing = BindingStore.GetBinding(BindingScheme.Keyboard, BindingLayer.Normal, action);
-            var existing2 = BindingStore.GetBinding(BindingScheme.Keyboard, BindingLayer.Modified, action);
-            if (existing.Kind != BindingKind.None || existing2.Kind != BindingKind.None)
+            if (BindingStore.HasBinding(BindingScheme.Keyboard, BindingLayer.Normal, action) ||
+                BindingStore.HasBinding(BindingScheme.Keyboard, BindingLayer.Modified, action))
             {
                 return;
             }

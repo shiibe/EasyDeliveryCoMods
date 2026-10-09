@@ -30,6 +30,9 @@ Button-style binds (`BindAction`) are stored via `SebBinds.BindingStore`:
 - `SetModifierBinding(BindingScheme scheme, BindingInput input)`
 - `GetBindingLabel(BindingInput input) -> string`
 
+Store `BindingKind.None` to keep an action unbound, including after a restart.
+Defaults and legacy migration only fill missing preferences.
+
 Maintenance helpers (these delete PlayerPrefs keys):
 
 - `ClearScheme(BindingScheme scheme)`
@@ -39,11 +42,16 @@ Axis binds (`AxisAction`) are stored via `SebBinds.AxisBindingStore`:
 
 - `GetAxisBinding(BindingScheme scheme, AxisAction action) -> BindingInput`
 - `SetAxisBinding(BindingScheme scheme, AxisAction action, BindingInput input)`
+- `ClearAxisBinding(BindingScheme scheme, AxisAction action)` stores an explicit unbound axis.
 
 Maintenance helpers (these delete PlayerPrefs keys):
 
 - `ClearScheme(BindingScheme scheme)`
 - `ClearAll()`
+
+`SebBinds.Plugin.ResetBindings()` clears every scheme and runtime binding cache,
+then restores controller and keyboard defaults. SebCore uses this optional hook
+for its global preference reset.
 
 Recommended "effective bind" pattern (use Modified layer when modifier is held; fall back to Normal if Modified is unbound):
 

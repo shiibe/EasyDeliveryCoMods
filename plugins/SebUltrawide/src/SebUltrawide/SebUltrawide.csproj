@@ -45,7 +45,7 @@
         <ProjectReference Include="..\..\..\SebCore\src\SebCore\SebCore.csproj" />
     </ItemGroup>
 
-    <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
+    <Target Name="CopyToR2ModmanProfile" AfterTargets="Build" Condition="'$(DeployToProfile)' == 'true'">
         <!-- Clean up old plugin folder from pre-rename builds so BepInEx doesn't load two GUID-identical plugins. -->
         <RemoveDir Directories="$(ProfileDir)\BepInEx\plugins\EasyDeliveryCoUltrawide" Condition="Exists('$(ProfileDir)\BepInEx\plugins\EasyDeliveryCoUltrawide')" />
 

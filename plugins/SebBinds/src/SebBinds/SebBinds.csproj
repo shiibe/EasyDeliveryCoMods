@@ -46,7 +46,7 @@
     <ProjectReference Include="..\..\..\SebCore\src\SebCore\SebCore.csproj" />
   </ItemGroup>
 
-  <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
+  <Target Name="CopyToR2ModmanProfile" AfterTargets="Build" Condition="'$(DeployToProfile)' == 'true'">
     <MakeDir Directories="$(ProfileDir)\BepInEx\plugins\SebBinds" />
     <Copy
       SourceFiles="$(TargetDir)$(AssemblyName).dll"

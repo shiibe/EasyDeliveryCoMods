@@ -1,3 +1,7 @@
+## 1.1.5
+- Fix rebound Rally clutch travel and preserve explicitly cleared bindings across restarts.
+- Share binding serialization and add regression checks for input persistence and reset behavior.
+
 ## 1.1.4
 - Use SebCore's shared cartridge launcher when opening the Wheel menu from calibration prompts.
 - Update dependency metadata for SebCore 1.1.0.

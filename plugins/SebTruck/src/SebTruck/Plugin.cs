@@ -17,7 +17,7 @@ namespace SebTruck
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtruck";
         public const string PluginName = "SebTruck";
-        public const string PluginVersion = "1.1.6";
+        public const string PluginVersion = "1.1.7";
 
         internal static ManualLogSource Log;
 
@@ -385,63 +385,8 @@ namespace SebTruck
             }
             try
             {
-                byte[] bytes = File.ReadAllBytes(path);
-                if (bytes.Length < 44)
-                {
-                    throw new Exception("WAV too small");
-                }
-
-                // Minimal PCM16 reader (ignition_on.wav is shipped as PCM16).
-                if (System.Text.Encoding.ASCII.GetString(bytes, 0, 4) != "RIFF" || System.Text.Encoding.ASCII.GetString(bytes, 8, 4) != "WAVE")
-                {
-                    throw new Exception("Not a RIFF/WAVE file");
-                }
-
-                int channels = BitConverter.ToInt16(bytes, 22);
-                int sampleRate = BitConverter.ToInt32(bytes, 24);
-                int bitsPerSample = BitConverter.ToInt16(bytes, 34);
-                if (bitsPerSample != 16)
-                {
-                    throw new Exception("Unsupported bit depth: " + bitsPerSample);
-                }
-
-                // Find data chunk.
-                int pos = 12;
-                int dataOffset = -1;
-                int dataSize = 0;
-                while (pos + 8 <= bytes.Length)
-                {
-                    string id = System.Text.Encoding.ASCII.GetString(bytes, pos, 4);
-                    int size = BitConverter.ToInt32(bytes, pos + 4);
-                    int dataPos = pos + 8;
-                    if (dataPos + size > bytes.Length)
-                    {
-                        break;
-                    }
-                    if (id == "data")
-                    {
-                        dataOffset = dataPos;
-                        dataSize = size;
-                        break;
-                    }
-                    pos = dataPos + size;
-                    if ((pos & 1) == 1) pos++;
-                }
-                if (dataOffset < 0 || dataSize <= 0)
-                {
-                    throw new Exception("Missing data chunk");
-                }
-
-                int samples = dataSize / 2;
-                float[] data = new float[samples];
-                int outI = 0;
-                for (int i = 0; i + 1 < dataSize; i += 2)
-                {
-                    short s = BitConverter.ToInt16(bytes, dataOffset + i);
-                    data[outI++] = s / 32768f;
-                }
-
-                return CreateAudioClip("ignition_on", samples / Math.Max(1, channels), channels, sampleRate, data);
+                float[] data = WavPcm16.Read(File.ReadAllBytes(path), out int channels, out int sampleRate);
+                return CreateAudioClip("ignition_on", data.Length / channels, channels, sampleRate, data);
             }
             catch (Exception e)
             {

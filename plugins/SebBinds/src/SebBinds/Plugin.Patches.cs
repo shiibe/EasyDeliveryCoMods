@@ -39,6 +39,7 @@ namespace SebBinds
 
             harmony.Patch(
                 original: AccessTools.Method(typeof(sRallyDriving), "CollectPlayerInput"),
+                prefix: new HarmonyMethod(typeof(Plugin), nameof(SRallyDriving_CollectPlayerInput_Prefix)),
                 postfix: new HarmonyMethod(typeof(Plugin), nameof(SRallyDriving_CollectPlayerInput_Postfix))
             );
 
@@ -130,7 +131,7 @@ namespace SebBinds
                 foreach (BindingLayer layer in (BindingLayer[])System.Enum.GetValues(typeof(BindingLayer)))
                 {
                     var jobs = BindingStore.GetBinding(scheme, layer, BindAction.Jobs);
-                    if (jobs.Kind == BindingKind.None)
+                    if (jobs.Kind == BindingKind.None && !BindingStore.HasBinding(scheme, layer, BindAction.Jobs))
                     {
                         var legacyMap = BindingStore.GetBinding(scheme, layer, BindAction.Map);
                         if (legacyMap.Kind != BindingKind.None)
@@ -140,7 +141,7 @@ namespace SebBinds
                     }
 
                     var mapItems = BindingStore.GetBinding(scheme, layer, BindAction.MapItems);
-                    if (mapItems.Kind == BindingKind.None)
+                    if (mapItems.Kind == BindingKind.None && !BindingStore.HasBinding(scheme, layer, BindAction.MapItems))
                     {
                         var legacyItems = BindingStore.GetBinding(scheme, layer, BindAction.Items);
                         if (legacyItems.Kind != BindingKind.None)
@@ -668,7 +669,12 @@ namespace SebBinds
             }
         }
 
-        private static void SRallyDriving_CollectPlayerInput_Postfix(sRallyDriving __instance)
+        private static void SRallyDriving_CollectPlayerInput_Prefix(sRallyDriving __instance, out float __state)
+        {
+            __state = __instance != null ? __instance.clutchInput : 0f;
+        }
+
+        private static void SRallyDriving_CollectPlayerInput_Postfix(sRallyDriving __instance, float __state)
         {
             if (__instance == null || __instance.playerNumber < 0 || PauseSystem.paused || BindsMenuWindow.BindingCaptureActive)
             {
@@ -690,7 +696,7 @@ namespace SebBinds
             BindingEvaluator.BeginFrame();
             var schemes = wheelPluginPresent ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
 
-            ApplyRallyClutch(__instance, schemes);
+            ApplyRallyClutch(__instance, schemes, __state);
 
             if (__instance.automatic || __instance.car == null || __instance.car.GuyActive || __instance.gearbox == null)
             {
@@ -739,7 +745,7 @@ namespace SebBinds
             }
         }
 
-        private static void ApplyRallyClutch(sRallyDriving rally, BindingScheme[] schemes)
+        private static void ApplyRallyClutch(sRallyDriving rally, BindingScheme[] schemes, float previousClutch)
         {
             bool hasClutchBind = AnyBindingExists(BindAction.Clutch, schemes);
             bool hasClutchAxis = false;
@@ -767,7 +773,8 @@ namespace SebBinds
                 return;
             }
 
-            rally.clutchInput = Mathf.MoveTowards(rally.clutchInput, clutch, Time.fixedDeltaTime * rally.clutchSensitivity);
+            // Start before vanilla's Numpad0 update so opposing inputs cannot cancel each frame.
+            rally.clutchInput = RallyClutchInput.Advance(previousClutch, clutch, Time.fixedDeltaTime * rally.clutchSensitivity);
         }
 
         private static void SuppressRallyDrivingInput(sRallyDriving rally)

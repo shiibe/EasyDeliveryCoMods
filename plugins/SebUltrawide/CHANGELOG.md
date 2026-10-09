@@ -1,3 +1,7 @@
+## 1.1.3
+- Update SebCore dependency for the preference reset fixes.
+- Keep assembly and package versions consistent and allow builds without deploying to the game profile.
+
 ## 1.1.2
 - Fix world-space HUD label positioning when renderer dimensions differ from the camera output. (Thanks to flyen256 for reporting)
 - Reapply saved FOV and pixelation settings when freecam/location transitions rebuild cameras. (Thanks to flyen256 for reporting)

@@ -1,3 +1,7 @@
+## 1.1.4
+- Require the native Logitech wrapper DLL when packaging releases.
+- Update dependencies for the binding and preference reset fixes.
+
 ## 1.1.3
 - Use SebCore's shared cartridge window base, UI utilities, config migration helper, and Harmony patch helper.
 - Use SebCore cartridge launching for the Binds shortcut.

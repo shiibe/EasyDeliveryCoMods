@@ -1,3 +1,7 @@
+## 1.1.3
+- Support patch version bumps through the shared release scripts.
+- Update SebCore dependency and keep assembly and package versions consistent.
+
 ## 1.1.2
 - Fix world-space HUD label positioning when renderer dimensions differ from the camera output. (Thanks to flyen256 for reporting)
 - Reapply saved FOV and pixelation settings when freecam/location transitions rebuild cameras. (Thanks to flyen256 for reporting)

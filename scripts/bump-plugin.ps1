@@ -16,16 +16,7 @@ function Get-RepoRoot()
     return Split-Path -Parent $PSScriptRoot
 }
 
-function Get-PluginDefs()
-{
-    return @(
-        @{ Name = "SebCore";      Csproj = "plugins/SebCore/src/SebCore/SebCore.csproj";      ExtraDlls = @(); },
-        @{ Name = "SebBinds";     Csproj = "plugins/SebBinds/src/SebBinds/SebBinds.csproj";    ExtraDlls = @(); },
-        @{ Name = "SebUltrawide"; Csproj = "plugins/SebUltrawide/src/SebUltrawide/SebUltrawide.csproj"; ExtraDlls = @(); },
-        @{ Name = "SebTruck";     Csproj = "plugins/SebTruck/src/SebTruck/SebTruck.csproj";    ExtraDlls = @(); },
-        @{ Name = "SebLogiWheel"; Csproj = "plugins/SebLogiWheel/src/SebLogiWheel/SebLogiWheel.csproj"; ExtraDlls = @("LogitechSteeringWheelEnginesWrapper.dll"); }
-    )
-}
+. (Join-Path $PSScriptRoot "plugin-defs.ps1")
 
 function Get-PluginDef([string]$name)
 {
@@ -89,7 +80,7 @@ function Write-ManifestVersion([string]$manifestPath, [string]$newVersion)
     {
         throw "Failed to update version_number in $manifestPath"
     }
-    Set-Content -Path $manifestPath -Value $updated
+    Set-Content -Path $manifestPath -Value $updated -NoNewline
 }
 
 function Find-PluginCs([string]$pluginRoot)
@@ -131,7 +122,7 @@ function Write-PluginCsVersion([string]$pluginCsPath, [string]$newVersion)
     {
         throw "Failed to update PluginVersion in $pluginCsPath"
     }
-    Set-Content -Path $pluginCsPath -Value $updated
+    Set-Content -Path $pluginCsPath -Value $updated -NoNewline
 }
 
 function Prepend-ChangelogHeader([string]$changelogPath, [string]$newVersion, [string]$note)
@@ -148,7 +139,7 @@ function Prepend-ChangelogHeader([string]$changelogPath, [string]$newVersion, [s
     }
 
     $header = "## $newVersion`r`n- $note`r`n`r`n"
-    Set-Content -Path $changelogPath -Value ($header + $raw.Trim())
+    Set-Content -Path $changelogPath -Value ($header + $raw.Trim() + "`r`n") -NoNewline
 }
 
 $repoRoot = Get-RepoRoot

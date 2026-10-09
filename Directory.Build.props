@@ -5,6 +5,7 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DeployToProfile Condition="'$(DeployToProfile)' == ''">true</DeployToProfile>
 
     <!--
       Build-time paths.

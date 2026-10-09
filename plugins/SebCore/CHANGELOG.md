@@ -1,3 +1,7 @@
+## 1.1.1
+- Fix global preference reset to clear all binding schemes, axes, and runtime caches, then restore defaults.
+- Limit preference reset to this mod suite and validate release packaging before creating archives.
+
 ## 1.1.0
 - Add shared UI helpers, config migration, Harmony patch, and PlayerPrefs utility APIs for dependent mods.
 - Add a shared cartridge open helper that ensures listeners before launching app windows.

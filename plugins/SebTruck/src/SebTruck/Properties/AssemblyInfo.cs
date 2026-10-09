@@ -2,5 +2,5 @@ using System.Reflection;
 
 [assembly: AssemblyTitle("SebTruck")]
 [assembly: AssemblyProduct("SebTruck")]
-[assembly: AssemblyVersion("1.1.6")]
-[assembly: AssemblyFileVersion("1.1.6")]
+[assembly: AssemblyVersion(SebTruck.Plugin.PluginVersion)]
+[assembly: AssemblyFileVersion(SebTruck.Plugin.PluginVersion)]

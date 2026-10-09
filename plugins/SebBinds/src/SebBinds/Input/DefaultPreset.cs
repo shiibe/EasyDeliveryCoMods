@@ -116,9 +116,8 @@ namespace SebBinds
 
         private static bool IsUnset(BindAction action)
         {
-            var b0 = BindingStore.GetBinding(BindingLayer.Normal, action);
-            var b1 = BindingStore.GetBinding(BindingLayer.Modified, action);
-            return b0.Kind == BindingKind.None && b1.Kind == BindingKind.None;
+            return !BindingStore.HasBinding(BindingScheme.Controller, BindingLayer.Normal, action) &&
+                !BindingStore.HasBinding(BindingScheme.Controller, BindingLayer.Modified, action);
         }
 
         private static bool SetIfUnset(BindAction target, BindingInput input)

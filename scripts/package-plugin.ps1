@@ -13,17 +13,8 @@ function Get-RepoRoot()
     return Split-Path -Parent $PSScriptRoot
 }
 
-function Get-PluginDefs()
-{
-    return @(
-        @{ Name = "SebCore";      Csproj = "plugins/SebCore/src/SebCore/SebCore.csproj";      ExtraDlls = @(); },
-        @{ Name = "SebBinds";     Csproj = "plugins/SebBinds/src/SebBinds/SebBinds.csproj";    ExtraDlls = @(); },
-        @{ Name = "SebUltrawide"; Csproj = "plugins/SebUltrawide/src/SebUltrawide/SebUltrawide.csproj"; ExtraDlls = @(); },
-        @{ Name = "SebTruck";     Csproj = "plugins/SebTruck/src/SebTruck/SebTruck.csproj";    ExtraDlls = @(); },
-        @{ Name = "SebLogiWheel"; Csproj = "plugins/SebLogiWheel/src/SebLogiWheel/SebLogiWheel.csproj"; ExtraDlls = @("LogitechSteeringWheelEnginesWrapper.dll"); },
-        @{ Name = "SebTweaks";    Csproj = "plugins/SebTweaks/src/SebTweaks/SebTweaks.csproj"; ExtraDlls = @(); }
-    )
-}
+. (Join-Path $PSScriptRoot "plugin-defs.ps1")
+. (Join-Path $PSScriptRoot "package-util.ps1")
 
 function Get-PluginDef([string]$name)
 {
@@ -96,6 +87,7 @@ if ([string]::IsNullOrWhiteSpace($Version))
 {
     $Version = Read-ManifestVersion $manifestPath
 }
+Assert-PackageVersion $pluginRoot $Version
 
 if (-not (Test-Path $distRoot))
 {
@@ -108,11 +100,13 @@ if (-not (Test-Path $stageRoot))
 
 Write-Host "Building $name ($Configuration)..."
 $csprojPath = Join-Path $repoRoot $def.Csproj
-dotnet build $csprojPath -c $Configuration
+dotnet build $csprojPath -c $Configuration /p:DeployToProfile=false
+if ($LASTEXITCODE -ne 0) { throw "Build failed for $name (exit $LASTEXITCODE)" }
 
 $outputDir = Join-Path (Split-Path -Parent $csprojPath) ("bin\\" + $Configuration + "\\net472")
 $dllPath = Join-Path $outputDir ($name + ".dll")
 $pdbPath = Join-Path $outputDir ($name + ".pdb")
+Assert-ExtraDlls $def $outputDir
 if (-not (Test-Path $dllPath))
 {
     throw "Build output not found at $dllPath"

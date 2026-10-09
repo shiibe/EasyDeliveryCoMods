@@ -61,7 +61,7 @@
         <ProjectReference Include="..\..\..\SebBinds\src\SebBinds\SebBinds.csproj" />
     </ItemGroup>
 
-    <Target Name="CopyToR2ModmanProfile" AfterTargets="Build">
+    <Target Name="CopyToR2ModmanProfile" AfterTargets="Build" Condition="'$(DeployToProfile)' == 'true'">
          <!-- Clean up old plugin folder from pre-rename builds so BepInEx doesn't load two GUID-identical plugins. -->
          <RemoveDir Directories="$(ProfileDir)\BepInEx\plugins\EasyLogiWheelSupport" Condition="Exists('$(ProfileDir)\BepInEx\plugins\EasyLogiWheelSupport')" />
 
@@ -94,13 +94,13 @@
                 SourceFiles="$(LogiWrapperSource)"
                 DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebLogiWheel"
                 SkipUnchangedFiles="true"
-                Condition="Exists('$(LogiWrapperSource)')" />
+                Condition="'$(DeployToProfile)' == 'true' AND Exists('$(LogiWrapperSource)')" />
 
         <Copy
                 SourceFiles="$(LogiWrapperSource)"
                 DestinationFolder="$(ProfileDir)\BepInEx\core"
                 SkipUnchangedFiles="true"
-                Condition="Exists('$(LogiWrapperSource)') AND Exists('$(ProfileDir)\BepInEx\core')" />
+                Condition="'$(DeployToProfile)' == 'true' AND Exists('$(LogiWrapperSource)') AND Exists('$(ProfileDir)\BepInEx\core')" />
 
         <Copy
                 SourceFiles="$(LogiWrapperProfileCore)"
@@ -112,7 +112,7 @@
                 SourceFiles="$(LogiWrapperProfileCore)"
                 DestinationFolder="$(ProfileDir)\BepInEx\plugins\SebLogiWheel"
                 SkipUnchangedFiles="true"
-                Condition="!Exists('$(LogiWrapperSource)') AND Exists('$(LogiWrapperProfileCore)')" />
+                Condition="'$(DeployToProfile)' == 'true' AND !Exists('$(LogiWrapperSource)') AND Exists('$(LogiWrapperProfileCore)')" />
     </Target>
 
 </Project>

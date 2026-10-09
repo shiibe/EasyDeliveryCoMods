@@ -128,7 +128,7 @@ namespace SebBinds
 
             string key = GetBindPrefKey(scheme, layer, action);
             int raw = PlayerPrefs.GetInt(key, -1);
-            if (raw < 0)
+            if (!PlayerPrefs.HasKey(key))
             {
                 string legacyKey = GetLegacyBindPrefKey(scheme, layer, action);
                 raw = PlayerPrefs.GetInt(legacyKey, -1);
@@ -157,6 +157,12 @@ namespace SebBinds
 
             // Keep cache coherent.
             BindingCache[Key(scheme, layer, action)] = input;
+        }
+
+        internal static bool HasBinding(BindingScheme scheme, BindingLayer layer, BindAction action)
+        {
+            return PlayerPrefs.HasKey(GetBindPrefKey(scheme, layer, action)) ||
+                PlayerPrefs.HasKey(GetLegacyBindPrefKey(scheme, layer, action));
         }
 
         public static BindingInput GetModifierBinding()
@@ -449,7 +455,7 @@ namespace SebBinds
             }
         }
 
-        private static int Encode(BindingInput input)
+        internal static int Encode(BindingInput input)
         {
             if (input.Kind == BindingKind.Button)
             {
@@ -494,7 +500,7 @@ namespace SebBinds
             return -1;
         }
 
-        private static BindingInput Decode(int raw)
+        internal static BindingInput Decode(int raw)
         {
             if (raw < 0)
             {

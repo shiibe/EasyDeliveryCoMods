@@ -10,14 +10,9 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $distRoot = Join-Path $repoRoot "dist"
 $stageRoot = Join-Path $distRoot ".staging"
 
-$plugins = @(
-    @{ Name = "SebCore";     Csproj = "plugins/SebCore/src/SebCore/SebCore.csproj";     ExtraDlls = @(); },
-    @{ Name = "SebBinds";    Csproj = "plugins/SebBinds/src/SebBinds/SebBinds.csproj";  ExtraDlls = @(); },
-    @{ Name = "SebUltrawide";Csproj = "plugins/SebUltrawide/src/SebUltrawide/SebUltrawide.csproj"; ExtraDlls = @(); },
-    @{ Name = "SebTweaks";   Csproj = "plugins/SebTweaks/src/SebTweaks/SebTweaks.csproj"; ExtraDlls = @(); },
-    @{ Name = "SebTruck";    Csproj = "plugins/SebTruck/src/SebTruck/SebTruck.csproj";  ExtraDlls = @(); },
-    @{ Name = "SebLogiWheel";Csproj = "plugins/SebLogiWheel/src/SebLogiWheel/SebLogiWheel.csproj"; ExtraDlls = @("LogitechSteeringWheelEnginesWrapper.dll"); }
-)
+. (Join-Path $PSScriptRoot "plugin-defs.ps1")
+. (Join-Path $PSScriptRoot "package-util.ps1")
+$plugins = Get-PluginDefs
 
 if ($Only.Count -eq 1 -and $Only[0] -match "[,;]")
 {
@@ -33,15 +28,33 @@ if ($Only.Count -gt 0)
     }
 }
 
+foreach ($p in $plugins)
+{
+    $pluginRoot = Join-Path $repoRoot ("plugins/" + $p.Name)
+    $packageVersion = $Version
+    if ([string]::IsNullOrWhiteSpace($packageVersion))
+    {
+        $packageVersion = (Get-Content -LiteralPath (Join-Path $pluginRoot "manifest.json") -Raw | ConvertFrom-Json).version_number
+    }
+    Assert-PackageVersion $pluginRoot $packageVersion
+}
+
+Write-Host "Building solution ($Configuration)..."
+dotnet build (Join-Path $repoRoot "EasyDeliveryCoMods.sln") -c $Configuration /p:DeployToProfile=false
+if ($LASTEXITCODE -ne 0) { throw "Solution build failed (exit $LASTEXITCODE)" }
+
+foreach ($p in $plugins)
+{
+    $outputDir = Join-Path (Split-Path -Parent (Join-Path $repoRoot $p.Csproj)) ("bin/$Configuration/net472")
+    Assert-ExtraDlls $p $outputDir
+}
+
 if (Test-Path $distRoot)
 {
     Remove-Item -Recurse -Force $distRoot
 }
 New-Item -ItemType Directory -Force -Path $distRoot | Out-Null
 New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
-
-Write-Host "Building solution ($Configuration)..."
-dotnet build (Join-Path $repoRoot "EasyDeliveryCoMods.sln") -c $Configuration
 
 function Write-ManifestWithVersion($srcManifestPath, $dstManifestPath, $version)
 {

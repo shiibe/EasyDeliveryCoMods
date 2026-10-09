@@ -21,6 +21,10 @@ namespace SebCore
             // 1) Delete known const PrefKey* fields from loaded plugins.
             foreach (var kvp in Chainloader.PluginInfos)
             {
+                if (!kvp.Key.StartsWith("shibe.easydeliveryco.", StringComparison.Ordinal))
+                {
+                    continue;
+                }
                 var info = kvp.Value;
                 if (info == null || info.Instance == null)
                 {
@@ -38,11 +42,20 @@ namespace SebCore
                 for (int action = 0; action <= 512; action++)
                 {
                     TryDeleteKey("ELWS_Bind_" + layer + "_" + action, result);
+                    TryDeleteKey("SebBinds_KB_Bind_" + layer + "_" + action, result);
+                    TryDeleteKey("SebBinds_Wheel_Bind_" + layer + "_" + action, result);
                 }
+            }
+            for (int action = 0; action <= 512; action++)
+            {
+                TryDeleteKey("SebBinds_Axis_" + action, result);
+                TryDeleteKey("SebBinds_KB_Axis_" + action, result);
+                TryDeleteKey("SebBinds_Wheel_Axis_" + action, result);
             }
 
             // Legacy name keys, if SebBinds is present.
             TryDeleteLegacyBindNameKeys(result);
+            ResetLoadedBindings();
 
             PlayerPrefs.Save();
             return result;
@@ -150,7 +163,30 @@ namespace SebCore
                 for (int i = 0; i < names.Length; i++)
                 {
                     TryDeleteKey("ELWS_Bind_" + layerName + "_" + names[i], result);
+                    TryDeleteKey("SebBinds_KB_Bind_" + layerName + "_" + names[i], result);
+                    TryDeleteKey("SebBinds_Wheel_Bind_" + layerName + "_" + names[i], result);
                 }
+            }
+        }
+
+        private static void ResetLoadedBindings()
+        {
+            if (!Chainloader.PluginInfos.TryGetValue("shibe.easydeliveryco.sebbinds", out var info) || info?.Instance == null)
+            {
+                return;
+            }
+            Type plugin = info.Instance.GetType();
+            MethodInfo reset = plugin.GetMethod("ResetBindings", BindingFlags.Public | BindingFlags.Static);
+            if (reset != null)
+            {
+                reset.Invoke(null, null);
+                return;
+            }
+
+            // Older SebBinds builds expose the stores but not the reset-and-reseed hook.
+            foreach (string name in new[] { "SebBinds.BindingStore", "SebBinds.AxisBindingStore" })
+            {
+                plugin.Assembly.GetType(name)?.GetMethod("ClearAll", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
             }
         }
 

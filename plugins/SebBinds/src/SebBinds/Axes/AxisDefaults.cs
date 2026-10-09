@@ -15,8 +15,7 @@ namespace SebBinds
 
         private static void SetIfUnset(AxisAction action, BindingInput input)
         {
-            var existing = AxisBindingStore.GetAxisBinding(action);
-            if (existing.Kind != BindingKind.None)
+            if (AxisBindingStore.HasAxisBinding(BindingScheme.Controller, action))
             {
                 return;
             }
