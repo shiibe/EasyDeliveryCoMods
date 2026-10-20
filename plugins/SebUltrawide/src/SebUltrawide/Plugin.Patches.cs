@@ -37,27 +37,27 @@ namespace SebUltrawide
             PatchByName(harmony, "PauseSystem", "Start", postfix: nameof(PauseSystem_Start_Postfix));
             PatchByName(harmony, "PauseSystem", "SetResolution", postfix: nameof(PauseSystem_SetResolution_Postfix));
             PatchByName(harmony, "PauseSystem", "SetFullscreen", postfix: nameof(PauseSystem_SetFullscreen_Postfix));
-            PatchByName(harmony, "PauseSystem", "TogglePaused", postfix: nameof(PauseSystem_TogglePaused_Postfix));
             PatchByName(harmony, "sOptionsMenu", "FrameUpdate", postfix: nameof(PresentationChange_Postfix));
             PatchByName(harmony, "sEasyRally", "Update", postfix: nameof(PresentationChange_Postfix));
-            PatchByName(harmony, "sEasyCinema", "Update", postfix: nameof(SEasyCinema_Update_Postfix));
             PatchByName(harmony, "sFreeCam", "Start", postfix: nameof(SFreeCam_Start_Postfix));
             PatchByName(harmony, "sFreeCam", "ToggleFreeCam", postfix: nameof(SFreeCam_ToggleFreeCam_Postfix));
-            PatchByName(harmony, "sCameraController", "Update", postfix: nameof(SCameraController_Update_Postfix));
-            PatchByName(harmony, "sCameraController", "LateUpdate", postfix: nameof(SCameraController_LateUpdate_Postfix));
             PatchByName(harmony, "IntroDotExe", "Setup", postfix: nameof(IntroDotExe_Setup_Postfix));
             PatchByName(harmony, "ChooseExe", "Setup", postfix: nameof(ChooseExe_Setup_Postfix));
             PatchByName(harmony, "CamDotExe", "Start", postfix: nameof(CamDotExe_Start_Postfix));
             PatchByName(harmony, "MiniRenderer", "Start", postfix: nameof(MiniRenderer_Start_Postfix));
             PatchByName(harmony, "pixelPerfectView", "AdjustViewPlane", prefix: nameof(PixelPerfectView_AdjustViewPlane_Prefix));
             PatchByName(harmony, "sHUD", "Init", postfix: nameof(SHud_Init_Postfix));
-            PatchByName(harmony, "sHUD", "WorldToHUDPoint", prefix: nameof(SHud_WorldToHUDPoint_Prefix));
             PatchByName(harmony, "sHUD", "FadeToBlack", prefix: nameof(SHud_FadeToBlack_Prefix));
             PatchByName(harmony, "sHUD", "DipToBlack", prefix: nameof(SHud_DipToBlack_Prefix));
             PatchByName(harmony, "ScreenSystem", "Init", postfix: nameof(ScreenSystem_Init_Postfix));
             PatchByName(harmony, "ScreenSystem", "DoTransition", postfix: nameof(ScreenSystem_DoTransition_Postfix));
             PatchByName(harmony, "SceneTransition", "Start", postfix: nameof(SceneTransition_Start_Postfix));
             PatchByName(harmony, "sTeleporter", "Teleport", postfix: nameof(Steleporter_Teleport_Postfix));
+
+            // FOV, pixelation, view distance and vsync live in SebCore.
+            SebCore.ModGraphics.OutputAspect = GetPixelationOutputAspect;
+            SebCore.ModGraphics.FreeCamCamera = ApplyFreeCamAspect;
+            SebCore.ModGraphics.Enable();
             // Icon/menu launching is handled by SebCore.
             // Fog controls moved out of this plugin.
         }
@@ -141,7 +141,6 @@ namespace SebUltrawide
 
         private static void RaceManager_StartRace_Postfix()
         {
-            RefreshPixelation();
             ApplyAllCameras();
         }
 
@@ -161,7 +160,6 @@ namespace SebUltrawide
 
             ApplyAllCameras();
             ScaleOverlayBackdrops();
-            ApplySavedMenuSettings();
         }
 
         private static void PauseSystem_SetResolution_Postfix()
@@ -173,7 +171,6 @@ namespace SebUltrawide
 
             ApplyAllCameras();
             ScaleOverlayBackdrops();
-            ApplySavedMenuSettings();
         }
 
         private static void PauseSystem_SetFullscreen_Postfix()
@@ -185,17 +182,6 @@ namespace SebUltrawide
 
             ApplyAllCameras();
             ScaleOverlayBackdrops();
-            ApplySavedMenuSettings();
-        }
-
-        private static void PauseSystem_TogglePaused_Postfix()
-        {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            ApplySavedMenuSettings();
         }
 
         private static void PresentationChange_Postfix()
@@ -205,43 +191,12 @@ namespace SebUltrawide
 
         private static void SFreeCam_ToggleFreeCam_Postfix()
         {
-            ApplySavedMenuSettings();
             ApplyAllCameras();
         }
 
         private static void SFreeCam_Start_Postfix()
         {
-            ApplySavedMenuSettings();
             ApplyAllCameras();
-        }
-
-        private static void SEasyCinema_Update_Postfix()
-        {
-            RefreshPixelation();
-        }
-
-        private static void SCameraController_LateUpdate_Postfix(object __instance)
-        {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            if (IsPlayerInsideBuilding())
-            {
-                return;
-            }
-
-            if (!(__instance is sCameraController controller) || controller.cam == null)
-            {
-                return;
-            }
-
-            bool firstPerson = controller.firstPerson && !controller.fixedPerspective;
-            if (TryGetSavedFov(firstPerson, out float savedFov))
-            {
-                controller.cam.fieldOfView = savedFov;
-            }
         }
 
         private static void SHud_Init_Postfix(object __instance)
@@ -290,7 +245,6 @@ namespace SebUltrawide
             menuCamera = ResolveMenuCamera(menuCamera);
             ScaleBackdropFromField(__instance, "backdrop", menuCamera, "ScreenSystem");
             ScaleOverlaySprites(__instance as Component, menuCamera, "ScreenSystem");
-            ApplySavedMenuSettings();
         }
 
         private static void ScreenSystem_DoTransition_Postfix(object __instance)
@@ -305,7 +259,6 @@ namespace SebUltrawide
             menuCamera = ResolveMenuCamera(menuCamera);
             ScaleBackdropFromField(__instance, "backdrop", menuCamera, "ScreenSystem");
             ScaleOverlaySprites(__instance as Component, menuCamera, "ScreenSystem");
-            ApplySavedMenuSettings();
         }
 
         private static void IntroDotExe_Setup_Postfix(object __instance)

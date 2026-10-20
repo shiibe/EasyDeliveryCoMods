@@ -17,8 +17,6 @@ namespace SebBinds
         private static readonly List<Page> ExtraPages = new List<Page>();
         private const string PrefKeyShiftMode = "SebBinds_ShiftMode";
 
-        private static readonly List<IAxisProvider> AxisProviders = new List<IAxisProvider>();
-
         public static void RegisterActionsPage(string id, string title, params BindAction[] actions)
         {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("id is required", nameof(id));
@@ -146,24 +144,9 @@ namespace SebBinds
             return ActionEdges.Released(key, Time.frameCount, IsActionDown(action, normalFallback));
         }
 
-        public static void RegisterAxisProvider(IAxisProvider provider)
+        public static void RegisterWheelSource(IWheelSource source)
         {
-            if (provider == null) throw new ArgumentNullException(nameof(provider));
-            lock (Sync)
-            {
-                if (!AxisProviders.Contains(provider))
-                {
-                    AxisProviders.Add(provider);
-                }
-            }
-        }
-
-        internal static List<IAxisProvider> GetAxisProvidersSnapshot()
-        {
-            lock (Sync)
-            {
-                return new List<IAxisProvider>(AxisProviders);
-            }
+            WheelInterop.Source = source ?? throw new ArgumentNullException(nameof(source));
         }
 
         internal static List<Page> GetExtraPagesSnapshot()

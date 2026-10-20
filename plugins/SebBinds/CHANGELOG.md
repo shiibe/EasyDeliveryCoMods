@@ -1,4 +1,6 @@
 ## 1.1.5
+- Wheel input now comes from SebLogiWheel through a small registered interface instead of reflection, so renaming internals can no longer silently break wheel binds. Requires SebLogiWheel 1.1.4.
+- Remove the unused axis-provider API (`IAxisProvider`, `RegisterAxisProvider`).
 - Use SebCore's shared window lifecycle and page controls while preserving capture and Back behavior.
 - Fix rebound Rally clutch travel and preserve explicitly cleared bindings across restarts.
 - Share binding serialization and add regression checks for input persistence and reset behavior.

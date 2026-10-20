@@ -148,6 +148,33 @@ Basic widgets. Names go through `LocalizationDictionary`, except in `ValueLabel`
 - `SebCore.ConfigUtil.CopyLegacyConfigIfNeeded(string oldGuid, string newGuid)`: copies `BepInEx/config/<oldGuid>.cfg` to `<newGuid>.cfg` if the new file doesn't exist yet. Best effort; never throws. Call it before you bind any config entries.
 - `SebCore.HarmonyUtil.PatchByName(Harmony harmony, Type patchType, string typeName, string methodName, string prefix = null, string postfix = null, Action<string> logDebug = null)`: patches a game method found by name. `prefix`/`postfix` name static methods on `patchType`. If the type or method is missing it logs through `logDebug` and skips the patch. For overloaded methods it picks the one with the fewest parameters.
 
+## Shared Graphics
+
+`SebCore.ModGraphics` owns the shared FOV, pixelation, view distance, vsync and rear-view mirror quality settings used by SebUltrawide, SebTweaks and SebTruck. It does nothing until a mod turns it on, so SebCore alone changes nothing.
+
+- `Enable()`: turns on FOV, pixelation, view distance and vsync, then applies the saved values. Safe to call from several mods.
+- `EnableMirrorQuality(bool enabled)`: turns rear-view mirror quality on or off. Works without `Enable()`.
+- `ApplySaved()`: re-applies every saved setting (call after resolution, scene or camera changes).
+- `RefreshPixelation()`: re-applies pixelation and mirror quality only.
+- `ResetDefaults()`: clears the FOV overrides and vsync, sets pixelation and view distance back to Default, and saves.
+
+Settings (modes are clamped to the listed range; the setters store the value and apply it, but don't call `PlayerPrefs.Save()`):
+
+| Setting | Read | Write | Values |
+|---|---|---|---|
+| Pixelation | `GetPixelationMode()` | `SavePixelationMode(int)` | 0 None, 1 Finer, 2 Fine, 3 Default, 4 Large |
+| View distance | `GetViewDistanceMode()` | `SaveViewDistanceMode(int)` | 0 Near, 1 Default, 2 Far, 3 Max |
+| Vsync | `GetVsyncMode()` | `SetVsyncMode(int)` | 0 Off, 1 On (default) |
+| Mirror quality | `GetMirrorQuality()` | `SetMirrorQuality(int)` | 0 Original, 1 2x, 2 4x, 3 8x |
+| FOV | `TryGetSavedFov(bool firstPerson, out float)`, `GetSavedFovOrDefault(bool firstPerson, float fallback)` | `SaveFovOverride(bool firstPerson, float fov)` | degrees; first- and third-person are stored separately |
+
+The getters move older saved values to the current format the first time they are read. The pref key names are left over from SebUltrawide/SebTweaks/SebTruck and are kept so saved settings survive; don't rename them.
+
+Hooks (static fields, set them once, typically in `Awake()`):
+
+- `OutputAspect` (`Func<float>`): output aspect used for full-resolution pixelation. `null` means the screen aspect. Set by SebUltrawide.
+- `FreeCamCamera` (`Action<Camera>`): called on each refresh with the active free cam. Set by SebUltrawide.
+
 ## Threading
 
 All of this is intended to run on Unity's main thread.

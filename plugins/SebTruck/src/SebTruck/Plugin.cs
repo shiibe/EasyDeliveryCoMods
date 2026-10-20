@@ -11,7 +11,7 @@ using UnityEngine;
 namespace SebTruck
 {
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-    [BepInDependency("shibe.easydeliveryco.sebcore", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency("shibe.easydeliveryco.sebcore", "1.1.1")]
     [BepInDependency("shibe.easydeliveryco.sebbinds", BepInDependency.DependencyFlags.HardDependency)]
     public partial class Plugin : BaseUnityPlugin
     {

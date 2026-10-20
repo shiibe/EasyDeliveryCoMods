@@ -23,6 +23,7 @@ namespace SebLogiWheel
             _ignoreXInputControllers = Config.Bind("General", "ignore_xinput_controllers", true, "Pass 'ignoreXInputControllers' to the Logitech SDK init (recommended).");
 
             MigratePrefsFromG920IfNeeded();
+            SebBinds.SebBindsApi.RegisterWheelSource(new BindsWheelSource());
 
             var harmony = new Harmony(PluginGuid);
             harmony.PatchAll(typeof(Plugin).Assembly);

@@ -1,4 +1,7 @@
 ## 1.1.3
+- Move FOV, pixelation, view distance, and vsync into SebCore so only one copy runs when SebTweaks is also installed; saved settings are kept. Requires SebCore 1.1.1.
+- View distance Max keeps this mod's values (shadow distance 8000, LOD bias 12, far clip 250000); SebTweaks now uses them too.
+- The world-space HUD label fix also moved to SebCore.
 - Respect SebTruck's mirror-quality setting independently of main-view pixelation.
 - Use SebCore's shared graphics slider rows and Back footer.
 - Update SebCore dependency for the preference reset fixes.

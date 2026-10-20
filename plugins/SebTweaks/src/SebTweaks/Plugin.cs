@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 namespace SebTweaks
 {
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-    [BepInDependency("shibe.easydeliveryco.sebcore", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency("shibe.easydeliveryco.sebcore", "1.1.1")]
     public sealed partial class Plugin : BaseUnityPlugin
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebtweaks";
@@ -26,11 +26,24 @@ namespace SebTweaks
                     int legacy = GetInt(PrefKeyTimeMode, 0);
                     SetInt(PrefKeyFreezeTime, legacy == 1 ? 1 : 0);
                 }
+
+                // Migrate the old SebTweaks-only rally key to the key shared with SebTruck.
+                if (HasKey(PrefKeyRallyManualTransmissionLegacy))
+                {
+                    if (!HasKey(PrefKeyRallyManualTransmission))
+                    {
+                        SetInt(PrefKeyRallyManualTransmission, GetInt(PrefKeyRallyManualTransmissionLegacy, 0));
+                    }
+                    DeleteKey(PrefKeyRallyManualTransmissionLegacy);
+                }
             }
             catch
             {
                 // ignore
             }
+
+            // FOV, pixelation, view distance and vsync live in SebCore.
+            SebCore.ModGraphics.Enable();
 
             // Register the cartridge so it shows up in SebCore.
             SebCore.CartridgeApps.RegisterApp(new SebCore.CartridgeApps.App
@@ -47,10 +60,6 @@ namespace SebTweaks
             {
                 var harmony = new Harmony(PluginGuid);
                 harmony.PatchAll();
-                PatchByName(harmony, "sFreeCam", "Start", postfix: nameof(SFreeCam_Start_Postfix_Graphics));
-                PatchByName(harmony, "ScreenSystem", "Init", postfix: nameof(ScreenSystem_Init_Postfix_Graphics));
-                PatchByName(harmony, "ScreenSystem", "DoTransition", postfix: nameof(ScreenSystem_DoTransition_Postfix_Graphics));
-                PatchByName(harmony, "sTeleporter", "Teleport", postfix: nameof(STeleporter_Teleport_Postfix_Graphics));
             }
             catch (System.Exception e)
             {
@@ -59,11 +68,6 @@ namespace SebTweaks
         }
 
         internal static BepInEx.Logging.ManualLogSource Log;
-
-        private static void PatchByName(Harmony harmony, string typeName, string methodName, string prefix = null, string postfix = null)
-        {
-            SebCore.HarmonyUtil.PatchByName(harmony, typeof(Plugin), typeName, methodName, prefix, postfix);
-        }
 
         private static readonly string[] MenuScenes =
         {
@@ -134,7 +138,9 @@ namespace SebTweaks
         internal const string PrefKeyIceCrackEnabled = "SebTweaks_IceCrackEnabled"; // 0/1
 
         internal const string PrefKeyGodInvincibleTruck = "SebTweaks_God_InvTruck";
-        internal const string PrefKeyRallyManualTransmission = "SebTweaks_Rally_ManualTransmission";
+        // Shared with SebTruck so both menus control one setting.
+        internal const string PrefKeyRallyManualTransmission = "SebTruck_RallyManualTransmission";
+        internal const string PrefKeyRallyManualTransmissionLegacy = "SebTweaks_Rally_ManualTransmission";
         internal const string PrefKeyRallyDebugInfo = "SebTweaks_Rally_DebugInfo";
 
         // Cheats/refill targets (0..1). Used when the corresponding freeze toggle is enabled.
@@ -146,18 +152,6 @@ namespace SebTweaks
         internal const string PrefKeyFreezeRefillFuel = "SebTweaks_Refill_FreezeFuel"; // 0/1
         internal const string PrefKeyFreezeRefillTemp = "SebTweaks_Refill_FreezeTemp"; // 0/1
 
-        // Shared graphics prefs (match SebUltrawide keys so settings are unified).
-        internal const string PrefKeyFovLegacy = "UltrawideFovOverride";
-        internal const string PrefKeyFovThirdPerson = "UltrawideFovOverride_ThirdPerson";
-        internal const string PrefKeyFovFirstPerson = "UltrawideFovOverride_FirstPerson";
-        internal const string PrefKeyPixelationMode = "UltrawidePixelationMode";
-        internal const string PrefKeyPixelationModeVersion = "UltrawidePixelationModeVersion";
-        internal const string PrefKeyViewDistanceMode = "UltrawideViewDistanceMode";
-        internal const string PrefKeyViewDistanceModeVersion = "UltrawideViewDistanceModeVersion";
-
-        // SebTweaks-only graphics prefs.
-        internal const string PrefKeyGfxVsyncMode = "SebTweaks_Gfx_VSyncMode"; // v2: 0=Off,1=On (legacy v1: 0=Default,1=On,2=Off)
-        internal const string PrefKeyGfxVsyncModeVersion = "SebTweaks_Gfx_VSyncModeVersion"; // 0/1=legacy, 2=new
         // PrefKeyGfxFpsCap: 0=Default, -1=Uncapped, >0=cap
         internal const string PrefKeyGfxFpsMode = "SebTweaks_Gfx_FpsMode"; // Legacy
         internal const string PrefKeyGfxFpsCap = "SebTweaks_Gfx_FpsCap";

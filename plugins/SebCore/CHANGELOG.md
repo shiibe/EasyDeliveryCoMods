@@ -1,4 +1,8 @@
 ## 1.1.1
+- Add shared graphics module (FOV, pixelation, view distance, vsync, rear-view mirror quality) used by SebUltrawide, SebTweaks, and SebTruck. Inactive unless one of those mods enables it; existing saved settings are kept.
+- View distance Max uses SebUltrawide's values (shadow distance 8000, LOD bias 12, far clip 250000).
+- Pref migrations for pixelation, view distance, and vsync (v1 -> v2) now live here and are covered by the regression tests.
+- Fix the rear-view mirror lookup (it sits under `carInt/InvertMirrored`), so mirror pixelation and mirror quality actually reach the mirror.
 - Add shared ranged and discrete slider rows, navigation footers, and page indicators for the mod suite.
 - Fix global preference reset to clear all binding schemes, axes, and runtime caches, then restore defaults.
 - Limit preference reset to this mod suite and validate release packaging before creating archives.

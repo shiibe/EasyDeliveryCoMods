@@ -62,7 +62,7 @@ namespace SebTweaks
                     }
                     else if (_page == Page.Graphics)
                     {
-                        Plugin.ResetGraphicsDefaults();
+                        SebCore.ModGraphics.ResetDefaults();
                     }
                     else if (_page == Page.TimeWeather)
                     {
@@ -196,26 +196,26 @@ namespace SebTweaks
             const float fovMax = 110f;
             float currentFov = GetCurrentCameraFov();
 
-            float thirdFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: false, fallback: currentFov), fovMin, fovMax);
+            float thirdFov = Mathf.Clamp(SebCore.ModGraphics.GetSavedFovOrDefault(firstPerson: false, fallback: currentFov), fovMin, fovMax);
             float? newThirdValue = Util.SliderRow("3rd Per. FOV", thirdFov, fovMin, fovMax, $"{thirdFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newThirdValue.HasValue)
             {
                 float newFov = newThirdValue.Value;
-                Plugin.SaveFovOverride(firstPerson: false, fov: newFov);
+                SebCore.ModGraphics.SaveFovOverride(firstPerson: false, fov: newFov);
             }
             y += line;
 
-            float firstFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
+            float firstFov = Mathf.Clamp(SebCore.ModGraphics.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
             float? newFirstValue = Util.SliderRow("1st Per. FOV", firstFov, fovMin, fovMax, $"{firstFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newFirstValue.HasValue)
             {
                 float newFov = newFirstValue.Value;
-                Plugin.SaveFovOverride(firstPerson: true, fov: newFov);
+                SebCore.ModGraphics.SaveFovOverride(firstPerson: true, fov: newFov);
             }
 
             y += line;
 
-            int pixelMode = Plugin.GetPixelationMode();
+            int pixelMode = SebCore.ModGraphics.GetPixelationMode();
             string pixelLabel = pixelMode switch
             {
                 0 => "None",
@@ -231,12 +231,12 @@ namespace SebTweaks
                 int newMode = newPixelValue.Value;
                 if (newMode != pixelMode)
                 {
-                    Plugin.SavePixelationMode(newMode);
+                    SebCore.ModGraphics.SavePixelationMode(newMode);
                 }
             }
             y += line;
 
-            int viewMode = Plugin.GetViewDistanceMode();
+            int viewMode = SebCore.ModGraphics.GetViewDistanceMode();
             string viewLabel = viewMode switch
             {
                 0 => "Near",
@@ -251,13 +251,13 @@ namespace SebTweaks
                 int newMode = newViewValue.Value;
                 if (newMode != viewMode)
                 {
-                    Plugin.SaveViewDistanceMode(newMode);
+                    SebCore.ModGraphics.SaveViewDistanceMode(newMode);
                 }
             }
 
             y += line + sectionGap;
 
-            int vsMode = Plugin.GetVsyncMode();
+            int vsMode = SebCore.ModGraphics.GetVsyncMode();
             string vsLabel = vsMode switch
             {
                 1 => "On",
@@ -265,7 +265,7 @@ namespace SebTweaks
             };
             if (Util.CycleButtonRaw("VSync", vsLabel, center, y))
             {
-                Plugin.SetVsyncMode(vsMode == 1 ? 0 : 1);
+                SebCore.ModGraphics.SetVsyncMode(vsMode == 1 ? 0 : 1);
             }
             y += line;
         }

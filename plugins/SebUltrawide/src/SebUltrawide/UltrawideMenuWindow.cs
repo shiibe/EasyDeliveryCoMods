@@ -24,7 +24,7 @@ namespace SebUltrawide
             float resetY = navY - 12f;
             if (Util.SimpleButtonRaw("Reset Defaults", cx, resetY))
             {
-                Plugin.ResetGraphicsDefaults();
+                SebCore.ModGraphics.ResetDefaults();
                 MouseYLock = 0f;
             }
 
@@ -46,23 +46,23 @@ namespace SebUltrawide
 
             float currentFov = GetCurrentCameraFov();
 
-            float thirdFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: false, fallback: currentFov), fovMin, fovMax);
+            float thirdFov = Mathf.Clamp(SebCore.ModGraphics.GetSavedFovOrDefault(firstPerson: false, fallback: currentFov), fovMin, fovMax);
             float? newThirdValue = Util.SliderRow("3rd Person", thirdFov, fovMin, fovMax, $"{thirdFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newThirdValue.HasValue)
             {
                 float newFov = newThirdValue.Value;
-                Plugin.SaveFovOverride(firstPerson: false, fov: newFov);
+                SebCore.ModGraphics.SaveFovOverride(firstPerson: false, fov: newFov);
             }
 
             y += line;
 
             // The game's default 1st-person FOV is higher than the menu camera's.
-            float firstFov = Mathf.Clamp(Plugin.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
+            float firstFov = Mathf.Clamp(SebCore.ModGraphics.GetSavedFovOrDefault(firstPerson: true, fallback: 90f), fovMin, fovMax);
             float? newFirstValue = Util.SliderRow("1st Person", firstFov, fovMin, fovMax, $"{firstFov:0}", center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newFirstValue.HasValue)
             {
                 float newFov = newFirstValue.Value;
-                Plugin.SaveFovOverride(firstPerson: true, fov: newFov);
+                SebCore.ModGraphics.SaveFovOverride(firstPerson: true, fov: newFov);
             }
 
             y += line + sectionGap;
@@ -70,7 +70,7 @@ namespace SebUltrawide
             Util.Label("Renderer", p.x + p.width / 2f, y);
             y += line;
 
-            int pixelMode = Plugin.GetPixelationMode();
+            int pixelMode = SebCore.ModGraphics.GetPixelationMode();
             string pixelLabel = pixelMode switch
             {
                 0 => "None",
@@ -86,13 +86,13 @@ namespace SebUltrawide
                 int newMode = newPixelValue.Value;
                 if (newMode != pixelMode)
                 {
-                    Plugin.SavePixelationMode(newMode);
+                    SebCore.ModGraphics.SavePixelationMode(newMode);
                 }
             }
 
             y += line;
 
-            int viewMode = Plugin.GetViewDistanceMode();
+            int viewMode = SebCore.ModGraphics.GetViewDistanceMode();
             string viewLabel = viewMode switch
             {
                 0 => "Near",
@@ -107,18 +107,18 @@ namespace SebUltrawide
                 int newMode = newViewValue.Value;
                 if (newMode != viewMode)
                 {
-                    Plugin.SaveViewDistanceMode(newMode);
+                    SebCore.ModGraphics.SaveViewDistanceMode(newMode);
                 }
             }
 
             y += line;
 
-            int vsMode = Plugin.GetVsyncMode();
+            int vsMode = SebCore.ModGraphics.GetVsyncMode();
             string vsLabel = vsMode == 1 ? "On" : "Off";
             float? newVsyncValue = Util.SliderRow("VSync", vsMode == 1 ? 1f : 0f, 0f, 1f, vsLabel, center, p.x + p.width - 12f, y, ref MouseYLock);
             if (newVsyncValue.HasValue)
             {
-                Plugin.SetVsyncMode(newVsyncValue.Value >= 0.5f ? 1 : 0);
+                SebCore.ModGraphics.SetVsyncMode(newVsyncValue.Value >= 0.5f ? 1 : 0);
             }
 
             y += line + sectionGap;

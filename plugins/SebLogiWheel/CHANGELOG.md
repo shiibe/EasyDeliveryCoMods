@@ -1,4 +1,5 @@
 ## 1.1.4
+- Register wheel input with SebBinds through its new wheel-source interface. Requires SebBinds 1.1.5.
 - Fix uncalibrated defaults being saved from the first wheel reading (a pedal held or wheel turned at launch stuck until recalibrating); the "not calibrated" warning now shows until the wizard is run.
 - Pedal deadzone now rescales the remaining travel, so light throttle/brake no longer jumps from 0% to 5%.
 - Fix spring/damper FFB sliders being applied twice (once in-game, once through the driver).

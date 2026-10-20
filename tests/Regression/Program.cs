@@ -88,6 +88,34 @@ internal static class Program
         Check(BindingStore.GetBindingLabel(new BindingInput { Kind = BindingKind.GamepadButton, Code = 6 }) == "A" &&
             BindingStore.GetBindingLabel(new BindingInput { Kind = BindingKind.GamepadButton, Code = 32 }) == "LT", "Gamepad button labels wrong");
 
+        // Graphics pref migrations: v1 value -> v2 value, and the version is stamped.
+        int[][] pixelation = { new[] { 0, 0 }, new[] { 1, 2 }, new[] { 2, 3 }, new[] { 3, 4 } };
+        foreach (var c in pixelation)
+        {
+            PlayerPrefs.DeleteAll();
+            PlayerPrefs.SetInt("UltrawidePixelationMode", c[0]);
+            Check(SebCore.ModGraphics.GetPixelationMode() == c[1] && PlayerPrefs.GetInt("UltrawidePixelationModeVersion", 1) == 2, "Pixelation v1 " + c[0] + " migrated wrong");
+            Check(SebCore.ModGraphics.GetPixelationMode() == c[1], "Pixelation migrated twice");
+        }
+        int[][] viewDistance = { new[] { 0, 1 }, new[] { 1, 0 }, new[] { 2, 1 }, new[] { 3, 2 }, new[] { 4, 3 } };
+        foreach (var c in viewDistance)
+        {
+            PlayerPrefs.DeleteAll();
+            PlayerPrefs.SetInt("UltrawideViewDistanceMode", c[0]);
+            Check(SebCore.ModGraphics.GetViewDistanceMode() == c[1] && PlayerPrefs.GetInt("UltrawideViewDistanceModeVersion", 1) == 2, "View distance v1 " + c[0] + " migrated wrong");
+            Check(SebCore.ModGraphics.GetViewDistanceMode() == c[1], "View distance migrated twice");
+        }
+        int[][] vsync = { new[] { 0, 1 }, new[] { 1, 1 }, new[] { 2, 0 } };
+        foreach (var c in vsync)
+        {
+            PlayerPrefs.DeleteAll();
+            PlayerPrefs.SetInt("SebTweaks_Gfx_VSyncMode", c[0]);
+            Check(SebCore.ModGraphics.GetVsyncMode() == c[1] && PlayerPrefs.GetInt("SebTweaks_Gfx_VSyncModeVersion", 0) == 2, "VSync v1 " + c[0] + " migrated wrong");
+            Check(SebCore.ModGraphics.GetVsyncMode() == c[1], "VSync migrated twice");
+        }
+        PlayerPrefs.DeleteAll();
+        Check(SebCore.ModGraphics.GetPixelationMode() == 3 && SebCore.ModGraphics.GetViewDistanceMode() == 1 && SebCore.ModGraphics.GetVsyncMode() == 1, "Graphics defaults wrong");
+
         byte[] wav = MakeWav();
         float[] data = WavPcm16.Read(wav, out int channels, out int rate);
         Check(channels == 1 && rate == 44100 && data.Length == 2 && data[0] == -1f && data[1] > 0.99f, "PCM16 samples decoded incorrectly");

@@ -3,7 +3,7 @@ using BepInEx;
 namespace SebUltrawide
 {
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-    [BepInDependency("shibe.easydeliveryco.sebcore", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency("shibe.easydeliveryco.sebcore", "1.1.1")]
     public partial class Plugin : BaseUnityPlugin
     {
         public const string PluginGuid = "shibe.easydeliveryco.sebultrawide";

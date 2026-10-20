@@ -10,15 +10,6 @@ namespace SebUltrawide
 {
     public partial class Plugin
     {
-        private const string PrefKeyFovLegacy = "UltrawideFovOverride";
-        internal const string PrefKeyFovThirdPerson = "UltrawideFovOverride_ThirdPerson";
-        internal const string PrefKeyFovFirstPerson = "UltrawideFovOverride_FirstPerson";
-        internal const string PrefKeyPixelationMode = "UltrawidePixelationMode";
-        private const string PrefKeyPixelationModeVersion = "UltrawidePixelationModeVersion";
-        internal const string PrefKeyViewDistanceMode = "UltrawideViewDistanceMode";
-        private const string PrefKeyViewDistanceModeVersion = "UltrawideViewDistanceModeVersion";
-        internal const string PrefKeyGfxVsyncMode = "SebTweaks_Gfx_VSyncMode"; // shared with SebTweaks; v2: 0=Off,1=On
-        private const string PrefKeyGfxVsyncModeVersion = "SebTweaks_Gfx_VSyncModeVersion";
         private const float DefaultAspect = 16f / 9f;
 
         private static ConfigEntry<bool> _debugMode;
@@ -41,14 +32,6 @@ namespace SebUltrawide
         private static int _lastScreenWidth = -1;
         private static int _lastScreenHeight = -1;
         private static bool _lastScreenFullscreen;
-
-        private static int _pixelationMode = -1;
-        private static int _viewDistanceMode = -1;
-
-        private static bool _insideLookupInit;
-        private static Type _ambianceType;
-        private static FieldInfo _ambiancePlayerInsideField;
-        private static UnityEngine.Object _ambianceInstance;
 
         private static bool ShouldApply()
         {
@@ -82,29 +65,6 @@ namespace SebUltrawide
             _debugMode.Value = value;
         }
 
-
-        internal static void ApplySavedMenuSettings()
-        {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            if (TryGetSavedFov(IsFirstPersonViewActive(), out float savedFov))
-            {
-                ApplyFovOverride(savedFov);
-            }
-
-            GetPixelationMode();
-            RefreshPixelation();
-
-            GetViewDistanceMode();
-            RefreshViewDistance();
-
-            ApplyVsyncMode();
-
-        }
-
         private static void RefreshPresentationIfChanged()
         {
             int width = Screen.width;
@@ -127,288 +87,20 @@ namespace SebUltrawide
 
             ApplyAllCameras();
             ScaleOverlayBackdrops();
-            ApplySavedMenuSettings();
+            SebCore.ModGraphics.ApplySaved();
             LogDebug($"Refreshed presentation after resolution/fullscreen change: {width}x{height}, fullscreen={fullscreen}.");
         }
 
-        internal static int GetViewDistanceMode()
+        // Full-resolution pixelation matches the presented (letterboxed) aspect.
+        private static float GetPixelationOutputAspect()
         {
-            if (_viewDistanceMode >= 0)
+            if (IsVanillaPresentation())
             {
-                return _viewDistanceMode;
+                return DefaultAspect;
             }
 
-            int raw = PlayerPrefs.GetInt(PrefKeyViewDistanceMode, 1);
-            int version = PlayerPrefs.GetInt(PrefKeyViewDistanceModeVersion, 1);
-
-            // v1 mapping: 0 Default, 1 Far, 2 Farther, 3 Distant, 4 Max
-            // v2 mapping: 0 Near, 1 Default, 2 Far, 3 Max
-            if (version < 2 && PlayerPrefs.HasKey(PrefKeyViewDistanceMode))
-            {
-                int migrated;
-                switch (raw)
-                {
-                    case 1:
-                        migrated = 0; // old Far -> Near
-                        break;
-                    case 3:
-                        migrated = 2; // old Distant -> Far
-                        break;
-                    case 4:
-                        migrated = 3; // old Max -> Max
-                        break;
-                    case 0:
-                    case 2:
-                    default:
-                        migrated = 1; // old Default/Farther/other -> Default
-                        break;
-                }
-
-                raw = migrated;
-                PlayerPrefs.SetInt(PrefKeyViewDistanceModeVersion, 2);
-                PlayerPrefs.SetInt(PrefKeyViewDistanceMode, raw);
-            }
-
-            _viewDistanceMode = Mathf.Clamp(raw, 0, 3);
-            return _viewDistanceMode;
-        }
-
-        internal static void SaveViewDistanceMode(int mode)
-        {
-            mode = Mathf.Clamp(mode, 0, 3);
-            _viewDistanceMode = mode;
-            PlayerPrefs.SetInt(PrefKeyViewDistanceModeVersion, 2);
-            PlayerPrefs.SetInt(PrefKeyViewDistanceMode, mode);
-            RefreshViewDistance();
-        }
-
-        internal static int GetPixelationMode()
-        {
-            if (_pixelationMode >= 0)
-            {
-                return _pixelationMode;
-            }
-
-            int raw = PlayerPrefs.GetInt(PrefKeyPixelationMode, 3);
-            int version = PlayerPrefs.GetInt(PrefKeyPixelationModeVersion, 1);
-
-            // v1 mapping: 0 Disable, 1 Fine, 2 Default, 3 Large
-            // v2 mapping: 0 None, 1 Finer, 2 Fine, 3 Default, 4 Large
-            if (version < 2 && PlayerPrefs.HasKey(PrefKeyPixelationMode))
-            {
-                int migrated = raw;
-                switch (raw)
-                {
-                    case 0:
-                        migrated = 0;
-                        break;
-                    case 1:
-                        migrated = 2;
-                        break;
-                    case 2:
-                        migrated = 3;
-                        break;
-                    case 3:
-                        migrated = 4;
-                        break;
-                }
-                raw = migrated;
-                PlayerPrefs.SetInt(PrefKeyPixelationModeVersion, 2);
-                PlayerPrefs.SetInt(PrefKeyPixelationMode, raw);
-            }
-
-            _pixelationMode = Mathf.Clamp(raw, 0, 4);
-            return _pixelationMode;
-        }
-
-        internal static void SavePixelationMode(int mode)
-        {
-            mode = Mathf.Clamp(mode, 0, 4);
-            _pixelationMode = mode;
-            PlayerPrefs.SetInt(PrefKeyPixelationModeVersion, 2);
-            PlayerPrefs.SetInt(PrefKeyPixelationMode, mode);
-            RefreshPixelation();
-        }
-
-        internal static int GetVsyncMode()
-        {
-            int version = SebCore.ModPrefs.GetInt(PrefKeyGfxVsyncModeVersion, 0);
-            bool hasKey = SebCore.ModPrefs.HasKey(PrefKeyGfxVsyncMode);
-            int raw = SebCore.ModPrefs.GetInt(PrefKeyGfxVsyncMode, -1);
-
-            if (!hasKey)
-            {
-                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncModeVersion, 2);
-                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncMode, 1);
-                return 1;
-            }
-
-            // Migration from legacy SebTweaks mapping (v1): 0=Default,1=On,2=Off.
-            if (version < 2)
-            {
-                int migrated = raw == 2 ? 0 : 1;
-                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncModeVersion, 2);
-                SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncMode, migrated);
-                return migrated;
-            }
-
-            return raw == 1 ? 1 : 0;
-        }
-
-        internal static void SetVsyncMode(int mode)
-        {
-            SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncModeVersion, 2);
-            SebCore.ModPrefs.SetInt(PrefKeyGfxVsyncMode, Mathf.Clamp(mode, 0, 1));
-            ApplyVsyncMode();
-        }
-
-        private static void ApplyVsyncMode()
-        {
-            try
-            {
-                QualitySettings.vSyncCount = GetVsyncMode() == 1 ? 1 : 0;
-            }
-            catch
-            {
-                // ignore
-            }
-        }
-
-        internal static int GetPixelationDivisor()
-        {
-            switch (GetPixelationMode())
-            {
-                case 0:
-                    return 1;
-                case 1:
-                    return 2;
-                case 2:
-                    return 3;
-                case 3:
-                    return 4;
-                case 4:
-                    return 5;
-                default:
-                    return 3;
-            }
-        }
-
-        internal static bool TryGetSavedFov(bool firstPerson, out float fov)
-        {
-            string key = firstPerson ? PrefKeyFovFirstPerson : PrefKeyFovThirdPerson;
-            fov = PlayerPrefs.GetFloat(key, -1f);
-            if (fov >= 1f)
-            {
-                return true;
-            }
-
-            if (!firstPerson)
-            {
-                fov = PlayerPrefs.GetFloat(PrefKeyFovLegacy, -1f);
-                if (fov >= 1f)
-                {
-                    return true;
-                }
-            }
-
-            fov = 0f;
-            return false;
-        }
-
-        internal static float GetSavedFovOrDefault(bool firstPerson, float fallback)
-        {
-            return TryGetSavedFov(firstPerson, out float fov) ? fov : fallback;
-        }
-
-        internal static void SaveFovOverride(bool firstPerson, float fov)
-        {
-            PlayerPrefs.SetFloat(firstPerson ? PrefKeyFovFirstPerson : PrefKeyFovThirdPerson, fov);
-            if (IsFirstPersonViewActive() == firstPerson)
-            {
-                ApplyFovOverride(fov);
-            }
-        }
-
-        internal static void ResetGraphicsDefaults()
-        {
-            // Remove FOV overrides.
-            PlayerPrefs.DeleteKey(PrefKeyFovFirstPerson);
-            PlayerPrefs.DeleteKey(PrefKeyFovThirdPerson);
-            PlayerPrefs.DeleteKey(PrefKeyFovLegacy);
-
-            // Reset renderer knobs.
-            SavePixelationMode(3); // Default
-            SaveViewDistanceMode(1); // Default
-            PlayerPrefs.DeleteKey(PrefKeyGfxVsyncMode);
-            PlayerPrefs.DeleteKey(PrefKeyGfxVsyncModeVersion);
-            ApplyVsyncMode();
-
-            PlayerPrefs.Save();
-        }
-
-        internal static bool IsFirstPersonViewActive()
-        {
-            var controller = UnityEngine.Object.FindFirstObjectByType<sCameraController>();
-            return controller != null && controller.firstPerson && !controller.fixedPerspective;
-        }
-
-        internal static void ApplyFovOverride(float fov)
-        {
-            if (IsPlayerInsideBuilding())
-            {
-                return;
-            }
-
-            var pauseSystem = PauseSystem.pauseSystem;
-            if (pauseSystem != null && pauseSystem.mainCamera != null)
-            {
-                PauseSystem.FOV = fov;
-                pauseSystem.mainCamera.fieldOfView = fov;
-                return;
-            }
-
-            PauseSystem.FOV = fov;
-
-            var cam = Camera.main;
-            if (cam != null)
-            {
-                cam.fieldOfView = fov;
-            }
-        }
-
-        private static bool IsPlayerInsideBuilding()
-        {
-            try
-            {
-                if (!_insideLookupInit)
-                {
-                    _insideLookupInit = true;
-                    _ambianceType = AccessTools.TypeByName("sAmbiance");
-                    _ambiancePlayerInsideField = _ambianceType != null ? AccessTools.Field(_ambianceType, "playerInside") : null;
-                }
-
-                if (_ambianceType == null || _ambiancePlayerInsideField == null)
-                {
-                    return false;
-                }
-
-                if (_ambianceInstance == null)
-                {
-                    _ambianceInstance = UnityEngine.Object.FindFirstObjectByType(_ambianceType);
-                }
-
-                if (_ambianceInstance == null)
-                {
-                    return false;
-                }
-
-                var insideGo = _ambiancePlayerInsideField.GetValue(_ambianceInstance) as GameObject;
-                return insideGo != null && insideGo.activeSelf;
-            }
-            catch
-            {
-                return false;
-            }
+            float a = GetTargetAspect();
+            return a > 0.01f ? a : GetWindowAspect();
         }
 
         private static float GetTargetAspect()

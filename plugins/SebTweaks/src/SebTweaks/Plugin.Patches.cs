@@ -29,6 +29,12 @@ namespace SebTweaks
         internal static float GravityMult => Mathf.Clamp(GetFloat(PrefKeyGravityMult, 1f), 0f, 5f);
 
         internal static bool RallyManualTransmission => GetInt(PrefKeyRallyManualTransmission, 0) == 1;
+
+        private static bool IsSebTruckActive()
+        {
+            return BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue("shibe.easydeliveryco.sebtruck", out var info) &&
+                info.Instance != null && info.Instance.isActiveAndEnabled;
+        }
         internal static bool RallyDebugInfo => GetInt(PrefKeyRallyDebugInfo, 0) == 1;
 
         internal static bool TimeManual => GetInt(PrefKeyTimeMode, 0) == 1;
@@ -456,15 +462,18 @@ namespace SebTweaks
         {
             private static void Postfix(sRallyDriving __instance)
             {
-                if (!IsInGameNow() || __instance == null)
+                // SebTruck applies the same shared setting; only one mod may own it.
+                if (!IsInGameNow() || __instance == null || IsSebTruckActive())
                 {
                     return;
                 }
 
-                __instance.automatic = !RallyManualTransmission;
-                if (__instance.playerNumber >= 0)
+                bool manual = RallyManualTransmission;
+                __instance.automatic = !manual;
+                if (__instance.playerNumber >= 0 && __instance.car != null)
                 {
-                    sInputManager.players[__instance.playerNumber].manualShifting = RallyManualTransmission;
+                    // Match the game: no manual shifting while on foot.
+                    sInputManager.players[__instance.playerNumber].manualShifting = !__instance.car.GuyActive && manual;
                 }
             }
         }

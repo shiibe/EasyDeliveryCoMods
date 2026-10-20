@@ -159,44 +159,25 @@ SebBinds.SebBindsApi.RegisterActionsPage(
 );
 ```
 
-## Custom Axis Providers
+## Wheel Source
 
-If you have a custom device (or want to provide axis capture for something SebBinds doesn't natively understand), implement `SebBinds.IAxisProvider` and register it:
+Wheel input (`Button`, `Pov`, `WheelAxis` and `WheelDpadAxis` binds) comes from a `SebBinds.IWheelSource`. SebLogiWheel (1.1.4 and later) registers one during startup. Most mods never need this; it is documented for wheel plugins.
 
-API: `SebBinds.SebBindsApi.RegisterAxisProvider(IAxisProvider provider)`
+API: `SebBinds.SebBindsApi.RegisterWheelSource(IWheelSource source)`
 
-Registering the same instance twice does nothing. Throws `ArgumentNullException` for null.
+- There is one source at a time; a new registration replaces the old one. Throws `ArgumentNullException` for null.
+- Until a source is registered, wheel buttons read as not pressed, wheel axes read as 0, and `HasCalibration` is treated as `true`, so binding isn't locked out.
+- The Wheel scheme only becomes active when the SebLogiWheel plugin (`shibe.easydeliveryco.seblogiwheel`) is loaded, whether or not a source is registered.
 
-```csharp
-using SebBinds;
+`IWheelSource` members:
 
-public sealed class MyAxisProvider : IAxisProvider
-{
-    public bool IsAvailable() => true;
-    public bool SupportsClutch() => false;
-
-    public bool TryGetAxisValue(BindingInput input, out float value)
-    {
-        value = 0f;
-        return false;
-    }
-
-    public bool TryGetAxisLabel(BindingInput input, out string label)
-    {
-        label = null;
-        return false;
-    }
-
-    public bool TryCaptureNextAxis(out BindingInput input)
-    {
-        input = default;
-        return false;
-    }
-}
-
-// During Awake():
-SebBindsApi.RegisterAxisProvider(new MyAxisProvider());
-```
+- `HasCalibration()`, `RequestOpenCalibrationWizard()`, `RequestOpenAxisMapping()`
+- `IsMenuActive()`, `IsBindingCaptureActive()`, `IsCalibrationWizardActive()`, `IsInWalkingMode()`
+- `TryCaptureNextBinding(out BindingInput input)`: returns a `Button` or `Pov` bind
+- `IsBindingDown`, `IsBindingPressedThisFrame`, `IsBindingReleasedThisFrame` (`BindingInput input`): `Button`/`Pov` state
+- `TryGetPov8Vector(out Vector2 v)`
+- `GetRawAxisValue(int axisIdCode) -> float`: codes 0-7 (`lX`, `lY`, `lZ`, `lRx`, `lRy`, `lRz`, `slider0`, `slider1`), normalized to -1..1
+- `TryGetLastInput(out float steer, out float accel)`
 
 ## Persistence / Compatibility
 

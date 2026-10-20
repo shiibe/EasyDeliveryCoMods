@@ -13,6 +13,7 @@
     <Compile Include="../../plugins/SebBinds/src/SebBinds/Input/EdgeTracker.cs" />
     <Compile Include="../../plugins/SebBinds/src/SebBinds/Plugin.cs" />
     <Compile Include="../../plugins/SebCore/src/SebCore/ModPrefsResetter.cs" />
+    <Compile Include="../../plugins/SebCore/src/SebCore/GraphicsPrefs.cs" />
     <Compile Include="../../plugins/SebTruck/src/SebTruck/WavPcm16.cs" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 ## 1.1.7
+- Rear-view mirror quality now runs through SebCore's shared graphics pipeline, so it no longer fights SebTweaks/SebUltrawide pixelation. Requires SebCore 1.1.1.
 - Add Original/2x/4x/8x rear-view mirror resolution options in Truck > Tweaks, with original resolution restored on reset or disable.
 - Use SebCore's shared slider rows and page controls without changing settings or page behavior.
 - Reject malformed ignition WAV chunks and validate PCM16 format before loading sound.
