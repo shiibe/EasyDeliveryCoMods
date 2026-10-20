@@ -1,5 +1,9 @@
 ## 1.1.7
-- Add a Truck > Equipment page: mount or remove purchased Snow Tires and Ice Chains without losing the upgrade.
+- Add the Fancy HUD style: round speedometer and tachometer dials with the gear in the tach, in Story and Rally mode. The dials sit bottom right and the game's radio readout moves up to make room.
+- Add a rolling odometer and trip meter for Story mode, saved per save slot; Rally mode's Fancy odometer shows the game's own distance.
+- Remove the text-based Classic HUD style and its per-readout position options; Classic users start on the new Off style.
+- Add a Truck > Equipment page: mount or remove purchased Snow Tires, Ice Chains, and Ram Bar without losing the upgrade. An unmounted ram bar no longer smashes trees or protects the truck.
+- Fix Wheel Scale hiding the snow-tire width change (when buying or swapping tires).
 - Add a horn choice on the Equipment page: Meow (the game's default horn) or Woof.
 - Move Bobblehead and Truck Paint from Tweaks to the Equipment page.
 - Rear-view mirror quality now runs through SebCore's shared graphics pipeline, so it no longer fights SebTweaks/SebUltrawide pixelation. Requires SebCore 1.1.1.

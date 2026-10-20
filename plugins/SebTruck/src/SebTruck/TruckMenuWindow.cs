@@ -285,6 +285,13 @@ namespace SebTruck
             {
                 if (rally)
                 {
+                    var rallyStyle = Plugin.GetRallyHudStyle();
+                    if (Util.CycleButtonRaw("Style", Plugin.GetHudStyleLabel(rallyStyle), center, y))
+                    {
+                        Plugin.SetRallyHudStyle(rallyStyle == Plugin.HudStyle.Fancy ? Plugin.HudStyle.Rally : Plugin.HudStyle.Fancy);
+                    }
+                    y += line;
+
                     var rallyUnits = Plugin.GetRallyHudSpeedUnit();
                     if (Util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(rallyUnits), center, y))
                     {
@@ -304,57 +311,48 @@ namespace SebTruck
                 }
                 y += line;
 
-                var storyUnits = Plugin.GetHudSpeedUnit();
-                if (Util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(storyUnits), center, y))
+                if (style != Plugin.HudStyle.Off)
                 {
-                    Plugin.SetHudSpeedUnit(Plugin.NextHudSpeedUnit(storyUnits));
-                }
-                y += line;
-
-                bool hudSpeed = Plugin.GetHudShowSpeed();
-                bool? newHudSpeed = Util.Toggle("Speedomtr", hudSpeed, center, y);
-                if (newHudSpeed.HasValue) Plugin.SetHudShowSpeed(newHudSpeed.Value);
-                y += line;
-
-                if (manual)
-                {
-                    bool hudTach = Plugin.GetHudShowTach();
-                    bool? newHudTach = Util.Toggle("Tachomtr", hudTach, center, y);
-                    if (newHudTach.HasValue) Plugin.SetHudShowTach(newHudTach.Value);
-                    y += line;
-
-                    bool hudGear = Plugin.GetHudShowGear();
-                    bool? newHudGear = Util.Toggle("Gear Ind", hudGear, center, y);
-                    if (newHudGear.HasValue) Plugin.SetHudShowGear(newHudGear.Value);
-                    y += line;
-                }
-
-                if (style == Plugin.HudStyle.Classic)
-                {
-                    var spPos = Plugin.GetHudSpeedAnchor();
-                    if (Util.CycleButtonRaw("Speedomtr Pos", Plugin.GetHudReadoutAnchorLabel(spPos), center, y))
+                    var storyUnits = Plugin.GetHudSpeedUnit();
+                    if (Util.CycleButtonRaw("Units", Plugin.GetHudSpeedUnitLabel(storyUnits), center, y))
                     {
-                        Plugin.SetHudSpeedAnchor(Plugin.NextHudReadoutAnchor(spPos));
+                        Plugin.SetHudSpeedUnit(Plugin.NextHudSpeedUnit(storyUnits));
                     }
+                    y += line;
+
+                    bool? newHudSpeed = Util.Toggle("Speedomtr", Plugin.GetHudShowSpeed(), center, y);
+                    if (newHudSpeed.HasValue) Plugin.SetHudShowSpeed(newHudSpeed.Value);
                     y += line;
 
                     if (manual)
                     {
-                        var tPos = Plugin.GetHudTachAnchor();
-                        if (Util.CycleButtonRaw("Tachomtr Pos", Plugin.GetHudReadoutAnchorLabel(tPos), center, y))
-                        {
-                            Plugin.SetHudTachAnchor(Plugin.NextHudReadoutAnchor(tPos));
-                        }
+                        bool? newHudTach = Util.Toggle("Tachomtr", Plugin.GetHudShowTach(), center, y);
+                        if (newHudTach.HasValue) Plugin.SetHudShowTach(newHudTach.Value);
                         y += line;
 
-                        var gPos = Plugin.GetHudGearAnchor();
-                        if (Util.CycleButtonRaw("Gear Ind. Pos", Plugin.GetHudReadoutAnchorLabel(gPos), center, y))
-                        {
-                            Plugin.SetHudGearAnchor(Plugin.NextHudReadoutAnchor(gPos));
-                        }
+                        bool? newHudGear = Util.Toggle("Gear Ind", Plugin.GetHudShowGear(), center, y);
+                        if (newHudGear.HasValue) Plugin.SetHudShowGear(newHudGear.Value);
+                        y += line;
                     }
                 }
 
+                if (style == Plugin.HudStyle.Fancy)
+                {
+                    var odometer = Plugin.GetHudOdometerMode();
+                    if (Util.CycleButtonRaw("Odometer", odometer.ToString(), center, y))
+                    {
+                        Plugin.SetHudOdometerMode((Plugin.HudOdometerMode)(((int)odometer + 1) % 3));
+                    }
+                    y += line;
+                }
+
+                y += 4f;
+                Util.Label("Odometer " + Plugin.FormatStoryOdometer(trip: false), cx, y);
+                y += line;
+                if (Util.SimpleButtonRaw("Reset Trip " + Plugin.FormatStoryOdometer(trip: true), cx, y))
+                {
+                    Plugin.ResetTrip();
+                }
                 return;
             }
 
@@ -374,6 +372,14 @@ namespace SebTruck
                 if (newChains.HasValue)
                 {
                     Plugin.SetMountIceChains(newChains.Value);
+                }
+                y += line;
+
+                bool hasRamBar = Plugin.HasRamBarUpgrade();
+                bool? newRamBar = Util.Toggle("Ram Bar", hasRamBar && Plugin.GetMountRamBar(), center, y, hasRamBar);
+                if (newRamBar.HasValue)
+                {
+                    Plugin.SetMountRamBar(newRamBar.Value);
                 }
                 y += line * 2f;
 

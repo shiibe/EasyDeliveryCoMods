@@ -159,6 +159,27 @@ internal static class Program
             System.Globalization.CultureInfo.CurrentCulture = previousCulture;
         }
 
+        Check(Math.Abs(FancyGauge.DialAngle(0) - 225.0 * Math.PI / 180.0) < 1e-9, "Dial start angle wrong");
+        Check(Math.Abs(FancyGauge.DialAngle(1) + 45.0 * Math.PI / 180.0) < 1e-9, "Dial end angle wrong");
+        Check(FancyGauge.DialAngle(2) == FancyGauge.DialAngle(1) && FancyGauge.DialAngle(-1) == FancyGauge.DialAngle(0), "Dial angle not clamped");
+        Check(Math.Abs(FancyGauge.DistanceKm(36f, 100f) - 1.0) < 1e-9, "Distance math wrong");
+        Check(FancyGauge.DistanceKm(50f, -1f) == 0.0 && FancyGauge.DistanceKm(-5f, 1f) == 0.0, "Negative time or speed added distance");
+        Check(FancyGauge.FormatOdometer(1234.56, false, false) == "001234", "Total odometer format wrong");
+        Check(FancyGauge.FormatOdometer(1234.56, false, true) == "234.5", "Trip odometer did not truncate and roll over");
+        Check(FancyGauge.FormatOdometer(100.0, true, false) == "000062", "Miles conversion wrong");
+        Check(FancyGauge.FormatOdometer(1000000.4, false, false) == "000000", "Total odometer did not roll over");
+        Check(FancyGauge.FormatOdometer(999.96, false, true) == "999.9", "Trip rounded up");
+        var wheelDigits = new int[4];
+        var wheelRolls = new double[4];
+        FancyGauge.OdometerWheels(1239.5, wheelDigits, wheelRolls);
+        Check(string.Join(",", wheelDigits) == "9,3,2,1" && wheelRolls[0] == 0.5 && wheelRolls[1] == 0.5 && wheelRolls[2] == 0.0 && wheelRolls[3] == 0.0, "Odometer carry wrong");
+        FancyGauge.OdometerWheels(1299.25, wheelDigits, wheelRolls);
+        Check(wheelRolls[1] == 0.25 && wheelRolls[2] == 0.25 && wheelRolls[3] == 0.0, "Odometer did not carry through nines");
+        FancyGauge.OdometerWheels(9999.5, wheelDigits, wheelRolls);
+        Check(string.Join(",", wheelDigits) == "9,9,9,9" && wheelRolls[3] == 0.5, "Odometer did not roll over");
+        FancyGauge.OdometerWheels(12345.0, wheelDigits, wheelRolls);
+        Check(string.Join(",", wheelDigits) == "5,4,3,2" && wheelRolls[0] == 0.0, "Odometer wrapped digits wrong");
+
         Console.WriteLine($"Passed {_checks} regression checks.");
     }
 

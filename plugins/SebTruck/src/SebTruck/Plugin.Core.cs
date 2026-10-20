@@ -40,10 +40,6 @@ namespace SebTruck
         internal const string PrefKeyHudShowGear = "SebTruck_HudShowGear";
         internal const string PrefKeyHudStyle = "SebTruck_HudStyle";
         internal const string PrefKeyHudSpeedUnits = "SebTruck_HudSpeedUnits";
-        internal const string PrefKeyHudReadoutAnchor = "SebTruck_HudReadoutAnchor";
-        internal const string PrefKeyHudSpeedAnchor = "SebTruck_HudSpeedAnchor";
-        internal const string PrefKeyHudTachAnchor = "SebTruck_HudTachAnchor";
-        internal const string PrefKeyHudGearAnchor = "SebTruck_HudGearAnchor";
         internal const string PrefKeyRallyHudShowSpeed = "SebTruck_RallyHudShowSpeedV2";
         internal const string PrefKeyRallyHudShowTach = "SebTruck_RallyHudShowTach";
         internal const string PrefKeyRallyHudShowGear = "SebTruck_RallyHudShowGear";
@@ -96,16 +92,12 @@ namespace SebTruck
             Mph = 1
         }
 
-        internal enum HudReadoutAnchor
-        {
-            BottomLeft = 0,
-            BottomRight = 1
-        }
-
+        // Off reuses Classic's value, so Classic users land on Off.
         internal enum HudStyle
         {
-            Classic = 0,
-            Rally = 1
+            Off = 0,
+            Rally = 1,
+            Fancy = 2
         }
 
         private static bool _manualTransmissionEnabled;
@@ -936,7 +928,7 @@ namespace SebTruck
 
         internal static bool GetHudShowSpeed()
         {
-            return PlayerPrefs.GetInt(PrefKeyHudShowSpeed, 0) != 0;
+            return PlayerPrefs.GetInt(PrefKeyHudShowSpeed, 1) != 0;
         }
 
         internal static void SetHudShowSpeed(bool enabled)
@@ -966,7 +958,7 @@ namespace SebTruck
 
         internal static HudStyle GetHudStyle()
         {
-            return (HudStyle)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudStyle, 0), 0, 1);
+            return (HudStyle)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudStyle, 0), 0, 2);
         }
 
         internal static void SetHudStyle(HudStyle style)
@@ -976,12 +968,12 @@ namespace SebTruck
 
         internal static HudStyle NextHudStyle(HudStyle style)
         {
-            return style == HudStyle.Classic ? HudStyle.Rally : HudStyle.Classic;
+            return (HudStyle)(((int)style + 1) % 3);
         }
 
         internal static string GetHudStyleLabel(HudStyle style)
         {
-            return style == HudStyle.Rally ? "Rally" : "Classic";
+            return style == HudStyle.Off ? "Off" : style.ToString();
         }
 
         internal static SpeedUnit GetHudSpeedUnit()
@@ -1045,69 +1037,6 @@ namespace SebTruck
         {
             PlayerPrefs.SetInt(PrefKeyRallyHudSpeedUnits, (int)unit);
         }
-
-        internal static HudReadoutAnchor GetHudReadoutAnchor()
-        {
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudReadoutAnchor, 0), 0, 1);
-        }
-
-        internal static void SetHudReadoutAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudReadoutAnchor, (int)anchor);
-        }
-
-        internal static HudReadoutAnchor NextHudReadoutAnchor(HudReadoutAnchor anchor)
-        {
-            return anchor == HudReadoutAnchor.BottomLeft ? HudReadoutAnchor.BottomRight : HudReadoutAnchor.BottomLeft;
-        }
-
-        internal static string GetHudReadoutAnchorLabel(HudReadoutAnchor anchor)
-        {
-            return anchor == HudReadoutAnchor.BottomRight ? "Bottom Right" : "Bottom Left";
-        }
-
-        internal static HudReadoutAnchor GetHudSpeedAnchor()
-        {
-            if (!PlayerPrefs.HasKey(PrefKeyHudSpeedAnchor))
-            {
-                return GetHudReadoutAnchor();
-            }
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudSpeedAnchor, (int)GetHudReadoutAnchor()), 0, 1);
-        }
-
-        internal static void SetHudSpeedAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudSpeedAnchor, (int)anchor);
-        }
-
-        internal static HudReadoutAnchor GetHudTachAnchor()
-        {
-            if (!PlayerPrefs.HasKey(PrefKeyHudTachAnchor))
-            {
-                return GetHudReadoutAnchor();
-            }
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudTachAnchor, (int)GetHudReadoutAnchor()), 0, 1);
-        }
-
-        internal static void SetHudTachAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudTachAnchor, (int)anchor);
-        }
-
-        internal static HudReadoutAnchor GetHudGearAnchor()
-        {
-            if (!PlayerPrefs.HasKey(PrefKeyHudGearAnchor))
-            {
-                return GetHudReadoutAnchor();
-            }
-            return (HudReadoutAnchor)Mathf.Clamp(PlayerPrefs.GetInt(PrefKeyHudGearAnchor, (int)GetHudReadoutAnchor()), 0, 1);
-        }
-
-        internal static void SetHudGearAnchor(HudReadoutAnchor anchor)
-        {
-            PlayerPrefs.SetInt(PrefKeyHudGearAnchor, (int)anchor);
-        }
-
 
         internal static float GetManualSpeedMultForward()
         {
@@ -1317,15 +1246,13 @@ namespace SebTruck
         internal static void ResetHudDefaults()
         {
             SetHudSpeedUnit(SpeedUnit.Kmh);
-            SetHudStyle(HudStyle.Classic);
-            SetHudShowSpeed(false);
+            SetHudStyle(HudStyle.Off);
+            SetHudShowSpeed(true);
             SetHudShowTach(true);
             SetHudShowGear(true);
             SetRallyHudSpeedUnit(SpeedUnit.Kmh);
-            SetHudReadoutAnchor(HudReadoutAnchor.BottomLeft);
-            PlayerPrefs.DeleteKey(PrefKeyHudSpeedAnchor);
-            PlayerPrefs.DeleteKey(PrefKeyHudTachAnchor);
-            PlayerPrefs.DeleteKey(PrefKeyHudGearAnchor);
+            SetHudOdometerMode(HudOdometerMode.Total);
+            SetRallyHudStyle(HudStyle.Rally);
             PlayerPrefs.Save();
         }
     }

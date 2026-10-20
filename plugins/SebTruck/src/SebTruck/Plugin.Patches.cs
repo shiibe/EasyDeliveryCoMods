@@ -132,7 +132,7 @@ namespace SebTruck
         private static readonly Dictionary<int, (float intensity, float range)> _lightDefaults =
             new Dictionary<int, (float intensity, float range)>();
 
-        private static readonly Dictionary<int, Vector3> _visualScaleDefaults = new Dictionary<int, Vector3>();
+        private static readonly Dictionary<int, (Vector3 Base, Vector3 Applied)> _visualScaleDefaults = new Dictionary<int, (Vector3 Base, Vector3 Applied)>();
 
         private static Type _engineSfxRuntimeType;
         private static FieldInfo _engineCarField;
@@ -2248,14 +2248,17 @@ namespace SebTruck
                 return;
             }
 
+            // Re-base when the game changed it, e.g. SnowTires swapping tire width.
             int id = t.GetInstanceID();
-            if (!_visualScaleDefaults.TryGetValue(id, out var baseScale))
+            Vector3 baseScale = t.localScale;
+            if (_visualScaleDefaults.TryGetValue(id, out var cached) && t.localScale == cached.Applied)
             {
-                baseScale = t.localScale;
-                _visualScaleDefaults[id] = baseScale;
+                baseScale = cached.Base;
             }
 
-            t.localScale = baseScale * Mathf.Clamp(scale, 0.5f, 2.0f);
+            Vector3 applied = baseScale * Mathf.Clamp(scale, 0.5f, 2.0f);
+            t.localScale = applied;
+            _visualScaleDefaults[id] = (baseScale, applied);
         }
 
         private static void ApplyStoryHandlingTuning(sCarController car)
@@ -2468,6 +2471,11 @@ namespace SebTruck
 
             target = Mathf.Max(StoryIdleRpm, target);
             float rate = GetStoryRallyRpmRate(target, throttle);
+            if (_manualGear == 0 && IsManualTransmissionEnabledEffective())
+            {
+                // No load in neutral, so the engine free-revs much faster than in gear.
+                rate = target > _storyVirtualRpm ? 12000f : 6000f;
+            }
             _storyVirtualRpm = Mathf.MoveTowards(_storyVirtualRpm <= 1f ? StoryIdleRpm : _storyVirtualRpm, target, Time.deltaTime * rate);
         }
 
@@ -2483,6 +2491,11 @@ namespace SebTruck
                 return Mathf.Clamp(GetEstimatedRpm() / StoryRedlineRpm, 0f, 1.2f);
             }
             return 0f;
+        }
+
+        internal static bool IsAtStoryRevLimiter()
+        {
+            return GetIgnitionEnabledEffective() && _storyVirtualRpm >= StoryRedlineRpm * 0.99f;
         }
 
         internal static float GetEstimatedRpmNormForHud()
@@ -3133,8 +3146,15 @@ namespace SebTruck
 
         [HarmonyPatch(typeof(sHUD), "DoFuelMath")]
         [HarmonyPrefix]
-        private static bool SHUD_DoFuelMath_Prefix()
+        private static bool SHUD_DoFuelMath_Prefix(sHUD __instance)
         {
+            // Only the player's truck counts.
+            var odometerCar = __instance != null && __instance.navigation != null ? __instance.navigation.car : null;
+            if (odometerCar != null && odometerCar.rb != null)
+            {
+                AccumulateOdometer(odometerCar.rb.linearVelocity.magnitude * 3.6f);
+            }
+
             if (!GetIgnitionEnabledEffective())
             {
                 return false;
@@ -3420,6 +3440,7 @@ namespace SebTruck
         [HarmonyPostfix]
         private static void SHUD_RadioDisplay_Postfix(object __instance)
         {
+            RestoreRadioLift();
             var hud = __instance as sHUD;
             if (hud == null)
             {
@@ -3451,131 +3472,43 @@ namespace SebTruck
             bool showOff = ignitionFeature && !ignOn && !starting;
 
             bool manualEnabled = IsManualTransmissionEnabledEffective();
-            bool showSpeed = !isRally && ignOn && GetHudShowSpeed();
-            bool showTach = !isRally && ignOn && manualEnabled && GetHudShowTach();
-            bool showGear = !isRally && ignOn && manualEnabled && GetHudShowGear();
+            var style = GetHudStyle();
+            bool fancy = !isRally && style == HudStyle.Fancy;
+            bool gaugesOn = !isRally && style != HudStyle.Off && (ignOn || fancy);
+            bool showSpeed = gaugesOn && GetHudShowSpeed();
+            bool showTach = gaugesOn && manualEnabled && GetHudShowTach();
+            bool showGear = gaugesOn && manualEnabled && GetHudShowGear();
 
-            if (!starting && !showOff && !showSpeed && !showTach && !showGear)
-            {
-                return;
-            }
-
-            float xLeft = 68f;
-            float xRight = R.width - 68f;
-            float yLeft = R.height - 64f + 22f;
-            float yRight = yLeft;
-            if (isRally)
-            {
-                yLeft += 10f;
-                yRight += 10f;
-            }
-
-            var aSpeed = GetHudSpeedAnchor();
-            var aTach = GetHudTachAnchor();
-            var aGear = GetHudGearAnchor();
-
-            void PutLine(HudReadoutAnchor a, string text)
-            {
-                if (string.IsNullOrEmpty(text))
-                {
-                    return;
-                }
-                if (a == HudReadoutAnchor.BottomRight)
-                {
-                    R.fontOptions.alignment = sFancyText.FontOptions.Alignment.right;
-                    R.fput(text, xRight, yRight);
-                    yRight += 10f;
-                }
-                else
-                {
-                    R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-                    R.put(text, xLeft, yLeft);
-                    yLeft += 10f;
-                }
-            }
-
+            string status = null;
             if (starting)
             {
                 float holdS = Mathf.Max(0.01f, GetIgnitionHoldSeconds());
                 float t = Mathf.Clamp01((Time.unscaledTime - _ignitionHoldStart) / holdS);
-                PutLine(aSpeed, "START " + Mathf.RoundToInt(t * 100f) + "%");
+                status = "START " + Mathf.RoundToInt(t * 100f) + "%";
             }
             else if (showOff)
             {
-                PutLine(aSpeed, "ENGN OFF");
+                status = "ENGN OFF";
             }
 
-            if (isRally)
+            if (fancy)
             {
+                if (showSpeed || showTach || showGear || status != null)
+                {
+                    DrawStoryFancyHud(R, showSpeed, showTach, showGear, ignOn, status);
+                }
                 return;
             }
 
-            if (GetHudStyle() == HudStyle.Rally)
+            if (status != null)
+            {
+                R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
+                R.put(status, 68f, R.height - 64f + 22f + (isRally ? 10f : 0f));
+            }
+
+            if (style == HudStyle.Rally && (showSpeed || showTach || showGear))
             {
                 DrawStoryRallyStyleHud(R, 68f, 40f, showSpeed, showTach, showGear);
-                return;
-            }
-
-            DrawStoryClassicTelemetry(R, PutLine, showSpeed, showTach, showGear, aTach, aGear, xRight, ref yLeft, ref yRight);
-        }
-
-        private static void DrawStoryClassicTelemetry(
-            MiniRenderer R,
-            Action<HudReadoutAnchor, string> putLine,
-            bool showSpeed,
-            bool showTach,
-            bool showGear,
-            HudReadoutAnchor aTach,
-            HudReadoutAnchor aGear,
-            float xRight,
-            ref float yLeft,
-            ref float yRight)
-        {
-            if (showSpeed)
-            {
-                float spd = ConvertSpeedForHud(_currentSpeedKmh);
-                int spdInt = Mathf.Max(0, Mathf.RoundToInt(spd));
-                putLine(GetHudSpeedAnchor(), spdInt + GetHudSpeedUnitLabel(GetHudSpeedUnit()));
-            }
-            if (showTach)
-            {
-                float target = GetEstimatedRpm();
-                float rpmNorm = Mathf.Clamp(GetEstimatedRpmNormForHud(), 0f, 1.2f);
-                bool lastGear = GetManualGear() > 0 && GetManualGear() == GetManualGearCount();
-                string suffix = lastGear ? "" : (rpmNorm >= 1.0f ? "!!" : (rpmNorm >= 0.92f ? "!" : ""));
-                putLine(aTach, Mathf.RoundToInt(target) + "rpm" + suffix);
-            }
-            if (!showGear)
-            {
-                return;
-            }
-
-            int g = GetManualGear();
-            int gearCount = GetManualGearCount();
-            string line = "RN";
-            for (int i = 1; i <= gearCount; i++)
-            {
-                line += i.ToString();
-            }
-
-            if (aGear == HudReadoutAnchor.BottomRight)
-            {
-                float lineXLeft = xRight - 8f * line.Length;
-                R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-                R.put(line, lineXLeft, yRight);
-                int selIndex = g < 0 ? 0 : (g == 0 ? 1 : Mathf.Clamp(g, 1, gearCount) + 1);
-                yRight += 10f;
-                R.put("^", lineXLeft + 8f * selIndex, yRight);
-                yRight += 10f;
-            }
-            else
-            {
-                R.fontOptions.alignment = sFancyText.FontOptions.Alignment.left;
-                R.put(line, 68f, yLeft);
-                int selIndex = g < 0 ? 0 : (g == 0 ? 1 : Mathf.Clamp(g, 1, gearCount) + 1);
-                yLeft += 10f;
-                R.put("^", 68f + 8f * selIndex, yLeft);
-                yLeft += 10f;
             }
         }
 
@@ -3611,6 +3544,13 @@ namespace SebTruck
             float kmh = car.rb != null ? car.rb.linearVelocity.magnitude * 3.6f : 0f;
             var units = GetRallyHudSpeedUnit();
             float speed = units == SpeedUnit.Mph ? kmh * 0.621371f : kmh;
+
+            if (GetRallyHudStyle() == HudStyle.Fancy)
+            {
+                bool atLimiter = car.engine != null && car.engine.engineRPM >= car.engine.redlineRPM * 0.99f;
+                DrawFancyHudParts(R, x, y, showSpeed, showTach, showGear, gear, rpmNorm, atLimiter, speed, units, null, GetRallyOdometerKm(), trip: false);
+                return;
+            }
 
             DrawRallyStyleHudParts(R, x, y, showSpeed, showTach, showGear, gear, gearCount, rpmNorm, speed, GetHudSpeedUnitLabel(units));
         }

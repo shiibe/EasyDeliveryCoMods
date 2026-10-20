@@ -24,20 +24,24 @@
 <hr/>
 
 ## About
-SebTruck adds driving upgrades like manual transmission, Rally transmission settings, ignition controls, turn signals, and compact HUD readouts while you drive for just a bit more realism.
+SebTruck adds driving upgrades like manual transmission, Rally transmission settings, ignition controls, turn signals, and a dashboard HUD with round gauges and an odometer for just a bit more realism.
 
 ## Features
-- Story mode manual transmission with shared Rally shift/direct-gear binds, including H-shifter style `R`, `N`, and `Gear 1-6` inputs.
-- Rally mode Auto/Manual transmission setting that unlocks the game's vanilla manual shifting without entering the cheat manually.
-- Engine overrev sound when nearing the redline of the tachometer.
-- Compact HUD elements for speed, tachometer, and gear display that can be toggled on/off and moved.
-- Turn signals that actually glow and react to steering input. Also a 4-way hazard mode.
-- Synthesized backup alarm with volume, beep rate, and tone controls.
-- Ignition toggle with hold-to-start behavior and sound effect.
-- Change selected Bobblehead and Truck Paint under Truck > Equipment (if you have them unlocked).
-- Rear-view mirror quality: Original, 2x, 4x, or 8x resolution, available under Truck > Tweaks.
-- Mount or remove your purchased Snow Tires and Ice Chains without losing the upgrade, under Truck > Equipment.
-- Horn choice: Meow (the game's default horn) or Woof, under Truck > Equipment.
+
+| Feature | Menu page | Details |
+| --- | --- | --- |
+| Manual transmission | Handling | Story mode manual with shared Rally shift/direct-gear binds, including H-shifter style `R`, `N`, and `Gear 1-6` inputs |
+| Rally transmission | Handling | Auto/Manual setting that unlocks the game's vanilla manual shifting without entering the cheat |
+| Overrev sound | — | Engine overrev sound near the tachometer redline |
+| Ignition | Ignition | Toggle with hold-to-start behavior and sound effect |
+| Turn signals | Turn Signals | Indicators that actually glow and react to steering input, plus a 4-way hazard mode |
+| Backup alarm | Backup Alarm | Synthesized beep with volume, beep rate, and tone controls |
+| HUD gauges | HUD | Speedometer, tachometer, and gear indicator in `Rally` (the game's rally look) or `Fancy` (round dials) style; Fancy works in Story and Rally mode |
+| Odometer | HUD | Rolling odometer and trip meter in km or miles for Story mode, saved per save slot |
+| Mirror quality | Tweaks | Rear-view mirror at Original, 2x, 4x, or 8x resolution |
+| Upgrades | Equipment | Mount or remove purchased Snow Tires, Ice Chains, and Ram Bar without losing the upgrade |
+| Horn | Equipment | Meow (the game's default horn) or Woof |
+| Cosmetics | Equipment | Pick your unlocked Bobblehead and Truck Paint |
 
 ## Screenshots
 <table>
@@ -102,12 +106,20 @@ Backup Alarm page:
 - `Beep Rate`: beep length and matching pause length while reverse is active
 - `Tone`: synthesized beep frequency
 
+HUD (Truck > HUD):
+
+- `Style`: `Off`, `Rally`, or `Fancy` in Story mode; `Rally` or `Fancy` in Rally mode. The old text-based Classic style was removed; anyone using it starts on `Off`.
+- `Units`, `Speedomtr`, `Tachomtr`, `Gear Ind`: shared by both styles. Tachometer and gear show with manual transmission.
+- Fancy dials sit bottom right; the game's radio readout moves up to make room.
+- `Odometer` (Fancy): show the total, the trip, or nothing under the speedometer. In Rally mode it shows the game's own Easy Rally distance.
+- The odometer and trip are stored in the game's save file, so each save slot has its own mileage and it is written when the game saves. `Reset Trip` zeroes the trip. Tunnel trips between towns aren't driven, so they don't count.
+
 Equipment (Truck > Equipment):
 
-- `Snow Tires` / `Ice Chains`: mount or remove upgrades you have already bought in the game. They stay purchased either way; options for upgrades you don't own are greyed out. Both start mounted.
+- `Snow Tires` / `Ice Chains` / `Ram Bar`: mount or remove upgrades you have already bought in the game. They stay purchased either way; options for upgrades you don't own are greyed out. All start mounted. An unmounted ram bar is hidden and no longer smashes trees or protects the truck. The game only shows chains at full size while you drive on ice.
 - `Horn`: `Meow` (default) or `Woof`. Both are the game's own horn sounds, which have the animal sound mixed in. If the chosen sound isn't loaded in a scene, the game's horn plays instead.
 - `Cosmetics`: pick your unlocked `Bobblehead` and `Truck Paint`.
-- Reset Defaults on the Equipment page mounts both upgrades and restores the Meow horn.
+- Reset Defaults on the Equipment page mounts all upgrades and restores the Meow horn.
 
 Mirror quality (Truck > Tweaks):
 
