@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using SebBinds;
 using SebTruck;
+using SebUltrawide;
 using UnityEngine;
 
 internal static class Program
@@ -139,6 +140,25 @@ internal static class Program
         {
             Check(WavPcm16.Read(File.ReadAllBytes("plugins/SebTruck/src/SebTruck/sfx/ignition_on.wav"), out _, out _).Length > 0, "Shipped WAV failed to load");
         }
+        var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+        try
+        {
+            Check(AspectRatioSetting.Parse("2.39", out float decimalAspect) == AspectRatioSetting.Kind.Fixed && Math.Abs(decimalAspect - 2.39f) < 0.001f, "Decimal aspect misread under de-DE");
+            Check(AspectRatioSetting.Parse(" 21:9 ", out float ratioAspect) == AspectRatioSetting.Kind.Fixed && Math.Abs(ratioAspect - 21f / 9f) < 0.001f, "w:h aspect misread");
+            Check(AspectRatioSetting.Parse("Default", out _) == AspectRatioSetting.Kind.Vanilla, "default not vanilla");
+            Check(AspectRatioSetting.Parse("auto", out _) == AspectRatioSetting.Kind.Auto, "auto not auto");
+            Check(AspectRatioSetting.Parse("window", out _) == AspectRatioSetting.Kind.Window, "window not window");
+            Check(AspectRatioSetting.Parse("", out _) == AspectRatioSetting.Kind.Display, "empty not display");
+            Check(AspectRatioSetting.Parse("0:0", out _) == AspectRatioSetting.Kind.Display, "0:0 not display");
+            Check(AspectRatioSetting.Parse("1:100", out _) == AspectRatioSetting.Kind.Display, "tiny ratio not display");
+            Check(AspectRatioSetting.Parse("wide", out _) == AspectRatioSetting.Kind.Display, "junk not display");
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previousCulture;
+        }
+
         Console.WriteLine($"Passed {_checks} regression checks.");
     }
 

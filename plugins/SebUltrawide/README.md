@@ -70,8 +70,6 @@ Install
 - `aspect_ratio`: `default`, `auto`, `w:h` (e.g. `21:9`), or a decimal ratio (e.g. `2.39`)
   - Use `aspect_ratio=default` to disable ultrawide fixes while keeping the in-game settings (FOV/pixelation/view distance).
 - `Logging.debug_logging` (bool): Debug info about applied adjustments
-- `Logging.perf_logging` (bool): Periodic perf counters (noisy)
-- `Logging.perf_log_interval_seconds` (float): How often to emit perf logs
 
 ## In-Game Menu
 - Open `mods.exe` (SebCore) then launch `Graphics`

@@ -15,5 +15,6 @@
     <Compile Include="../../plugins/SebCore/src/SebCore/ModPrefsResetter.cs" />
     <Compile Include="../../plugins/SebCore/src/SebCore/GraphicsPrefs.cs" />
     <Compile Include="../../plugins/SebTruck/src/SebTruck/WavPcm16.cs" />
+    <Compile Include="../../plugins/SebUltrawide/src/SebUltrawide/AspectRatioSetting.cs" />
   </ItemGroup>
 </Project>

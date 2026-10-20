@@ -1,52 +1,11 @@
-using System;
 using System.Collections.Generic;
-using System.Reflection;
-using HarmonyLib;
 using UnityEngine;
 
 namespace SebUltrawide
 {
     public partial class Plugin
     {
-        private static readonly Dictionary<int, Transform> HudDisplayTransforms = new Dictionary<int, Transform>();
         private static readonly Dictionary<int, int> HudMiniRendererOriginalWidths = new Dictionary<int, int>();
-
-        internal static void RefreshHudDisplayScale()
-        {
-            if (!ShouldApplyHudFix())
-            {
-                return;
-            }
-
-            var hudType = AccessTools.TypeByName("sHUD");
-            if (hudType == null)
-            {
-                return;
-            }
-
-            var hud = UnityEngine.Object.FindFirstObjectByType(hudType) as Component;
-            if (hud == null)
-            {
-                return;
-            }
-
-            MonoBehaviour miniRenderer = FindMiniRenderer(hud);
-            if (miniRenderer == null)
-            {
-                return;
-            }
-
-            EnsureMiniRendererRenderTexture(miniRenderer);
-            ApplyHudDisplayScale(miniRenderer);
-        }
-
-
-        private struct PixelPerfectFields
-        {
-            public FieldInfo GameCamera;
-            public FieldInfo MenuWidth;
-            public FieldInfo MenuHeight;
-        }
 
         private struct PixelPerfectState
         {
@@ -66,56 +25,16 @@ namespace SebUltrawide
             }
         }
 
-        private struct MiniRendererFields
+        private static bool PixelPerfectView_AdjustViewPlane_Prefix(pixelPerfectView __instance, Camera ___gameCamera)
         {
-            public FieldInfo Width;
-            public FieldInfo Height;
-        }
-
-        private static bool PixelPerfectView_AdjustViewPlane_Prefix(object __instance)
-        {
-            PerfCount("pixelPerfectView.AdjustViewPlane");
-            if (!ShouldApply() || IsVanillaPresentation())
+            // Narrower-than-16:9 windows keep the game's plane; widening it would squash the 16:9 image.
+            if (__instance == null || ___gameCamera == null || !IsUltrawide())
             {
                 return true;
             }
 
-            if (__instance == null)
-            {
-                return true;
-            }
-
-            var component = __instance as Component;
-            if (component == null)
-            {
-                return true;
-            }
-
-            var type = __instance.GetType();
-            if (!PixelPerfectFieldCache.TryGetValue(type, out var fields))
-            {
-                fields = new PixelPerfectFields
-                {
-                    GameCamera = AccessTools.Field(type, "gameCamera"),
-                    MenuWidth = AccessTools.Field(type, "menuWidth"),
-                    MenuHeight = AccessTools.Field(type, "menuHeight")
-                };
-                PixelPerfectFieldCache[type] = fields;
-            }
-
-            if (fields.GameCamera == null || fields.MenuWidth == null || fields.MenuHeight == null)
-            {
-                return true;
-            }
-
-            var cam = fields.GameCamera.GetValue(__instance) as Camera;
-            if (cam == null)
-            {
-                return true;
-            }
-
-            float menuWidth = (float)fields.MenuWidth.GetValue(__instance);
-            float menuHeight = (float)fields.MenuHeight.GetValue(__instance);
+            float menuWidth = __instance.menuWidth;
+            float menuHeight = __instance.menuHeight;
             if (menuWidth <= 0.01f || menuHeight <= 0.01f)
             {
                 return true;
@@ -125,34 +44,35 @@ namespace SebUltrawide
             bool isWideTarget = sourceAspect > 1.65f && sourceAspect < 1.9f;
             if (!isWideTarget)
             {
-                LogPixelPerfectSkip(component, sourceAspect);
+                LogPixelPerfectSkip(__instance, sourceAspect);
                 return true;
             }
 
-            float num = 2f * component.transform.localPosition.z * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            var transform = __instance.transform;
+            float num = 2f * transform.localPosition.z * Mathf.Tan(___gameCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
             float aspect = GetWindowAspect();
-            int id = component.GetInstanceID();
+            int id = __instance.GetInstanceID();
             var state = new PixelPerfectState
             {
                 Width = Screen.width,
                 Height = Screen.height,
                 Aspect = aspect,
-                Fov = cam.fieldOfView,
-                Z = component.transform.localPosition.z
+                Fov = ___gameCamera.fieldOfView,
+                Z = transform.localPosition.z
             };
 
             if (!PixelPerfectStates.TryGetValue(id, out var previous) || !previous.Equals(state))
             {
                 PixelPerfectStates[id] = state;
-                component.transform.localScale = new Vector3(num * aspect, num, 1f);
+                transform.localScale = new Vector3(num * aspect, num, 1f);
             }
-            LogPixelPerfectScale(component, aspect, sourceAspect);
+            LogPixelPerfectScale(__instance, aspect, sourceAspect);
             return false;
         }
 
-        private static void MiniRenderer_Start_Postfix(object __instance)
+        private static void MiniRenderer_Start_Postfix(MiniRenderer __instance)
         {
-            if (!ShouldApplyHudFix())
+            if (!IsUltrawide())
             {
                 return;
             }
@@ -161,99 +81,93 @@ namespace SebUltrawide
             ApplyHudDisplayScale(__instance);
         }
 
-        private static void EnsureMiniRendererRenderTexture(object renderer)
+        private static void EnsureMiniRendererRenderTexture(MiniRenderer renderer)
         {
-            if (renderer == null)
+            if (renderer == null || renderer.width <= 0 || renderer.height <= 0)
             {
                 return;
             }
 
-            var type = renderer.GetType();
-            var widthField = AccessTools.Field(type, "width");
-            var heightField = AccessTools.Field(type, "height");
-            var rtField = AccessTools.Field(type, "rt");
-            if (widthField == null || heightField == null || rtField == null)
+            var rt = renderer.rt;
+            if (rt != null && rt.width == renderer.width && rt.height == renderer.height)
             {
                 return;
             }
 
-            int width = (int)widthField.GetValue(renderer);
-            int height = (int)heightField.GetValue(renderer);
-            if (width <= 0 || height <= 0)
-            {
-                return;
-            }
-
-            var rt = rtField.GetValue(renderer) as RenderTexture;
-            if (rt != null && rt.width == width && rt.height == height)
-            {
-                return;
-            }
-
-            int depth = rt != null ? rt.depth : 32;
-            var newRt = new RenderTexture(width, height, depth);
+            var newRt = new RenderTexture(renderer.width, renderer.height, rt != null ? rt.depth : 32);
             if (rt != null)
             {
                 newRt.filterMode = rt.filterMode;
             }
 
-            rtField.SetValue(renderer, newRt);
+            renderer.rt = newRt;
             UpdateMiniRendererTextures(renderer, newRt);
 
-            var renderersField = AccessTools.Field(type, "renderers");
-            var rendererNameField = AccessTools.Field(type, "rendererName");
-            if (renderersField != null && rendererNameField != null)
+            if (MiniRenderer.renderers != null && !string.IsNullOrEmpty(renderer.rendererName))
             {
-                var dict = renderersField.GetValue(null) as System.Collections.IDictionary;
-                var name = rendererNameField.GetValue(renderer) as string;
-                if (dict != null && !string.IsNullOrEmpty(name))
-                {
-                    dict[name] = newRt;
-                }
+                MiniRenderer.renderers[renderer.rendererName] = newRt;
             }
         }
 
-        private static void UpdateMiniRendererTextures(object renderer, RenderTexture rt)
+        private static void UpdateMiniRendererTextures(MiniRenderer renderer, RenderTexture rt)
         {
-            if (renderer == null || rt == null)
+            var material = renderer.mat;
+            if (material == null)
             {
-                return;
+                var unityRenderer = renderer.GetComponent<Renderer>();
+                material = unityRenderer != null ? unityRenderer.material : null;
             }
 
-            var type = renderer.GetType();
-            var matField = AccessTools.Field(type, "mat");
-            var material = matField != null ? matField.GetValue(renderer) as Material : null;
             if (material != null)
             {
                 material.SetTexture(MainTexId, rt);
                 material.SetTexture(AlphaTexId, rt);
-                return;
             }
-
-            var component = renderer as Component;
-            if (component == null)
-            {
-                return;
-            }
-
-            var unityRenderer = component.GetComponent<Renderer>();
-            if (unityRenderer == null)
-            {
-                return;
-            }
-
-            unityRenderer.material.SetTexture(MainTexId, rt);
-            unityRenderer.material.SetTexture(AlphaTexId, rt);
         }
 
-        private static void UpdateHudRendererAspect(object hudInstance)
+        private static void RefreshHudRendererAspect()
         {
-            if (!ShouldApplyHudFix())
+            var hud = Object.FindFirstObjectByType<sHUD>();
+            UpdateHudRendererAspect(hud != null ? hud.GetComponentInParent<MiniRenderer>(true) : null);
+        }
+
+        // Widen the HUD canvas on ultrawide; restore the original width when the window is no longer ultrawide.
+        private static void UpdateHudRendererAspect(MiniRenderer miniRenderer)
+        {
+            if (miniRenderer == null || miniRenderer.width <= 0 || miniRenderer.height <= 0)
             {
                 return;
             }
 
-            if (hudInstance == null)
+            bool ultrawide = IsUltrawide();
+            int rendererId = miniRenderer.GetInstanceID();
+            if (!HudMiniRendererOriginalWidths.TryGetValue(rendererId, out int originalWidth))
+            {
+                if (!ultrawide)
+                {
+                    return;
+                }
+
+                originalWidth = miniRenderer.width;
+                HudMiniRendererOriginalWidths[rendererId] = originalWidth;
+            }
+
+            int targetWidth = ultrawide
+                ? Mathf.Clamp(Mathf.RoundToInt(miniRenderer.height * GetWindowAspect()), 1, 8192)
+                : originalWidth;
+            if (miniRenderer.width == targetWidth)
+            {
+                return;
+            }
+
+            miniRenderer.width = targetWidth;
+            EnsureMiniRendererRenderTexture(miniRenderer);
+            LogDebug($"Set HUD MiniRenderer width to {targetWidth} (window aspect {GetWindowAspect():0.###}).");
+        }
+
+        private static void ApplyHudDisplayScale(MiniRenderer renderer)
+        {
+            if (renderer == null || renderer.width <= 0 || renderer.height <= 0)
             {
                 return;
             }
@@ -264,115 +178,10 @@ namespace SebUltrawide
                 return;
             }
 
-            var component = hudInstance as Component;
-            if (component == null)
+            var rt = renderer.rt;
+            foreach (var meshRenderer in renderer.GetComponentsInParent<MeshRenderer>(true))
             {
-                return;
-            }
-
-            MonoBehaviour miniRenderer = FindMiniRenderer(component);
-
-            if (miniRenderer == null)
-            {
-                return;
-            }
-
-            var type = miniRenderer.GetType();
-            if (!MiniRendererFieldCache.TryGetValue(type, out var fields))
-            {
-                fields = new MiniRendererFields
-                {
-                    Width = AccessTools.Field(type, "width"),
-                    Height = AccessTools.Field(type, "height")
-                };
-                MiniRendererFieldCache[type] = fields;
-            }
-
-            if (fields.Width == null || fields.Height == null)
-            {
-                return;
-            }
-
-            int width = (int)fields.Width.GetValue(miniRenderer);
-            int height = (int)fields.Height.GetValue(miniRenderer);
-            if (width <= 0 || height <= 0)
-            {
-                return;
-            }
-
-            int rendererId = miniRenderer.GetInstanceID();
-            if (!HudMiniRendererOriginalWidths.ContainsKey(rendererId))
-            {
-                HudMiniRendererOriginalWidths[rendererId] = width;
-            }
-
-            int targetWidth = Mathf.Clamp(Mathf.RoundToInt(height * windowAspect), 1, 8192);
-            if (width == targetWidth)
-            {
-                return;
-            }
-
-            fields.Width.SetValue(miniRenderer, targetWidth);
-            EnsureMiniRendererRenderTexture(miniRenderer);
-            LogDebug($"Adjusted HUD MiniRenderer width to {targetWidth} for aspect {windowAspect:0.###}.");
-        }
-
-        private static void ApplyHudDisplayScale(object renderer)
-        {
-            if (!ShouldApplyHudFix())
-            {
-                return;
-            }
-
-            if (renderer == null)
-            {
-                return;
-            }
-
-            var component = renderer as Component;
-            if (component == null)
-            {
-                return;
-            }
-
-            var type = renderer.GetType();
-            if (!MiniRendererFieldCache.TryGetValue(type, out var fields))
-            {
-                fields = new MiniRendererFields
-                {
-                    Width = AccessTools.Field(type, "width"),
-                    Height = AccessTools.Field(type, "height")
-                };
-                MiniRendererFieldCache[type] = fields;
-            }
-
-            if (fields.Width == null || fields.Height == null)
-            {
-                return;
-            }
-
-            int width = (int)fields.Width.GetValue(renderer);
-            int height = (int)fields.Height.GetValue(renderer);
-            if (width <= 0 || height <= 0)
-            {
-                return;
-            }
-
-            var meshRenderers = component.GetComponentsInParent<MeshRenderer>(true);
-            if (meshRenderers == null || meshRenderers.Length == 0)
-            {
-                return;
-            }
-
-            var rt = GetRendererTexture(renderer);
-            foreach (var meshRenderer in meshRenderers)
-            {
-                if (meshRenderer == null)
-                {
-                    continue;
-                }
-
-                var material = meshRenderer.sharedMaterial;
+                var material = meshRenderer != null ? meshRenderer.sharedMaterial : null;
                 if (material == null)
                 {
                     continue;
@@ -389,64 +198,12 @@ namespace SebUltrawide
                 {
                     baseScale = transform.localScale;
                     HudDisplayOriginalScales[id] = baseScale;
-                    HudDisplayTransforms[id] = transform;
                 }
 
-                float windowAspect = GetWindowAspect();
-                if (windowAspect <= 0.01f)
-                {
-                    return;
-                }
-
-                float rendererAspect = width / (float)height;
-                float scaleX = windowAspect / rendererAspect;
-                var newScale = new Vector3(baseScale.x * scaleX, baseScale.y, baseScale.z);
-                transform.localScale = newScale;
+                float scaleX = windowAspect / (renderer.width / (float)renderer.height);
+                transform.localScale = new Vector3(baseScale.x * scaleX, baseScale.y, baseScale.z);
                 LogDebug($"Scaled HUD display to {scaleX:0.###}x (aspect {windowAspect:0.###}).");
             }
-        }
-
-        private static Texture GetRendererTexture(object renderer)
-        {
-            var type = renderer.GetType();
-            var rtField = AccessTools.Field(type, "rt");
-            if (rtField == null)
-            {
-                return null;
-            }
-
-            return rtField.GetValue(renderer) as Texture;
-        }
-
-        private static MonoBehaviour FindMiniRenderer(Component component)
-        {
-            if (component == null)
-            {
-                return null;
-            }
-
-            MonoBehaviour miniRenderer = null;
-            var parent = component.transform;
-            while (parent != null)
-            {
-                foreach (var candidate in parent.GetComponents<MonoBehaviour>())
-                {
-                    if (candidate != null && string.Equals(candidate.GetType().Name, "MiniRenderer", StringComparison.Ordinal))
-                    {
-                        miniRenderer = candidate;
-                        break;
-                    }
-                }
-
-                if (miniRenderer != null)
-                {
-                    break;
-                }
-
-                parent = parent.parent;
-            }
-
-            return miniRenderer;
         }
     }
 }

@@ -113,12 +113,10 @@ namespace SebUltrawide
 
             y += line;
 
-            int vsMode = SebCore.ModGraphics.GetVsyncMode();
-            string vsLabel = vsMode == 1 ? "On" : "Off";
-            float? newVsyncValue = Util.SliderRow("VSync", vsMode == 1 ? 1f : 0f, 0f, 1f, vsLabel, center, p.x + p.width - 12f, y, ref MouseYLock);
-            if (newVsyncValue.HasValue)
+            bool? newVsync = Util.Toggle("VSync", SebCore.ModGraphics.GetVsyncMode() == 1, center, y);
+            if (newVsync.HasValue)
             {
-                SebCore.ModGraphics.SetVsyncMode(newVsyncValue.Value >= 0.5f ? 1 : 0);
+                SebCore.ModGraphics.SetVsyncMode(newVsync.Value ? 1 : 0);
             }
 
             y += line + sectionGap;

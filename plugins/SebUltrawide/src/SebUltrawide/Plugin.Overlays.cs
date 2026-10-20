@@ -1,84 +1,30 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace SebUltrawide
 {
     public partial class Plugin
     {
-        private static readonly Dictionary<int, Transform> OverlayTransforms = new Dictionary<int, Transform>();
-        private static readonly Dictionary<int, Vector3> OverlayOriginalScales = new Dictionary<int, Vector3>();
-
-        internal static void RefreshHudBackdrop()
-        {
-            if (!ShouldApply() || !IsUltrawide())
-            {
-                return;
-            }
-
-            var hudType = HarmonyLib.AccessTools.TypeByName("sHUD");
-            if (hudType == null)
-            {
-                return;
-            }
-
-            var hud = UnityEngine.Object.FindFirstObjectByType(hudType);
-            if (hud == null)
-            {
-                return;
-            }
-
-            ScaleBackdropFromField(hud, "backdrop", Camera.main, "sHUD");
-        }
-
         private static void ScaleOverlayBackdrops()
         {
-            if (!ShouldApply() || !IsUltrawide())
+            if (!IsUltrawide())
             {
                 return;
             }
 
             var menuCamera = ResolveMenuCamera(null);
-            ScaleBackdropByTypeName("sHUD", "backdrop", Camera.main);
-            ScaleBackdropByTypeName("ScreenSystem", "backdrop", menuCamera);
-            ScaleBackdropByTypeName("MenuScreenTransition", "backdrop", menuCamera);
-        }
-
-        private static void ScaleBackdropByTypeName(string typeName, string fieldName, Camera fallbackCamera)
-        {
-            var type = HarmonyLib.AccessTools.TypeByName(typeName);
-            if (type == null)
+            foreach (var hud in UnityEngine.Object.FindObjectsByType<sHUD>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                return;
+                ScaleSpriteToCamera(hud.backdrop, Camera.main, "sHUD");
             }
-
-            var objects = UnityEngine.Object.FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None);
-            if (objects == null)
+            foreach (var screen in UnityEngine.Object.FindObjectsByType<ScreenSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                return;
+                ScaleSpriteToCamera(screen.backdrop, menuCamera, "ScreenSystem");
             }
-
-            foreach (var obj in objects)
+            foreach (var transition in UnityEngine.Object.FindObjectsByType<MenuScreenTransition>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                ScaleBackdropFromField(obj, fieldName, fallbackCamera, typeName);
+                ScaleSpriteToCamera(transition.backdrop, menuCamera, "MenuScreenTransition");
             }
-        }
-
-        private static void ScaleBackdropFromField(object instance, string fieldName, Camera fallbackCamera, string label)
-        {
-            if (instance == null)
-            {
-                return;
-            }
-
-            var field = HarmonyLib.AccessTools.Field(instance.GetType(), fieldName);
-            if (field == null)
-            {
-                return;
-            }
-
-            var spriteRenderer = field.GetValue(instance) as SpriteRenderer;
-            ScaleSpriteToCamera(spriteRenderer, fallbackCamera, label);
         }
 
         private static void ScaleOverlaySprites(Component owner, Camera fallbackCamera, string label)
@@ -158,7 +104,7 @@ namespace SebUltrawide
                 return;
             }
 
-            if (!ShouldApply() || !IsUltrawide())
+            if (!IsUltrawide())
             {
                 return;
             }
@@ -182,12 +128,6 @@ namespace SebUltrawide
             }
 
             Vector3 scale = spriteRenderer.transform.localScale;
-            int tid = spriteRenderer.transform.GetInstanceID();
-            if (!OverlayOriginalScales.ContainsKey(tid))
-            {
-                OverlayOriginalScales[tid] = scale;
-                OverlayTransforms[tid] = spriteRenderer.transform;
-            }
             scale.x = targetSize.x / spriteSize.x;
             scale.y = targetSize.y / spriteSize.y;
             spriteRenderer.transform.localScale = scale;

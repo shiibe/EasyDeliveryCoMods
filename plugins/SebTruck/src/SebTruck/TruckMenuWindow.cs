@@ -398,7 +398,7 @@ namespace SebTruck
                 {
                     Plugin.SetMirrorQuality((mirrorQuality + 1) % 4);
                 }
-                y += line;
+                y += line * 2f;
 
                 Util.Label("Cosmetics", cx, y);
                 y += line;

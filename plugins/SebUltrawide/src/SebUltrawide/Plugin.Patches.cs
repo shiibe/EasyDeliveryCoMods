@@ -26,160 +26,60 @@ namespace SebUltrawide
             );
 
             _debugMode = Config.Bind("Logging", "debug_logging", false, "Log debug information about applied adjustments.");
-            _perfLogging = Config.Bind("Logging", "perf_logging", false, "Log periodic performance counters (can be noisy).");
-            _perfLogIntervalSeconds = Config.Bind("Logging", "perf_log_interval_seconds", 10f, "How often to emit perf logs, in seconds.");
-
 
             var harmony = new Harmony(PluginGuid);
-            PatchByName(harmony, "PlayerManager", "SetupCameras", postfix: nameof(PlayerManager_SetupCameras_Postfix));
-            PatchByName(harmony, "RaceManager", "StartRace", postfix: nameof(RaceManager_StartRace_Postfix));
-            PatchByName(harmony, "RaceManager", "StartingCutScene", prefix: nameof(RaceManager_StartingCutScene_Prefix), postfix: nameof(RaceManager_StartingCutScene_Postfix));
-            PatchByName(harmony, "PauseSystem", "Start", postfix: nameof(PauseSystem_Start_Postfix));
-            PatchByName(harmony, "PauseSystem", "SetResolution", postfix: nameof(PauseSystem_SetResolution_Postfix));
-            PatchByName(harmony, "PauseSystem", "SetFullscreen", postfix: nameof(PauseSystem_SetFullscreen_Postfix));
-            PatchByName(harmony, "sOptionsMenu", "FrameUpdate", postfix: nameof(PresentationChange_Postfix));
-            PatchByName(harmony, "sEasyRally", "Update", postfix: nameof(PresentationChange_Postfix));
-            PatchByName(harmony, "sFreeCam", "Start", postfix: nameof(SFreeCam_Start_Postfix));
-            PatchByName(harmony, "sFreeCam", "ToggleFreeCam", postfix: nameof(SFreeCam_ToggleFreeCam_Postfix));
-            PatchByName(harmony, "IntroDotExe", "Setup", postfix: nameof(IntroDotExe_Setup_Postfix));
-            PatchByName(harmony, "ChooseExe", "Setup", postfix: nameof(ChooseExe_Setup_Postfix));
-            PatchByName(harmony, "CamDotExe", "Start", postfix: nameof(CamDotExe_Start_Postfix));
-            PatchByName(harmony, "MiniRenderer", "Start", postfix: nameof(MiniRenderer_Start_Postfix));
-            PatchByName(harmony, "pixelPerfectView", "AdjustViewPlane", prefix: nameof(PixelPerfectView_AdjustViewPlane_Prefix));
-            PatchByName(harmony, "sHUD", "Init", postfix: nameof(SHud_Init_Postfix));
-            PatchByName(harmony, "sHUD", "FadeToBlack", prefix: nameof(SHud_FadeToBlack_Prefix));
-            PatchByName(harmony, "sHUD", "DipToBlack", prefix: nameof(SHud_DipToBlack_Prefix));
-            PatchByName(harmony, "ScreenSystem", "Init", postfix: nameof(ScreenSystem_Init_Postfix));
-            PatchByName(harmony, "ScreenSystem", "DoTransition", postfix: nameof(ScreenSystem_DoTransition_Postfix));
-            PatchByName(harmony, "SceneTransition", "Start", postfix: nameof(SceneTransition_Start_Postfix));
-            PatchByName(harmony, "sTeleporter", "Teleport", postfix: nameof(Steleporter_Teleport_Postfix));
+            Patch(harmony, typeof(RaceManager), nameof(RaceManager.StartRace), postfix: nameof(ApplyAllCameras_Postfix));
+            Patch(harmony, typeof(PauseSystem), "Start", postfix: nameof(PauseSystem_Start_Postfix));
+            Patch(harmony, typeof(PauseSystem), nameof(PauseSystem.SetResolution), postfix: nameof(PresentationResized_Postfix));
+            Patch(harmony, typeof(PauseSystem), nameof(PauseSystem.SetFullscreen), postfix: nameof(PresentationResized_Postfix));
+            Patch(harmony, typeof(sOptionsMenu), "FrameUpdate", postfix: nameof(PresentationChange_Postfix));
+            Patch(harmony, typeof(sEasyRally), "Update", postfix: nameof(PresentationChange_Postfix));
+            Patch(harmony, typeof(sFreeCam), "Start", postfix: nameof(ApplyAllCameras_Postfix));
+            Patch(harmony, typeof(sFreeCam), nameof(sFreeCam.ToggleFreeCam), postfix: nameof(ApplyAllCameras_Postfix));
+            Patch(harmony, typeof(IntroDotExe), nameof(IntroDotExe.Setup), postfix: nameof(IntroDotExe_Setup_Postfix));
+            Patch(harmony, typeof(ChooseExe), nameof(ChooseExe.Setup), postfix: nameof(ChooseExe_Setup_Postfix));
+            Patch(harmony, typeof(CamDotExe), "Start", postfix: nameof(CamDotExe_Start_Postfix));
+            Patch(harmony, typeof(MiniRenderer), "Start", postfix: nameof(MiniRenderer_Start_Postfix));
+            Patch(harmony, typeof(pixelPerfectView), "AdjustViewPlane", prefix: nameof(PixelPerfectView_AdjustViewPlane_Prefix));
+            Patch(harmony, typeof(sHUD), nameof(sHUD.Init), postfix: nameof(SHud_Init_Postfix));
+            Patch(harmony, typeof(sHUD), nameof(sHUD.FadeToBlack), prefix: nameof(SHud_Backdrop_Prefix));
+            Patch(harmony, typeof(sHUD), nameof(sHUD.DipToBlack), prefix: nameof(SHud_Backdrop_Prefix));
+            Patch(harmony, typeof(ScreenSystem), nameof(ScreenSystem.Init), postfix: nameof(ScreenSystem_Postfix));
+            Patch(harmony, typeof(ScreenSystem), "DoTransition", postfix: nameof(ScreenSystem_Postfix));
+            Patch(harmony, typeof(SceneTransition), "Start", postfix: nameof(SceneTransition_Start_Postfix));
+            Patch(harmony, typeof(sTeleporter), "Teleport", postfix: nameof(STeleporter_Teleport_Postfix));
 
             // FOV, pixelation, view distance and vsync live in SebCore.
             SebCore.ModGraphics.OutputAspect = GetPixelationOutputAspect;
-            SebCore.ModGraphics.FreeCamCamera = ApplyFreeCamAspect;
+            SebCore.ModGraphics.FreeCamCamera = ApplyAspect;
             SebCore.ModGraphics.Enable();
-            // Icon/menu launching is handled by SebCore.
-            // Fog controls moved out of this plugin.
         }
 
-        private static bool ShouldOverrideSplitScreen()
+        // Missing targets are logged as warnings so a game update can't break a fix silently.
+        private static void Patch(Harmony harmony, System.Type type, string methodName, string prefix = null, string postfix = null)
         {
-            return ShouldApply() && IsUltrawide();
+            SebCore.HarmonyUtil.PatchByName(harmony, typeof(Plugin), type.FullName, methodName, prefix, postfix, m => _log.LogWarning(m));
         }
 
         #pragma warning disable IDE1006
-        private static void PlayerManager_SetupCameras_Postfix(object __instance)
-        {
-            if (!ShouldOverrideSplitScreen())
-            {
-                return;
-            }
-
-            if (__instance == null)
-            {
-                return;
-            }
-
-            var playersField = AccessTools.Field(__instance.GetType(), "players");
-            if (playersField == null)
-            {
-                return;
-            }
-
-            var players = playersField.GetValue(__instance) as System.Collections.IEnumerable;
-            if (players == null)
-            {
-                return;
-            }
-
-            foreach (var player in players)
-            {
-                var go = player as GameObject;
-                if (go == null)
-                {
-                    continue;
-                }
-
-                var camera = go.GetComponentInChildren<Camera>();
-                ApplyCameraAspect(camera);
-                ApplyCameraViewport(camera);
-            }
-        }
-
-        private static void RaceManager_StartingCutScene_Prefix(object p, ref Rect __state)
-        {
-            if (!ShouldOverrideSplitScreen())
-            {
-                return;
-            }
-
-            var cam = GetRacePlayerCamera(p);
-            if (cam == null)
-            {
-                return;
-            }
-
-            __state = cam.rect;
-            cam.rect = BuildFullRect();
-        }
-
-        private static void RaceManager_StartingCutScene_Postfix(object p, Rect __state)
-        {
-            if (!ShouldOverrideSplitScreen())
-            {
-                return;
-            }
-
-            var cam = GetRacePlayerCamera(p);
-            if (cam == null)
-            {
-                return;
-            }
-
-            cam.rect = __state;
-        }
-
-        private static void RaceManager_StartRace_Postfix()
+        private static void ApplyAllCameras_Postfix()
         {
             ApplyAllCameras();
         }
 
-        private static void PauseSystem_Start_Postfix(object __instance)
+        private static void PauseSystem_Start_Postfix(PauseSystem __instance)
         {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
             if (__instance != null)
             {
-                var mainCameraField = AccessTools.Field(__instance.GetType(), "mainCamera");
-                var mainCamera = mainCameraField != null ? mainCameraField.GetValue(__instance) as Camera : null;
-                ApplyCameraAspect(mainCamera);
+                ApplyCameraAspect(__instance.mainCamera);
             }
 
             ApplyAllCameras();
             ScaleOverlayBackdrops();
         }
 
-        private static void PauseSystem_SetResolution_Postfix()
+        private static void PresentationResized_Postfix()
         {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            ApplyAllCameras();
-            ScaleOverlayBackdrops();
-        }
-
-        private static void PauseSystem_SetFullscreen_Postfix()
-        {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
             ApplyAllCameras();
             ScaleOverlayBackdrops();
         }
@@ -189,177 +89,63 @@ namespace SebUltrawide
             RefreshPresentationIfChanged();
         }
 
-        private static void SFreeCam_ToggleFreeCam_Postfix()
+        private static void SHud_Init_Postfix(sHUD __instance, MiniRenderer R)
         {
-            ApplyAllCameras();
+            UpdateHudRendererAspect(R);
+            ScaleSpriteToCamera(__instance != null ? __instance.backdrop : null, Camera.main, "sHUD");
         }
 
-        private static void SFreeCam_Start_Postfix()
+        private static void SHud_Backdrop_Prefix(sHUD __instance)
         {
-            ApplyAllCameras();
+            ScaleSpriteToCamera(__instance != null ? __instance.backdrop : null, Camera.main, "sHUD");
         }
 
-        private static void SHud_Init_Postfix(object __instance)
+        private static void ScreenSystem_Postfix(ScreenSystem __instance)
         {
-            if (!ShouldApply())
+            if (__instance == null)
             {
                 return;
             }
 
-            if (ShouldApplyHudFix())
-            {
-                UpdateHudRendererAspect(__instance);
-            }
-            ScaleBackdropFromField(__instance, "backdrop", Camera.main, "sHUD");
+            var menuCamera = ResolveMenuCamera(__instance.menuCamera);
+            ScaleSpriteToCamera(__instance.backdrop, menuCamera, "ScreenSystem");
+            ScaleOverlaySprites(__instance, menuCamera, "ScreenSystem");
         }
 
-        private static void SHud_FadeToBlack_Prefix(object __instance)
+        private static void IntroDotExe_Setup_Postfix(IntroDotExe __instance)
         {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            ScaleBackdropFromField(__instance, "backdrop", Camera.main, "sHUD");
+            ApplyMenuCameraAspect(__instance != null ? __instance.menuCamera : null);
         }
 
-        private static void SHud_DipToBlack_Prefix(object __instance)
+        private static void ChooseExe_Setup_Postfix(ChooseExe __instance)
         {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            ScaleBackdropFromField(__instance, "backdrop", Camera.main, "sHUD");
+            ApplyMenuCameraAspect(__instance != null ? __instance.menuCamera : null);
         }
 
-        private static void ScreenSystem_Init_Postfix(object __instance)
+        private static void CamDotExe_Start_Postfix(sFreeCam ___freecam)
         {
-            if (!ShouldApply() || __instance == null)
-            {
-                return;
-            }
-
-            var menuCameraField = AccessTools.Field(__instance.GetType(), "menuCamera");
-            var menuCamera = menuCameraField != null ? menuCameraField.GetValue(__instance) as Camera : null;
-            menuCamera = ResolveMenuCamera(menuCamera);
-            ScaleBackdropFromField(__instance, "backdrop", menuCamera, "ScreenSystem");
-            ScaleOverlaySprites(__instance as Component, menuCamera, "ScreenSystem");
-        }
-
-        private static void ScreenSystem_DoTransition_Postfix(object __instance)
-        {
-            if (!ShouldApply() || __instance == null)
-            {
-                return;
-            }
-
-            var menuCameraField = AccessTools.Field(__instance.GetType(), "menuCamera");
-            var menuCamera = menuCameraField != null ? menuCameraField.GetValue(__instance) as Camera : null;
-            menuCamera = ResolveMenuCamera(menuCamera);
-            ScaleBackdropFromField(__instance, "backdrop", menuCamera, "ScreenSystem");
-            ScaleOverlaySprites(__instance as Component, menuCamera, "ScreenSystem");
-        }
-
-        private static void IntroDotExe_Setup_Postfix(object __instance)
-        {
-            if (!ShouldApply() || __instance == null)
-            {
-                return;
-            }
-
-            var field = AccessTools.Field(__instance.GetType(), "menuCamera");
-            var menuCamera = field != null ? field.GetValue(__instance) as GameObject : null;
-            ApplyMenuCameraAspect(menuCamera);
-        }
-
-        private static void ChooseExe_Setup_Postfix(object __instance)
-        {
-            if (!ShouldApply() || __instance == null)
-            {
-                return;
-            }
-
-            var field = AccessTools.Field(__instance.GetType(), "menuCamera");
-            var menuCamera = field != null ? field.GetValue(__instance) as GameObject : null;
-            ApplyMenuCameraAspect(menuCamera);
-        }
-
-        private static void CamDotExe_Start_Postfix(object __instance)
-        {
-            if (!ShouldApply() || __instance == null)
-            {
-                return;
-            }
-
-            var freeCamField = AccessTools.Field(__instance.GetType(), "freecam");
-            if (freeCamField == null)
-            {
-                return;
-            }
-
-            var freeCam = freeCamField.GetValue(__instance) as Component;
-            if (freeCam == null)
-            {
-                return;
-            }
-
-            var camField = AccessTools.Field(freeCam.GetType(), "cam");
-            if (camField == null)
-            {
-                return;
-            }
-
-            var cam = camField.GetValue(freeCam) as Camera;
+            var cam = ___freecam != null ? ___freecam.cam : null;
             if (cam == null)
             {
                 LogDebug("CamDotExe freecam camera not found for aspect fix.");
                 return;
             }
 
-            ApplyMenuCameraAspect(cam);
+            ApplyAspect(cam);
             LogDebug($"Applied CamDotExe freecam aspect fix to {cam.name} ({cam.GetInstanceID()}).");
         }
 
-        private static void SceneTransition_Start_Postfix(object __instance)
+        private static void SceneTransition_Start_Postfix(SceneTransition __instance, SpriteRenderer ___sr)
         {
-            if (!ShouldApply() || __instance == null)
-            {
-                return;
-            }
-
-            var srField = AccessTools.Field(__instance.GetType(), "sr");
-            var sr = srField != null ? srField.GetValue(__instance) as SpriteRenderer : null;
-            if (sr == null)
-            {
-                var component = __instance as Component;
-                sr = component != null ? component.GetComponent<SpriteRenderer>() : null;
-            }
-
-            ScaleSpriteToCamera(sr, Camera.main, "SceneTransition");
-            ScaleOverlaySprites(__instance as Component, Camera.main, "SceneTransition");
+            ScaleSpriteToCamera(___sr, Camera.main, "SceneTransition");
+            ScaleOverlaySprites(__instance, Camera.main, "SceneTransition");
         }
 
-        private static void Steleporter_Teleport_Postfix()
+        private static void STeleporter_Teleport_Postfix()
         {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            var hudType = AccessTools.TypeByName("sHUD");
-            if (hudType == null)
-            {
-                return;
-            }
-
-            var hud = UnityEngine.Object.FindFirstObjectByType(hudType);
-            if (hud == null)
-            {
-                return;
-            }
-
-            ScaleBackdropFromField(hud, "backdrop", Camera.main, "sHUD");
+            var hud = Object.FindFirstObjectByType<sHUD>();
+            ScaleSpriteToCamera(hud != null ? hud.backdrop : null, Camera.main, "sHUD");
         }
+        #pragma warning restore IDE1006
     }
 }

@@ -1,4 +1,11 @@
 ## 1.1.3
+- Fix the 3D view being squeezed on screens narrower than 16:9 (16:10 laptops, Steam Deck, 4:3); those keep the game's own sizing now.
+- Fix decimal `aspect_ratio` values such as `2.39` being read as `239` on systems that use a comma for decimals.
+- Fix the rear-view mirror image being stretched on ultrawide.
+- Split-screen views keep the game's layout instead of being forced to full screen.
+- The HUD now updates its width when the resolution or fullscreen mode changes, and returns to normal when the window is no longer ultrawide.
+- A game update that renames something this mod hooks into now logs a warning instead of failing silently.
+- Remove the `perf_logging` and `perf_log_interval_seconds` options.
 - Move FOV, pixelation, view distance, and vsync into SebCore so only one copy runs when SebTweaks is also installed; saved settings are kept. Requires SebCore 1.1.1.
 - View distance Max keeps this mod's values (shadow distance 8000, LOD bias 12, far clip 250000); SebTweaks now uses them too.
 - The world-space HUD label fix also moved to SebCore.

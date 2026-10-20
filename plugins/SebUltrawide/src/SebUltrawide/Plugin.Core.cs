@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using HarmonyLib;
 using UnityEngine;
 
 namespace SebUltrawide
@@ -13,56 +11,28 @@ namespace SebUltrawide
         private const float DefaultAspect = 16f / 9f;
 
         private static ConfigEntry<bool> _debugMode;
-        private static ConfigEntry<bool> _perfLogging;
-        private static ConfigEntry<float> _perfLogIntervalSeconds;
         private static ConfigEntry<string> _aspectRatio;
 
         private static ManualLogSource _log;
         private static readonly Dictionary<int, Vector2> OverlayTargetSizes = new Dictionary<int, Vector2>();
         private static readonly Dictionary<int, float> PixelViewAspects = new Dictionary<int, float>();
         private static readonly Dictionary<int, float> PixelViewSkipAspects = new Dictionary<int, float>();
-        private static readonly Dictionary<Type, PixelPerfectFields> PixelPerfectFieldCache = new Dictionary<Type, PixelPerfectFields>();
         private static readonly Dictionary<int, PixelPerfectState> PixelPerfectStates = new Dictionary<int, PixelPerfectState>();
-        private static readonly Dictionary<string, int> PerfCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        private static readonly Dictionary<Type, MiniRendererFields> MiniRendererFieldCache = new Dictionary<Type, MiniRendererFields>();
         private static readonly Dictionary<int, Vector3> HudDisplayOriginalScales = new Dictionary<int, Vector3>();
         private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
         private static readonly int AlphaTexId = Shader.PropertyToID("_AlphaTex");
-        private static float _perfLastLogTime;
         private static int _lastScreenWidth = -1;
         private static int _lastScreenHeight = -1;
         private static bool _lastScreenFullscreen;
 
-        private static bool ShouldApply()
+        private static AspectRatioSetting.Kind ParseAspectSetting(out float aspect)
         {
-            return true;
-        }
-
-        private static bool ShouldApplyHudFix()
-        {
-            return ShouldApply() && IsUltrawide();
+            return AspectRatioSetting.Parse(_aspectRatio != null ? _aspectRatio.Value : "auto", out aspect);
         }
 
         private static bool IsVanillaPresentation()
         {
-            string raw = _aspectRatio != null ? _aspectRatio.Value : "auto";
-            string normalized = string.IsNullOrWhiteSpace(raw) ? "" : raw.Trim().ToLowerInvariant();
-            return normalized == "default" || normalized == "native" || normalized == "vanilla";
-        }
-
-        internal static bool GetDebugMode()
-        {
-            return _debugMode != null && _debugMode.Value;
-        }
-
-        internal static void SetDebugMode(bool value)
-        {
-            if (_debugMode == null)
-            {
-                return;
-            }
-
-            _debugMode.Value = value;
+            return ParseAspectSetting(out _) == AspectRatioSetting.Kind.Vanilla;
         }
 
         private static void RefreshPresentationIfChanged()
@@ -80,13 +50,9 @@ namespace SebUltrawide
             _lastScreenHeight = height;
             _lastScreenFullscreen = fullscreen;
 
-            if (!ShouldApply())
-            {
-                return;
-            }
-
             ApplyAllCameras();
             ScaleOverlayBackdrops();
+            RefreshHudRendererAspect();
             SebCore.ModGraphics.ApplySaved();
             LogDebug($"Refreshed presentation after resolution/fullscreen change: {width}x{height}, fullscreen={fullscreen}.");
         }
@@ -105,30 +71,19 @@ namespace SebUltrawide
 
         private static float GetTargetAspect()
         {
-            string raw = _aspectRatio != null ? _aspectRatio.Value : "auto";
-            string normalized = string.IsNullOrWhiteSpace(raw) ? "" : raw.Trim().ToLowerInvariant();
-            if (normalized == "auto" || normalized == "match")
+            switch (ParseAspectSetting(out float aspect))
             {
-                float window = GetWindowAspect();
-                return Mathf.Round(window * 100f) / 100f;
+                case AspectRatioSetting.Kind.Vanilla:
+                    return DefaultAspect;
+                case AspectRatioSetting.Kind.Auto:
+                    return Mathf.Round(GetWindowAspect() * 100f) / 100f;
+                case AspectRatioSetting.Kind.Window:
+                    return GetWindowAspect();
+                case AspectRatioSetting.Kind.Fixed:
+                    return aspect;
+                default:
+                    return GetDisplayAspect();
             }
-
-            if (!TryParseAspect(raw, out float aspect, out bool useWindow))
-            {
-                return GetDisplayAspect();
-            }
-
-            if (useWindow)
-            {
-                return GetWindowAspect();
-            }
-
-            if (aspect <= 0.1f)
-            {
-                return GetDisplayAspect();
-            }
-
-            return aspect;
         }
 
         private static float GetDisplayAspect()
@@ -151,53 +106,6 @@ namespace SebUltrawide
             return (float)Screen.width / Screen.height;
         }
 
-        private static bool TryParseAspect(string value, out float aspect, out bool useWindow)
-        {
-            aspect = 0f;
-            useWindow = false;
-
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return false;
-            }
-
-            string normalized = value.Trim().ToLowerInvariant();
-            if (normalized == "display" || normalized == "auto" || normalized == "match")
-            {
-                return true;
-            }
-
-            if (normalized == "default" || normalized == "native" || normalized == "vanilla")
-            {
-                aspect = DefaultAspect;
-                return true;
-            }
-
-            if (normalized == "window")
-            {
-                useWindow = true;
-                return true;
-            }
-
-            if (normalized.Contains(":"))
-            {
-                string[] parts = normalized.Split(':');
-                if (parts.Length == 2 && float.TryParse(parts[0], out float w) && float.TryParse(parts[1], out float h) && h > 0.01f)
-                {
-                    aspect = w / h;
-                    return true;
-                }
-            }
-
-            if (float.TryParse(normalized, out float direct) && direct > 0.1f)
-            {
-                aspect = direct;
-                return true;
-            }
-
-            return false;
-        }
-
         private static bool IsUltrawide()
         {
             if (IsVanillaPresentation())
@@ -208,43 +116,6 @@ namespace SebUltrawide
             return GetWindowAspect() > DefaultAspect + 0.01f;
         }
 
-        private static Rect BuildFullRect()
-        {
-            return new Rect(0f, 0f, 1f, 1f);
-        }
-
-        private static bool ShouldForceViewport(Camera camera, Rect rect)
-        {
-            if (!ShouldApply() || !IsUltrawide())
-            {
-                return false;
-            }
-
-            if (GetTargetAspect() <= DefaultAspect + 0.01f)
-            {
-                return false;
-            }
-
-            if (camera == null)
-            {
-                return false;
-            }
-
-            if (!IsPrimaryGameplayCamera(camera))
-            {
-                return false;
-            }
-
-            if (rect.width >= 0.99f && rect.height >= 0.99f)
-            {
-                return false;
-            }
-
-            bool letterboxVertical = rect.width >= 0.98f && rect.height < 0.98f && rect.x <= 0.01f;
-            bool letterboxHorizontal = rect.height >= 0.98f && rect.width < 0.98f && rect.y <= 0.01f;
-            return letterboxVertical || letterboxHorizontal;
-        }
-
         private static bool IsPrimaryGameplayCamera(Camera camera)
         {
             if (camera == null)
@@ -252,12 +123,8 @@ namespace SebUltrawide
                 return false;
             }
 
+            // Not RearViewCam: the mirror renders into its own fixed-aspect texture.
             if (string.Equals(camera.name, "Camera Persp", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (string.Equals(camera.name, "RearViewCam", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -265,89 +132,32 @@ namespace SebUltrawide
             return camera == Camera.main;
         }
 
-        private static void ApplyCameraViewport(Camera camera)
-        {
-            if (camera == null)
-            {
-                return;
-            }
-
-            if (!ShouldApply())
-            {
-                return;
-            }
-
-            if (!IsUltrawide())
-            {
-                return;
-            }
-
-            if (!ShouldForceViewport(camera, camera.rect))
-            {
-                return;
-            }
-
-            camera.rect = BuildFullRect();
-            LogDebug($"Resized viewport to full screen for {camera.name} ({camera.GetInstanceID()}).");
-        }
-
         private static void ApplyCameraAspect(Camera camera)
         {
-            if (camera == null)
+            // Split-screen views keep the game's own aspect.
+            if (!IsPrimaryGameplayCamera(camera) || camera.rect.width < 0.99f || camera.rect.height < 0.99f)
             {
                 return;
             }
 
-            if (!ShouldApply() || !IsUltrawide())
-            {
-                return;
-            }
+            ApplyAspect(camera);
+        }
 
-            if (!IsPrimaryGameplayCamera(camera))
+        private static void ApplyAspect(Camera camera)
+        {
+            if (camera == null || !IsUltrawide())
             {
                 return;
             }
 
             float targetAspect = GetTargetAspect();
-            if (targetAspect <= 0.01f)
-            {
-                return;
-            }
-
-            if (Mathf.Abs(camera.aspect - targetAspect) < 0.0001f)
+            if (targetAspect <= 0.01f || Mathf.Abs(camera.aspect - targetAspect) < 0.0001f)
             {
                 return;
             }
 
             camera.aspect = targetAspect;
             LogDebug($"Forced aspect for {camera.name} ({camera.GetInstanceID()}) to {targetAspect:0.###}.");
-        }
-
-        private static void ApplyMenuCameraAspect(Camera camera)
-        {
-            if (camera == null)
-            {
-                return;
-            }
-
-            if (!ShouldApply() || !IsUltrawide())
-            {
-                return;
-            }
-
-            float targetAspect = GetTargetAspect();
-            if (targetAspect <= 0.01f)
-            {
-                return;
-            }
-
-            if (Mathf.Abs(camera.aspect - targetAspect) < 0.0001f)
-            {
-                return;
-            }
-
-            camera.aspect = targetAspect;
-            LogDebug($"Forced menu aspect for {camera.name} ({camera.GetInstanceID()}) to {targetAspect:0.###}.");
         }
 
         private static void ApplyMenuCameraAspect(GameObject menuCameraObject)
@@ -357,38 +167,11 @@ namespace SebUltrawide
                 return;
             }
 
-            var cam = menuCameraObject.GetComponentInChildren<Camera>(true);
-            ApplyMenuCameraAspect(cam);
-        }
-
-        private static void ApplyFreeCamAspect(Camera camera)
-        {
-            if (camera == null)
-            {
-                return;
-            }
-
-            if (!ShouldApply() || !IsUltrawide())
-            {
-                return;
-            }
-
-            float targetAspect = GetTargetAspect();
-            if (targetAspect <= 0.01f)
-            {
-                return;
-            }
-
-            camera.aspect = targetAspect;
+            ApplyAspect(menuCameraObject.GetComponentInChildren<Camera>(true));
         }
 
         private static void ApplyAllCameras()
         {
-            if (!ShouldApply())
-            {
-                return;
-            }
-
             if (!IsUltrawide())
             {
                 return;
@@ -397,7 +180,6 @@ namespace SebUltrawide
             foreach (var camera in Camera.allCameras)
             {
                 ApplyCameraAspect(camera);
-                ApplyCameraViewport(camera);
             }
         }
     }
