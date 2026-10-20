@@ -21,7 +21,8 @@ namespace SebTruck
             TurnSignals = 2,
             BackupAlarm = 3,
             Hud = 4,
-            Tweaks = 5
+            Tweaks = 5,
+            Equipment = 6
         }
 
         protected override void DrawWindow(Rect p)
@@ -32,7 +33,7 @@ namespace SebTruck
             float line = 12f;
             float sectionGap = 4f;
 
-            const int pageCount = 6;
+            const int pageCount = 7;
 
             Util.Label("Truck", cx, y);
             y += line;
@@ -91,6 +92,7 @@ namespace SebTruck
                 else if (_page == Page.TurnSignals) Plugin.ResetIndicatorDefaults();
                 else if (_page == Page.BackupAlarm) Plugin.ResetBackupAlarmDefaults();
                 else if (_page == Page.Hud) Plugin.ResetHudDefaults();
+                else if (_page == Page.Equipment) Plugin.ResetEquipmentDefaults();
                 else Plugin.ResetTweaksDefaults();
             }
 
@@ -356,6 +358,66 @@ namespace SebTruck
                 return;
             }
 
+            if (_page == Page.Equipment)
+            {
+                // Greyed out until the upgrade is bought in the game.
+                bool hasTires = Plugin.HasSnowTiresUpgrade();
+                bool? newTires = Util.Toggle("Snow Tires", hasTires && Plugin.GetMountSnowTires(), center, y, hasTires);
+                if (newTires.HasValue)
+                {
+                    Plugin.SetMountSnowTires(newTires.Value);
+                }
+                y += line;
+
+                bool hasChains = Plugin.HasIceChainsUpgrade();
+                bool? newChains = Util.Toggle("Ice Chains", hasChains && Plugin.GetMountIceChains(), center, y, hasChains);
+                if (newChains.HasValue)
+                {
+                    Plugin.SetMountIceChains(newChains.Value);
+                }
+                y += line * 2f;
+
+                int horn = Plugin.GetHornIndex();
+                if (Util.CycleButtonRaw("Horn", Plugin.HornLabels[horn], center, y))
+                {
+                    Plugin.SetHornIndex((horn + 1) % Plugin.HornLabels.Length);
+                }
+                y += line * 2f;
+
+                Util.Label("Cosmetics", cx, y);
+                y += line;
+
+                int bobble = Plugin.GetSelectedBobbleIndexUnlockedOrNone();
+                if (Util.CycleButtonRaw("Bobblehead", Plugin.GetBobbleLabel(bobble), center, y))
+                {
+                    if (!Plugin.HasAnyUnlockedBobbleheads())
+                    {
+                        _toastMsg = "No Bobbleheads unlocked.";
+                        _toastUntil = Time.unscaledTime + 2.0f;
+                    }
+                    else
+                    {
+                        Plugin.CycleBobbleheadSelection();
+                    }
+                }
+                y += line;
+
+                int paint = Plugin.GetSelectedPaintIndexUnlockedOrDefault();
+                if (Util.CycleButtonRaw("Truck Paint", Plugin.GetPaintLabel(paint), center, y))
+                {
+                    if (!Plugin.HasAnyUnlockedPaints())
+                    {
+                        _toastMsg = "No Paints unlocked.";
+                        _toastUntil = Time.unscaledTime + 2.0f;
+                    }
+                    else
+                    {
+                        Plugin.CyclePaintSelection();
+                    }
+                }
+                return;
+            }
+
             // Tweaks
             {
                 
@@ -398,9 +460,6 @@ namespace SebTruck
                 {
                     Plugin.SetMirrorQuality((mirrorQuality + 1) % 4);
                 }
-                y += line * 2f;
-
-                Util.Label("Cosmetics", cx, y);
                 y += line;
 
                 float wheelScale = Plugin.GetWheelScale();
@@ -408,36 +467,6 @@ namespace SebTruck
                 if (newWheelScale.HasValue)
                 {
                     Plugin.SetWheelScale(newWheelScale.Value);
-                }
-                y += line;
-
-                int bobble = Plugin.GetSelectedBobbleIndexUnlockedOrNone();
-                if (Util.CycleButtonRaw("Bobblehead", Plugin.GetBobbleLabel(bobble), center, y))
-                {
-                    if (!Plugin.HasAnyUnlockedBobbleheads())
-                    {
-                        _toastMsg = "No Bobbleheads unlocked.";
-                        _toastUntil = Time.unscaledTime + 2.0f;
-                    }
-                    else
-                    {
-                        Plugin.CycleBobbleheadSelection();
-                    }
-                }
-                y += line;
-
-                int paint = Plugin.GetSelectedPaintIndexUnlockedOrDefault();
-                if (Util.CycleButtonRaw("Truck Paint", Plugin.GetPaintLabel(paint), center, y))
-                {
-                    if (!Plugin.HasAnyUnlockedPaints())
-                    {
-                        _toastMsg = "No Paints unlocked.";
-                        _toastUntil = Time.unscaledTime + 2.0f;
-                    }
-                    else
-                    {
-                        Plugin.CyclePaintSelection();
-                    }
                 }
             }
         }

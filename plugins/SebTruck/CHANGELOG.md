@@ -1,4 +1,7 @@
 ## 1.1.7
+- Add a Truck > Equipment page: mount or remove purchased Snow Tires and Ice Chains without losing the upgrade.
+- Add a horn choice on the Equipment page: Meow (the game's default horn) or Woof.
+- Move Bobblehead and Truck Paint from Tweaks to the Equipment page.
 - Rear-view mirror quality now runs through SebCore's shared graphics pipeline, so it no longer fights SebTweaks/SebUltrawide pixelation. Requires SebCore 1.1.1.
 - Add Original/2x/4x/8x rear-view mirror resolution options in Truck > Tweaks, with original resolution restored on reset or disable.
 - Use SebCore's shared slider rows and page controls without changing settings or page behavior.

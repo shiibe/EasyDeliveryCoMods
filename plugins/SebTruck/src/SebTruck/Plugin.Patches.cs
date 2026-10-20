@@ -2727,26 +2727,12 @@ namespace SebTruck
                 data[i] = s * env * 0.14f;
             }
 
-            var audioClipType = Type.GetType("UnityEngine.AudioClip, UnityEngine.AudioModule");
-            if (audioClipType == null)
-            {
-                return null;
-            }
-
-            var create = audioClipType.GetMethod("Create", new[] { typeof(string), typeof(int), typeof(int), typeof(int), typeof(bool) });
-            if (create == null)
-            {
-                return null;
-            }
-
-            _backupBeepClip = create.Invoke(null, new object[] { "SebTruck_BackupBeep", count, 1, sampleRate, false }) as UnityEngine.Object;
+            _backupBeepClip = CreateAudioClip("SebTruck_BackupBeep", data, sampleRate);
             if (_backupBeepClip == null)
             {
                 return null;
             }
 
-            var setData = audioClipType.GetMethod("SetData", new[] { typeof(float[]), typeof(int) });
-            setData?.Invoke(_backupBeepClip, new object[] { data, 0 });
             _backupBeepClipTone = tone;
             _backupBeepClipDuration = duration;
             return _backupBeepClip;

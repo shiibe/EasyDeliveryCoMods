@@ -34,8 +34,10 @@ SebTruck adds driving upgrades like manual transmission, Rally transmission sett
 - Turn signals that actually glow and react to steering input. Also a 4-way hazard mode.
 - Synthesized backup alarm with volume, beep rate, and tone controls.
 - Ignition toggle with hold-to-start behavior and sound effect.
-- Change selected Bobblehead and Truck Paint in the menu (if you have them unlocked).
+- Change selected Bobblehead and Truck Paint under Truck > Equipment (if you have them unlocked).
 - Rear-view mirror quality: Original, 2x, 4x, or 8x resolution, available under Truck > Tweaks.
+- Mount or remove your purchased Snow Tires and Ice Chains without losing the upgrade, under Truck > Equipment.
+- Horn choice: Meow (the game's default horn) or Woof, under Truck > Equipment.
 
 ## Screenshots
 <table>
@@ -99,6 +101,13 @@ Backup Alarm page:
 - `Volume`: beep volume
 - `Beep Rate`: beep length and matching pause length while reverse is active
 - `Tone`: synthesized beep frequency
+
+Equipment (Truck > Equipment):
+
+- `Snow Tires` / `Ice Chains`: mount or remove upgrades you have already bought in the game. They stay purchased either way; options for upgrades you don't own are greyed out. Both start mounted.
+- `Horn`: `Meow` (default) or `Woof`. Both are the game's own horn sounds, which have the animal sound mixed in. If the chosen sound isn't loaded in a scene, the game's horn plays instead.
+- `Cosmetics`: pick your unlocked `Bobblehead` and `Truck Paint`.
+- Reset Defaults on the Equipment page mounts both upgrades and restores the Meow horn.
 
 Mirror quality (Truck > Tweaks):
 
