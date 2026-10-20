@@ -241,7 +241,27 @@ namespace SebBinds
             }
             if (input.Kind == BindingKind.GamepadButton)
             {
-                return "Pad " + input.Code;
+                // Codes are UnityEngine.InputSystem.LowLevel.GamepadButton values; Xbox names match the in-game prompts.
+                switch (input.Code)
+                {
+                    case 0: return "DP-U";
+                    case 1: return "DP-D";
+                    case 2: return "DP-L";
+                    case 3: return "DP-R";
+                    case 4: return "Y";
+                    case 5: return "B";
+                    case 6: return "A";
+                    case 7: return "X";
+                    case 8: return "L3";
+                    case 9: return "R3";
+                    case 10: return "LB";
+                    case 11: return "RB";
+                    case 12: return "Start";
+                    case 13: return "Select";
+                    case 32: return "LT";
+                    case 33: return "RT";
+                    default: return "Pad " + input.Code;
+                }
             }
             if (input.Kind == BindingKind.GamepadDpad)
             {
@@ -342,12 +362,6 @@ namespace SebBinds
                 case UnityEngine.InputSystem.Key.NumpadPeriod: return "Num.";
                 default: return key.ToString();
             }
-        }
-
-        public static string GetChordLabel(BindingInput input, bool modified)
-        {
-            string baseLabel = GetBindingLabel(input);
-            return baseLabel;
         }
 
         public static string GetActionLabel(BindAction action)

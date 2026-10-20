@@ -30,6 +30,7 @@ namespace SebLogiWheel
             // Icon/menu launching is handled by SebCore.
             PatchByName(harmony, "sCarController", "Update", prefix: nameof(SCarController_Update_Prefix));
             PatchByName(harmony, "sInputManager", "GetInput", postfix: nameof(SInputManager_GetInput_Postfix));
+            PatchByName(harmony, "CarDamage", "OnCollisionEnter", postfix: nameof(CarDamage_OnCollisionEnter_Postfix));
 
             DetectWheelOnce();
             TryInitLogitech();
@@ -78,20 +79,49 @@ namespace SebLogiWheel
             float throttle = NormalizePedal(rawThrottle, PedalKind.Throttle);
             float brake = NormalizePedal(rawBrake, PedalKind.Brake);
 
-            // Prevent tiny pedal noise from causing creep.
-            if (throttle < 0.05f)
-            {
-                throttle = 0f;
-            }
-            if (brake < 0.05f)
-            {
-                brake = 0f;
-            }
-
             float accel = Mathf.Clamp(throttle - brake, -1f, 1f);
             __instance.driveInput = new Vector2(steering, accel);
             
             SetWheelLastInput(steering, accel);
+        }
+
+        // __args instead of a named parameter so a changed game signature skips the jolt instead of failing the patch.
+        private static void CarDamage_OnCollisionEnter_Postfix(Component __instance, object[] __args)
+        {
+            if (!_logiAvailable || _isInWalkingMode || PauseSystem.paused || !GetFfbEnabled() || __instance == null)
+            {
+                return;
+            }
+
+            if (__args == null || __args.Length == 0 || !(__args[0] is Collision collision) || collision.contactCount == 0)
+            {
+                return;
+            }
+
+            // Ignore scrapes; ~15 m/s impact hits full strength.
+            float impact = collision.relativeVelocity.magnitude;
+            if (impact < 2f)
+            {
+                return;
+            }
+            int magnitude = Mathf.Clamp(Mathf.RoundToInt(impact * 6.5f), 0, 100);
+
+            try
+            {
+                Vector3 normal = collision.GetContact(0).normal;
+                if (Mathf.Abs(Vector3.Dot(normal, __instance.transform.forward)) > 0.7f)
+                {
+                    LogitechGSDK.LogiPlayFrontalCollisionForce(_logiIndex, magnitude);
+                }
+                else
+                {
+                    LogitechGSDK.LogiPlaySideCollisionForce(_logiIndex, magnitude);
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         #pragma warning disable IDE1006
@@ -132,6 +162,7 @@ namespace SebLogiWheel
                     }
                 }
                 _isOffRoad = offroad;
+                _wheelSlide = totalSlide;
                 _isSliding = totalSlide > 2.0f;
             }
         }

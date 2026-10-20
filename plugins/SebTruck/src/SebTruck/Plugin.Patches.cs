@@ -55,7 +55,6 @@ namespace SebTruck
         private static bool _indicatorCancelArmed;
         private static IndicatorMode _indicatorCancelArmedForMode;
 
-        private static readonly BindingScheme[] _bindingSchemes = { BindingScheme.Controller, BindingScheme.Keyboard, BindingScheme.Wheel };
 
         private sealed class IndicatorCache
         {
@@ -2773,33 +2772,6 @@ namespace SebTruck
             __result = true;
         }
 
-        private static bool PressedAnyBinding(BindAction action)
-        {
-            BindingEvaluator.BeginFrame();
-
-            for (int i = 0; i < _bindingSchemes.Length; i++)
-            {
-                BindingScheme scheme = _bindingSchemes[i];
-                var mod = BindingStore.GetModifierBinding(scheme);
-                BindingLayer layer = mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)
-                    ? BindingLayer.Modified
-                    : BindingLayer.Normal;
-
-                var binding = BindingStore.GetBinding(scheme, layer, action);
-                if (binding.Kind == BindingKind.None && layer == BindingLayer.Modified)
-                {
-                    binding = BindingStore.GetBinding(scheme, BindingLayer.Normal, action);
-                }
-
-                if (binding.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(binding))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         [HarmonyPatch(typeof(sInputManager), "Update")]
         [HarmonyPostfix]
         private static void SInputManager_Update_Postfix()
@@ -2809,7 +2781,7 @@ namespace SebTruck
                 return;
             }
 
-            if (PressedAnyBinding(BindAction.ToggleGearbox))
+            if (SebBinds.SebBindsApi.WasActionPressed(BindAction.ToggleGearbox, normalFallback: true))
             {
                 SetRallyManualTransmissionEnabled(!GetRallyManualTransmissionEnabled());
             }
@@ -2849,65 +2821,9 @@ namespace SebTruck
 
             BindingEvaluator.BeginFrame();
 
-            var schemes = _bindingSchemes;
-
-            bool Pressed(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(b);
-            bool Released(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasReleasedThisFrame(b);
-            bool Down(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.IsDown(b);
-
-            BindingLayer LayerFor(BindingScheme s)
-            {
-                var mod = BindingStore.GetModifierBinding(s);
-                bool modifierDown = mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod);
-                return modifierDown ? BindingLayer.Modified : BindingLayer.Normal;
-            }
-
-            BindingInput GetBind(BindingScheme s, BindAction action)
-            {
-                var layer = LayerFor(s);
-                var b = BindingStore.GetBinding(s, layer, action);
-                if (b.Kind == BindingKind.None && layer == BindingLayer.Modified)
-                {
-                    b = BindingStore.GetBinding(s, BindingLayer.Normal, action);
-                }
-                return b;
-            }
-
-            bool PressedAny(BindAction a)
-            {
-                for (int i = 0; i < schemes.Length; i++)
-                {
-                    if (Pressed(GetBind(schemes[i], a)))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            bool ReleasedAny(BindAction a)
-            {
-                for (int i = 0; i < schemes.Length; i++)
-                {
-                    if (Released(GetBind(schemes[i], a)))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            bool DownAny(BindAction a)
-            {
-                for (int i = 0; i < schemes.Length; i++)
-                {
-                    if (Down(GetBind(schemes[i], a)))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
+            bool PressedAny(BindAction a) => SebBinds.SebBindsApi.WasActionPressed(a, normalFallback: true);
+            bool ReleasedAny(BindAction a) => SebBinds.SebBindsApi.WasActionReleased(a, normalFallback: true);
+            bool DownAny(BindAction a) => SebBinds.SebBindsApi.IsActionDown(a, normalFallback: true);
 
             // Transmission + ignition binds.
             {

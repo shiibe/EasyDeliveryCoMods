@@ -118,10 +118,9 @@ namespace SebBinds
             }
 
             BindingEvaluator.BeginFrame();
-            var schemes = wheelPluginPresent ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
 
-            __instance.shiftUp = PressedAny(BindAction.ShiftUp, schemes);
-            __instance.shiftDown = PressedAny(BindAction.ShiftDown, schemes);
+            __instance.shiftUp = SebBindsApi.WasActionPressed(BindAction.ShiftUp);
+            __instance.shiftDown = SebBindsApi.WasActionPressed(BindAction.ShiftDown);
         }
 
         private static void MigrateLegacyBinds()
@@ -222,89 +221,12 @@ namespace SebBinds
 
             BindingEvaluator.BeginFrame();
 
-            var schemes = wheelPluginPresent ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
-
-            BindingLayer ctrlLayer = BindingLayer.Normal;
-            BindingLayer kbLayer = BindingLayer.Normal;
-            BindingLayer wheelLayer = BindingLayer.Normal;
-            {
-                var mod = BindingStore.GetModifierBinding(BindingScheme.Controller);
-                if (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) ctrlLayer = BindingLayer.Modified;
-            }
-            {
-                var mod = BindingStore.GetModifierBinding(BindingScheme.Keyboard);
-                if (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) kbLayer = BindingLayer.Modified;
-            }
-            if (wheelPluginPresent)
-            {
-                var mod = BindingStore.GetModifierBinding(BindingScheme.Wheel);
-                if (mod.Kind != BindingKind.None && BindingEvaluator.IsDown(mod)) wheelLayer = BindingLayer.Modified;
-            }
-
-            BindingLayer LayerFor(BindingScheme s)
-            {
-                return s == BindingScheme.Keyboard ? kbLayer : (s == BindingScheme.Wheel ? wheelLayer : ctrlLayer);
-            }
-
-            BindingInput GetBind(BindingScheme s, BindAction action)
-            {
-                var layer = LayerFor(s);
-                return BindingStore.GetBinding(s, layer, action);
-            }
-
-            bool Pressed(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(b);
-            bool Released(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.WasReleasedThisFrame(b);
+            BindingInput GetBind(BindingScheme s, BindAction action) => SebBindsApi.GetActiveBinding(s, action);
             bool Down(BindingInput b) => b.Kind != BindingKind.None && BindingEvaluator.IsDown(b);
-
-            bool AnyBindingExists(BindAction action)
-            {
-                for (int i = 0; i < schemes.Length; i++)
-                {
-                    var bN = BindingStore.GetBinding(schemes[i], BindingLayer.Normal, action);
-                    var bM = BindingStore.GetBinding(schemes[i], BindingLayer.Modified, action);
-                    if (bN.Kind != BindingKind.None || bM.Kind != BindingKind.None)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            bool PressedAny(BindAction action)
-            {
-                for (int i = 0; i < schemes.Length; i++)
-                {
-                    if (Pressed(GetBind(schemes[i], action)))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            bool ReleasedAny(BindAction action)
-            {
-                for (int i = 0; i < schemes.Length; i++)
-                {
-                    if (Released(GetBind(schemes[i], action)))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            bool DownAny(BindAction action)
-            {
-                for (int i = 0; i < schemes.Length; i++)
-                {
-                    if (Down(GetBind(schemes[i], action)))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
+            bool AnyBindingExists(BindAction action) => SebBindsApi.IsActionBound(action);
+            bool PressedAny(BindAction action) => SebBindsApi.WasActionPressed(action);
+            bool ReleasedAny(BindAction action) => SebBindsApi.WasActionReleased(action);
+            bool DownAny(BindAction action) => SebBindsApi.IsActionDown(action);
 
             if (IsRallyMenuActive())
             {
@@ -705,30 +627,30 @@ namespace SebBinds
 
             if (SebBindsApi.GetShiftMode() == ShiftMode.Hold)
             {
-                ShiftRallyDirectGear(__instance, GetHeldDirectGear(schemes));
+                ShiftRallyDirectGear(__instance, GetHeldDirectGear());
                 return;
             }
 
-            if (PressedAny(BindAction.GearReverse, schemes)) ShiftRallyDirectGear(__instance, -1);
-            if (PressedAny(BindAction.GearNeutral, schemes)) ShiftRallyDirectGear(__instance, 0);
-            if (PressedAny(BindAction.Gear1, schemes)) ShiftRallyDirectGear(__instance, 1);
-            if (PressedAny(BindAction.Gear2, schemes)) ShiftRallyDirectGear(__instance, 2);
-            if (PressedAny(BindAction.Gear3, schemes)) ShiftRallyDirectGear(__instance, 3);
-            if (PressedAny(BindAction.Gear4, schemes)) ShiftRallyDirectGear(__instance, 4);
-            if (PressedAny(BindAction.Gear5, schemes)) ShiftRallyDirectGear(__instance, 5);
-            if (PressedAny(BindAction.Gear6, schemes)) ShiftRallyDirectGear(__instance, 6);
+            if (SebBindsApi.WasActionPressed(BindAction.GearReverse)) ShiftRallyDirectGear(__instance, -1);
+            if (SebBindsApi.WasActionPressed(BindAction.GearNeutral)) ShiftRallyDirectGear(__instance, 0);
+            if (SebBindsApi.WasActionPressed(BindAction.Gear1)) ShiftRallyDirectGear(__instance, 1);
+            if (SebBindsApi.WasActionPressed(BindAction.Gear2)) ShiftRallyDirectGear(__instance, 2);
+            if (SebBindsApi.WasActionPressed(BindAction.Gear3)) ShiftRallyDirectGear(__instance, 3);
+            if (SebBindsApi.WasActionPressed(BindAction.Gear4)) ShiftRallyDirectGear(__instance, 4);
+            if (SebBindsApi.WasActionPressed(BindAction.Gear5)) ShiftRallyDirectGear(__instance, 5);
+            if (SebBindsApi.WasActionPressed(BindAction.Gear6)) ShiftRallyDirectGear(__instance, 6);
         }
 
-        private static int GetHeldDirectGear(BindingScheme[] schemes)
+        private static int GetHeldDirectGear()
         {
-            if (DownAny(BindAction.GearReverse, schemes)) return -1;
-            if (DownAny(BindAction.GearNeutral, schemes)) return 0;
-            if (DownAny(BindAction.Gear1, schemes)) return 1;
-            if (DownAny(BindAction.Gear2, schemes)) return 2;
-            if (DownAny(BindAction.Gear3, schemes)) return 3;
-            if (DownAny(BindAction.Gear4, schemes)) return 4;
-            if (DownAny(BindAction.Gear5, schemes)) return 5;
-            if (DownAny(BindAction.Gear6, schemes)) return 6;
+            if (SebBindsApi.IsActionDown(BindAction.GearReverse)) return -1;
+            if (SebBindsApi.IsActionDown(BindAction.GearNeutral)) return 0;
+            if (SebBindsApi.IsActionDown(BindAction.Gear1)) return 1;
+            if (SebBindsApi.IsActionDown(BindAction.Gear2)) return 2;
+            if (SebBindsApi.IsActionDown(BindAction.Gear3)) return 3;
+            if (SebBindsApi.IsActionDown(BindAction.Gear4)) return 4;
+            if (SebBindsApi.IsActionDown(BindAction.Gear5)) return 5;
+            if (SebBindsApi.IsActionDown(BindAction.Gear6)) return 6;
             return 0;
         }
 
@@ -747,9 +669,9 @@ namespace SebBinds
 
         private static void ApplyRallyClutch(sRallyDriving rally, BindingScheme[] schemes, float previousClutch)
         {
-            bool hasClutchBind = AnyBindingExists(BindAction.Clutch, schemes);
+            bool hasClutchBind = SebBindsApi.IsActionBound(BindAction.Clutch);
             bool hasClutchAxis = false;
-            float clutch = DownAny(BindAction.Clutch, schemes) ? 1f : 0f;
+            float clutch = SebBindsApi.IsActionDown(BindAction.Clutch) ? 1f : 0f;
 
             for (int i = 0; i < schemes.Length; i++)
             {
@@ -896,54 +818,6 @@ namespace SebBinds
             input.btnp.b = b && !prevB;
             input.btnp.start = start && !prevStart;
             input.btnp.select = select && !prevSelect;
-        }
-
-        private static BindingLayer GetActiveLayer(BindingScheme scheme)
-        {
-            var modifier = BindingStore.GetModifierBinding(scheme);
-            return modifier.Kind != BindingKind.None && BindingEvaluator.IsDown(modifier)
-                ? BindingLayer.Modified
-                : BindingLayer.Normal;
-        }
-
-        private static bool AnyBindingExists(BindAction action, BindingScheme[] schemes)
-        {
-            for (int i = 0; i < schemes.Length; i++)
-            {
-                var normal = BindingStore.GetBinding(schemes[i], BindingLayer.Normal, action);
-                var modified = BindingStore.GetBinding(schemes[i], BindingLayer.Modified, action);
-                if (normal.Kind != BindingKind.None || modified.Kind != BindingKind.None)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static bool DownAny(BindAction action, BindingScheme[] schemes)
-        {
-            for (int i = 0; i < schemes.Length; i++)
-            {
-                var binding = BindingStore.GetBinding(schemes[i], GetActiveLayer(schemes[i]), action);
-                if (binding.Kind != BindingKind.None && BindingEvaluator.IsDown(binding))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static bool PressedAny(BindAction action, BindingScheme[] schemes)
-        {
-            for (int i = 0; i < schemes.Length; i++)
-            {
-                var binding = BindingStore.GetBinding(schemes[i], GetActiveLayer(schemes[i]), action);
-                if (binding.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(binding))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
 
         private static void ApplyHoldToReset(sInputManager input, bool isBound, bool isDown, float holdSeconds)

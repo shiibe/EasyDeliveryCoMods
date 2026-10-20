@@ -1,4 +1,10 @@
 ## 1.1.4
+- Fix uncalibrated defaults being saved from the first wheel reading (a pedal held or wheel turned at launch stuck until recalibrating); the "not calibrated" warning now shows until the wizard is run.
+- Pedal deadzone now rescales the remaining travel, so light throttle/brake no longer jumps from 0% to 5%.
+- Fix spring/damper FFB sliders being applied twice (once in-game, once through the driver).
+- FFB: steering centering lightens as the tires lose grip.
+- FFB: frontal/side jolt on collisions, scaled by impact speed.
+- Perf: poll the Logitech SDK once per frame instead of twice.
 - Use SebCore's shared slider rows for steering and force-feedback settings.
 - Require the native Logitech wrapper DLL when packaging releases.
 - Update dependencies for the binding and preference reset fixes.

@@ -490,16 +490,6 @@ namespace SebLogiWheel
             return "None";
         }
 
-        internal static string GetChordLabel(BindingInput input, bool modified)
-        {
-            string baseLabel = GetBindingLabel(input);
-            if (!modified || input.Kind == BindingKind.None)
-            {
-                return baseLabel;
-            }
-            return "M+" + baseLabel;
-        }
-
         internal static string GetActionLabel(ButtonBindAction action)
         {
             switch (action)
@@ -767,6 +757,7 @@ namespace SebLogiWheel
         private static float _currentSpeedKmh;
         private static bool _isOffRoad;
         private static bool _isSliding;
+        private static float _wheelSlide;
 
         private static int _wheelLastUpdateFrame;
         private static float _wheelLastUpdateTime;
@@ -903,6 +894,7 @@ namespace SebLogiWheel
             PlayerPrefs.DeleteKey(PrefKeyCalSteerCenter);
             PlayerPrefs.DeleteKey(PrefKeyCalSteerLeft);
             PlayerPrefs.DeleteKey(PrefKeyCalSteerRight);
+            _calSeeded = false;
         }
 
         internal static AxisId GetThrottleAxis()
@@ -927,6 +919,7 @@ namespace SebLogiWheel
             PlayerPrefs.SetInt(PrefKeyThrottleAxis, (int)axis);
             PlayerPrefs.DeleteKey(PrefKeyCalThrottleReleased);
             PlayerPrefs.DeleteKey(PrefKeyCalThrottlePressed);
+            _calSeeded = false;
         }
 
         internal static void SetBrakeAxis(AxisId axis)
@@ -934,6 +927,7 @@ namespace SebLogiWheel
             PlayerPrefs.SetInt(PrefKeyBrakeAxis, (int)axis);
             PlayerPrefs.DeleteKey(PrefKeyCalBrakeReleased);
             PlayerPrefs.DeleteKey(PrefKeyCalBrakePressed);
+            _calSeeded = false;
         }
 
         internal static void SetClutchAxis(AxisId axis)
@@ -941,6 +935,7 @@ namespace SebLogiWheel
             PlayerPrefs.SetInt(PrefKeyClutchAxis, (int)axis);
             PlayerPrefs.DeleteKey(PrefKeyCalClutchReleased);
             PlayerPrefs.DeleteKey(PrefKeyCalClutchPressed);
+            _calSeeded = false;
         }
 
         private static void DetectWheelOnce()
@@ -1093,6 +1088,7 @@ namespace SebLogiWheel
             // Prefer the actual wheel if multiple devices are present.
             try
             {
+                _logiUpdateFrame = -1; // Fresh SDK: don't reuse a result polled before init this frame.
                 SafeLogiUpdate();
                 SelectBestLogitechDeviceIndex();
             }
@@ -1636,52 +1632,26 @@ namespace SebLogiWheel
             return true;
         }
 
+        // Guessed calibration used until the wizard runs. Kept in memory so a pedal held or wheel turned at launch
+        // is never persisted, and HasCalibration() stays false until the user actually calibrates.
+        private static bool _calSeeded;
+        private static int _calSeedSteerCenter;
+        private static readonly int[] _calSeedPedalReleased = { 32767, 32767, 32767 };
+
         private static void EnsureDefaultCalibrationFromState(LogitechGSDK.DIJOYSTATE2ENGINES state)
         {
-            // If the user hasn't calibrated yet, seed "released" pedal values from the current reading.
+            if (_calSeeded)
+            {
+                return;
+            }
+            _calSeeded = true;
+
+            // Seed "released" pedal values from the current reading.
             // This avoids the common "half throttle" case when the axis rests near 0.
-            int throttleRaw = GetAxisValue(state, GetThrottleAxis());
-            if (!PlayerPrefs.HasKey(PrefKeyCalThrottleReleased))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalThrottleReleased, throttleRaw);
-            }
-            if (!PlayerPrefs.HasKey(PrefKeyCalThrottlePressed))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalThrottlePressed, GuessPressedFromReleased(PlayerPrefs.GetInt(PrefKeyCalThrottleReleased)));
-            }
-
-            int brakeRaw = GetAxisValue(state, GetBrakeAxis());
-            if (!PlayerPrefs.HasKey(PrefKeyCalBrakeReleased))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalBrakeReleased, brakeRaw);
-            }
-            if (!PlayerPrefs.HasKey(PrefKeyCalBrakePressed))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalBrakePressed, GuessPressedFromReleased(PlayerPrefs.GetInt(PrefKeyCalBrakeReleased)));
-            }
-
-            int clutchRaw = GetAxisValue(state, GetClutchAxis());
-            if (!PlayerPrefs.HasKey(PrefKeyCalClutchReleased))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalClutchReleased, clutchRaw);
-            }
-            if (!PlayerPrefs.HasKey(PrefKeyCalClutchPressed))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalClutchPressed, GuessPressedFromReleased(PlayerPrefs.GetInt(PrefKeyCalClutchReleased)));
-            }
-
-            if (!PlayerPrefs.HasKey(PrefKeyCalSteerCenter))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalSteerCenter, GetAxisValue(state, GetSteeringAxis()));
-            }
-            if (!PlayerPrefs.HasKey(PrefKeyCalSteerLeft))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalSteerLeft, -32768);
-            }
-            if (!PlayerPrefs.HasKey(PrefKeyCalSteerRight))
-            {
-                PlayerPrefs.SetInt(PrefKeyCalSteerRight, 32767);
-            }
+            _calSeedPedalReleased[(int)PedalKind.Throttle] = GetAxisValue(state, GetThrottleAxis());
+            _calSeedPedalReleased[(int)PedalKind.Brake] = GetAxisValue(state, GetBrakeAxis());
+            _calSeedPedalReleased[(int)PedalKind.Clutch] = GetAxisValue(state, GetClutchAxis());
+            _calSeedSteerCenter = GetAxisValue(state, GetSteeringAxis());
         }
 
         private static int GuessPressedFromReleased(int released)
@@ -1744,13 +1714,14 @@ namespace SebLogiWheel
 
             PlayerPrefs.DeleteKey(PrefKeyCalClutchReleased);
             PlayerPrefs.DeleteKey(PrefKeyCalClutchPressed);
+            _calSeeded = false;
         }
 
         internal static float NormalizeSteering(int rawX)
         {
             int left = PlayerPrefs.GetInt(PrefKeyCalSteerLeft, -32768);
             int right = PlayerPrefs.GetInt(PrefKeyCalSteerRight, 32767);
-            int center = PlayerPrefs.GetInt(PrefKeyCalSteerCenter, (left + right) / 2);
+            int center = PlayerPrefs.GetInt(PrefKeyCalSteerCenter, _calSeedSteerCenter);
 
             if (right == left)
             {
@@ -1808,16 +1779,13 @@ namespace SebLogiWheel
                     break;
             }
 
-            int released = PlayerPrefs.GetInt(releasedKey, 32767);
-            int pressed = PlayerPrefs.GetInt(pressedKey, -32768);
+            int released = PlayerPrefs.GetInt(releasedKey, _calSeedPedalReleased[(int)kind]);
+            int pressed = PlayerPrefs.GetInt(pressedKey, GuessPressedFromReleased(released));
 
-            float t = Mathf.InverseLerp(released, pressed, rawAxis);
-            t = Mathf.Clamp01(t);
-            if (t < 0.05f)
-            {
-                t = 0f;
-            }
-            return t;
+            // 5% deadzone against pedal noise/creep, re-scaled so light pressure is still usable.
+            const float deadzone = 0.05f;
+            float t = Mathf.Clamp01(Mathf.InverseLerp(released, pressed, rawAxis));
+            return t <= deadzone ? 0f : (t - deadzone) / (1f - deadzone);
         }
 
         internal static int GetAxisValue(LogitechGSDK.DIJOYSTATE2ENGINES state, AxisId axis)
@@ -1992,7 +1960,10 @@ namespace SebLogiWheel
             }
 
             // Spring is the main "centering" force; allow a stronger top-end.
-            int springCoeff = Mathf.RoundToInt(Mathf.Lerp(20f, 95f, Mathf.Clamp01(speed / 100f)) * GetFfbSpringGain());
+            // Lighten centering as the tires lose grip so slides read through the wheel.
+            // shortcut: slide thresholds tuned by eye against the >2 "sliding" cutoff, retune on hardware if it feels off.
+            float grip = menuMode ? 1f : 1f - 0.6f * Mathf.Clamp01((_wheelSlide - 1f) / 4f);
+            int springCoeff = Mathf.RoundToInt(Mathf.Lerp(20f, 95f, Mathf.Clamp01(speed / 100f)) * GetFfbSpringGain() * grip);
             springCoeff = Mathf.Clamp(springCoeff, 0, 100);
             if (springCoeff != _ffbLastSpring)
             {
@@ -2079,16 +2050,27 @@ namespace SebLogiWheel
             }
         }
 
+        private static int _logiUpdateFrame = -1;
+        private static bool _logiUpdateResult;
+
         private static bool SafeLogiUpdate()
         {
+            // Input and FFB both need fresh state; poll the SDK once per frame.
+            if (Time.frameCount == _logiUpdateFrame)
+            {
+                return _logiUpdateResult;
+            }
+            _logiUpdateFrame = Time.frameCount;
+
             try
             {
-                return LogitechGSDK.LogiUpdate();
+                _logiUpdateResult = LogitechGSDK.LogiUpdate();
             }
             catch
             {
-                return false;
+                _logiUpdateResult = false;
             }
+            return _logiUpdateResult;
         }
 
         private static void StopAllForces()
@@ -2132,8 +2114,10 @@ namespace SebLogiWheel
                 {
                     forceEnable = forceEnable,
                     overallGain = Mathf.RoundToInt(GetFfbOverallGain() * 100f),
-                    springGain = Mathf.RoundToInt(GetFfbSpringGain() * 100f),
-                    damperGain = Mathf.RoundToInt(GetFfbDamperGain() * 100f),
+                    // Spring/damper sliders already scale the coefficients in UpdateFfb; leave the driver gain at 100
+                    // so they are not applied twice.
+                    springGain = 100,
+                    damperGain = 100,
                     defaultSpringEnabled = false,
                     defaultSpringGain = 0,
                     combinePedals = false,

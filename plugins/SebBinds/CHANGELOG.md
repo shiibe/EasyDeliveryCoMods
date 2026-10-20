@@ -2,6 +2,10 @@
 - Use SebCore's shared window lifecycle and page controls while preserving capture and Back behavior.
 - Fix rebound Rally clutch travel and preserve explicitly cleared bindings across restarts.
 - Share binding serialization and add regression checks for input persistence and reset behavior.
+- Fix press-type binds (Horn, Shift Up, Jobs, etc.) never firing when bound to a wheel axis, wheel D-pad axis, or controller D-pad axis.
+- Fix held actions (Inventory, Back, Interact) getting stuck when the modifier is pressed or released mid-hold.
+- Show controller button names (A/B/X/Y/LB/RB/LT/RT/L3/R3/Start/Select) instead of `Pad N` in the Binds menu.
+- API: add `SebBindsApi.IsActionDown`, `WasActionPressed`, `WasActionReleased`, `IsActionBound`, `GetActiveLayer`, and `GetActiveBinding`.
 
 ## 1.1.4
 - Use SebCore's shared cartridge launcher when opening the Wheel menu from calibration prompts.

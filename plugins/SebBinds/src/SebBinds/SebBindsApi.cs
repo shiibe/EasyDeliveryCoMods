@@ -67,6 +67,85 @@ namespace SebBinds
             return mode == ShiftMode.Hold ? "Hold" : "Toggle";
         }
 
+        private static readonly BindingScheme[] SchemesControllerKeyboard = { BindingScheme.Controller, BindingScheme.Keyboard };
+        private static readonly BindingScheme[] SchemesControllerKeyboardWheel = { BindingScheme.Controller, BindingScheme.Keyboard, BindingScheme.Wheel };
+        private static readonly EdgeTracker ActionEdges = new EdgeTracker();
+
+        private static BindingScheme[] ActiveSchemes =>
+            WheelInterop.IsWheelPluginPresent() ? SchemesControllerKeyboardWheel : SchemesControllerKeyboard;
+
+        // Modified while the scheme's modifier is held, otherwise Normal.
+        public static BindingLayer GetActiveLayer(BindingScheme scheme)
+        {
+            var modifier = BindingStore.GetModifierBinding(scheme);
+            return modifier.Kind != BindingKind.None && BindingEvaluator.IsDown(modifier)
+                ? BindingLayer.Modified
+                : BindingLayer.Normal;
+        }
+
+        // normalFallback: while the modifier is held, use the Normal bind when the action has no Modified bind.
+        public static BindingInput GetActiveBinding(BindingScheme scheme, BindAction action, bool normalFallback = false)
+        {
+            var layer = GetActiveLayer(scheme);
+            var binding = BindingStore.GetBinding(scheme, layer, action);
+            if (normalFallback && binding.Kind == BindingKind.None && layer == BindingLayer.Modified)
+            {
+                binding = BindingStore.GetBinding(scheme, BindingLayer.Normal, action);
+            }
+            return binding;
+        }
+
+        // True when the action has a bind on either layer of any active scheme.
+        public static bool IsActionBound(BindAction action)
+        {
+            var schemes = ActiveSchemes;
+            for (int i = 0; i < schemes.Length; i++)
+            {
+                if (BindingStore.GetBinding(schemes[i], BindingLayer.Normal, action).Kind != BindingKind.None ||
+                    BindingStore.GetBinding(schemes[i], BindingLayer.Modified, action).Kind != BindingKind.None)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool IsActionDown(BindAction action, bool normalFallback = false)
+        {
+            var schemes = ActiveSchemes;
+            for (int i = 0; i < schemes.Length; i++)
+            {
+                var binding = GetActiveBinding(schemes[i], action, normalFallback);
+                if (binding.Kind != BindingKind.None && BindingEvaluator.IsDown(binding))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool WasActionPressed(BindAction action, bool normalFallback = false)
+        {
+            var schemes = ActiveSchemes;
+            for (int i = 0; i < schemes.Length; i++)
+            {
+                var binding = GetActiveBinding(schemes[i], action, normalFallback);
+                if (binding.Kind != BindingKind.None && BindingEvaluator.WasPressedThisFrame(binding))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Tracked per action, not per bind: if the modifier flips the layer mid-hold, the held bind
+        // drops out of the active layer and this reports the release instead of leaving the action stuck.
+        public static bool WasActionReleased(BindAction action, bool normalFallback = false)
+        {
+            int key = ((int)action << 1) | (normalFallback ? 1 : 0);
+            return ActionEdges.Released(key, Time.frameCount, IsActionDown(action, normalFallback));
+        }
+
         public static void RegisterAxisProvider(IAxisProvider provider)
         {
             if (provider == null) throw new ArgumentNullException(nameof(provider));

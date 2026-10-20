@@ -3,6 +3,7 @@
 - Use SebCore's shared slider rows and page controls without changing settings or page behavior.
 - Reject malformed ignition WAV chunks and validate PCM16 format before loading sound.
 - Update dependencies for the binding and preference reset fixes.
+- Use SebBinds' shared action helpers for ignition, indicator, and gearbox binds, fixing ignition hold release when the modifier changes mid-hold.
 
 ## 1.1.6
 - Use SebCore's shared cartridge window base and UI wiring for the Truck menu.

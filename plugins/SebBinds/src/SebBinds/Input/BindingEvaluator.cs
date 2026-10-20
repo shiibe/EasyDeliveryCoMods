@@ -8,6 +8,12 @@ namespace SebBinds
     public static class BindingEvaluator
     {
         private const float AxisPressThreshold = 0.35f;
+        private static readonly EdgeTracker SampledEdges = new EdgeTracker();
+
+        private static bool HasNoNativeEdges(BindingKind kind)
+        {
+            return kind == BindingKind.WheelAxis || kind == BindingKind.WheelDpadAxis || kind == BindingKind.GamepadDpadAxis;
+        }
 
         private static int _axisCacheFrame = -1;
         private static Gamepad _axisCacheGamepad;
@@ -224,7 +230,7 @@ namespace SebBinds
                 return Mathf.Abs(GetAxisValue(input)) > AxisPressThreshold;
             }
 
-            if (input.Kind == BindingKind.WheelDpadAxis)
+            if (input.Kind == BindingKind.WheelDpadAxis || input.Kind == BindingKind.GamepadDpadAxis)
             {
                 return Mathf.Abs(GetAxisValue(input)) > AxisPressThreshold;
             }
@@ -327,13 +333,10 @@ namespace SebBinds
                 }
             }
 
-            if (input.Kind == BindingKind.GamepadAxis)
+            if (HasNoNativeEdges(input.Kind))
             {
-                float prev = GetPrevAxisValue(input);
-                float cur = GetAxisValue(input);
-                return prev <= AxisPressThreshold && cur > AxisPressThreshold;
+                return SampledEdges.Pressed(BindingStore.Encode(input), Time.frameCount, IsDown(input));
             }
-
 
             return false;
         }
@@ -413,13 +416,10 @@ namespace SebBinds
                 }
             }
 
-            if (input.Kind == BindingKind.GamepadAxis)
+            if (HasNoNativeEdges(input.Kind))
             {
-                float prev = GetPrevAxisValue(input);
-                float cur = GetAxisValue(input);
-                return prev > AxisPressThreshold && cur <= AxisPressThreshold;
+                return SampledEdges.Released(BindingStore.Encode(input), Time.frameCount, IsDown(input));
             }
-
 
             return false;
         }
